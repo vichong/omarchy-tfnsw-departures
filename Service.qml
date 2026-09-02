@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.3.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.4.0"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -739,6 +739,14 @@ QtObject {
     pillMode = Model.pillMode(board, place, now)
     urgency = Model.urgency(board, place, now)
     maybeNotify(now)
+  }
+
+  function legsFor(depId) {
+    var wanted = String(depId || "")
+    for (var i = 0; i < board.length; i++) if (String(board[i].id) === wanted)
+      return Model.legRows(board[i])
+
+    return []
   }
 
   function setPopupOpen(value) {

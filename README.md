@@ -40,6 +40,13 @@ Place chips make the distinction explicit: `From Home` is a departure board,
 while `Home → Wynyard` is a planned trip. Trip rows show departure → arrival in
 the right column, with travel time and changes underneath.
 
+### Trips with changes
+
+Trip rows show the first service and its direction. Click a row, or select it
+and press Enter, to expand every ride, walk and transfer; only one trip stays
+expanded at a time. Per-leg platforms, realtime status and disruption alerts
+remain attached to the service they affect.
+
 You can optionally filter lines, destination text and modes, then set the walking
 time. An empty line/mode filter shows everything.
 The bar mark can remain monochrome with the rest of Omarchy or use the TfNSW
@@ -78,8 +85,8 @@ you manually selected a place in the previous 30 minutes.
 ## Keyboard
 
 In the popup, `↑`/`↓` or `j`/`k` moves through departures, `←`/`→` changes
-place, `Esc` closes, and `Tab` moves to the next panel. Enter has no action in
-v0.3.
+place, Enter expands or collapses the selected trip, `Esc` closes, and `Tab`
+moves to the next panel.
 
 ## IPC scripting
 

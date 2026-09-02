@@ -77,9 +77,22 @@ assert(tripNotification && / · arrives [0-9]{2}:[0-9]{2}$/.test(tripNotificatio
 const multi = Api.parseJourneys(fixture("trip_surry_hills_to_chatswood.json"))
 const commute = { id: "sh", name: "Home", stopId: "201029", stopName: "Surry Hills Light Rail", destStopId: "206710", destStopName: "Chatswood Station", lines: [], destination: "", modes: [], walkMinutes: 3, ssid: "" }
 const commuteNow = multi[0].departMs - 12 * 60000
-const commuteRows = Model.buildRows(Model.boardFromJourneys(multi, commute, commuteNow), commute, commuteNow)
+const commuteBoard = Model.boardFromJourneys(multi, commute, commuteNow)
+const commuteRows = Model.buildRows(commuteBoard, commute, commuteNow)
 assert(commuteRows.length >= 2 && commuteRows[0].changesText === "1 change" && /^L[23] → M1$/.test(commuteRows[0].legsSummary), "multi-leg journey rows summarise the change")
+assert(commuteBoard[0].legs === multi[0].legs, "journey entry keeps the parsed legs array")
+equal([commuteBoard[0].headsign, commuteRows[0].headsign], [multi[0].legs[0].destination, multi[0].legs[0].destination], "journey entry and row expose the first ride headsign")
+const legRows = Model.legRows(commuteBoard[0])
+equal(legRows.map(r => r.kind), ["ride", "change", "ride"], "a transfer gap between adjacent rides becomes a change row")
+equal([legRows[0].line, legRows[0].headsign, legRows[0].from, legRows[0].to, legRows[0].realtime], ["L3", "Circular Quay", "Surry Hills Light Rail", "Central Chalmers Street Light Rail", true], "first ride keeps its direction, endpoints and realtime state")
+equal([legRows[1].minutes, legRows[1].from], [9, "Central Station"], "change row gives rounded gap and change stop")
+equal([legRows[2].line, legRows[2].headsign, legRows[2].platform], ["M1", "Tallawong", "26"], "second ride keeps its own direction and platform")
+assert(Object.keys(legRows[0]).sort().join(",") === ["alertTitle", "arriveText", "departText", "disruption", "from", "headsign", "kind", "line", "minutes", "mode", "platform", "realtime", "to"].sort().join(","), "leg rows have the documented shape")
+const withWalk = { legs: [multi[0].legs[0], Object.assign({}, multi[0].legs[0], { kind: "walk", mode: "walk", line: "", destination: "", platform: "", from: multi[0].legs[0].to, to: multi[0].legs[1].from, departMs: multi[0].legs[0].arriveMs, arriveMs: multi[0].legs[1].departMs, durationSec: 510, realtime: false, infos: [] }), multi[0].legs[1]] }
+equal(Model.legRows(withWalk).map(r => r.kind), ["ride", "walk", "ride"], "an explicit walking leg suppresses the change pseudo-row")
 assert(/^L[23] · 9′ → /.test(Model.pillText(Model.boardFromJourneys(multi, commute, commuteNow), commute, commuteNow)), "pill leads with the first leg and ends with the arrival")
+const changeNotification = Model.notificationFor(commuteBoard, commute, multi[0].departMs - 4 * 60000, {})
+assert(changeNotification && / · change at Central$/.test(changeNotification.body), "multi-leg trip notification names the change stop")
 equal(Model.placeLabel(home), "From Home", "place without destination reads as an origin")
 equal(Model.placeLabel(tripPlace), "Home → Wynyard", "trip label shows the destination's short name")
 equal(Model.firstWord("Circular Quay Wharf, Sydney"), "Circular Quay", "short destination name")

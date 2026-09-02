@@ -20,6 +20,7 @@ Panel {
   property int cursorIndex: 0
   property bool cursorActive: false
   property bool alertsExpanded: false
+  property string expandedDepId: ""
   readonly property int rowCount: ready ? service.rows.count : 0
   readonly property bool hasDisruption: {
     if (!ready)
@@ -52,7 +53,7 @@ Panel {
     if (heroMetaMeasure.advanceWidth <= heroMetaAvailableWidth)
       return longText
 
-    return heroRoute + (heroStatus ? " · " + (heroStatus === "realtime" ? "rt" : "sched") : "")
+    return heroRoute
   }
   readonly property string refreshTooltip: {
     if (!ready || !service.lastPolledMs)
@@ -94,6 +95,15 @@ Panel {
     var next = (current + delta + list.length) % list.length
     service.setActivePlace(list[next].id, true)
     cursorIndex = 0
+    expandedDepId = ""
+  }
+
+  function toggleExpanded(depId) {
+    var id = String(depId || "")
+    if (!ready || !service.legsFor(id).length)
+      return
+
+    expandedDepId = expandedDepId === id ? "" : id
   }
 
   function openOverlay(tab) {
@@ -122,6 +132,7 @@ Panel {
       cursorIndex = 0
       cursorActive = false
       alertsExpanded = false
+      expandedDepId = ""
     }
   }
   implicitWidth: button.implicitWidth
@@ -223,8 +234,8 @@ Panel {
         else if (dx)
           root.switchPlace(dx)
       }
-      onActivateRequested: {
-      }
+      onActivateRequested: if (root.ready && root.rowCount)
+        root.toggleExpanded(root.service.rows.get(root.cursorIndex).depId)
 
       Column {
         id: column
@@ -440,9 +451,13 @@ Panel {
             width: column.width
             bar: root.bar
             selected: root.cursorActive && index === root.cursorIndex
+            expanded: root.expandedDepId === model.depId
+            depId: model.depId
+            legs: root.ready ? root.service.legsFor(model.depId) : []
             mode: model.mode
             line: model.line
             destination: model.destination
+            headsign: model.headsign
             platform: model.platform
             timeText: model.timeText
             plannedText: model.plannedText
@@ -458,6 +473,7 @@ Panel {
             delayMin: model.delayMin
             status: model.status
             alertTitle: model.alertTitle
+            onExpandToggled: root.toggleExpanded(depId)
           }
         }
       }

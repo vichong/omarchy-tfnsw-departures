@@ -97,6 +97,7 @@ function boardFromJourneys(journeys, place, nowMs) {
       line: first.line,
       lineName: first.line,
       destination: first.destination,
+      headsign: first.destination,
       platform: first.platform,
       mode: first.mode,
       plannedMs: journey.departMs,
@@ -108,10 +109,64 @@ function boardFromJourneys(journeys, place, nowMs) {
       arriveMs: journey.arriveMs,
       travelSec: Math.max(0, Math.round((journey.arriveMs - journey.departMs) / 1000)),
       changes: Math.max(0, rides.length - 1),
-      legsSummary: summary.join(" → ")
+      legsSummary: summary.join(" → "),
+      legs: legs
     })
   }
   return boardFor(entries, place, nowMs)
+}
+
+// Project parsed trip legs for the expandable departure row. When the API
+// omits a walking leg between two rides, make the transfer time explicit.
+function legRows(entry) {
+  var legs = entry && Array.isArray(entry.legs) ? entry.legs : []
+  var rows = []
+  for (var i = 0; i < legs.length; i++) {
+    var leg = legs[i]
+    if (!leg || (leg.kind !== "ride" && leg.kind !== "walk")) continue
+
+    if (i > 0 && leg.kind === "ride" && legs[i - 1] && legs[i - 1].kind === "ride") {
+      var gapMs = Number(leg.departMs || 0) - Number(legs[i - 1].arriveMs || 0)
+      if (gapMs >= 60 * 1000) rows.push({
+        kind: "change",
+        mode: "",
+        line: "",
+        headsign: "",
+        from: leg.from || legs[i - 1].to || "",
+        to: "",
+        departText: "",
+        arriveText: "",
+        platform: "",
+        realtime: false,
+        alertTitle: "",
+        disruption: false,
+        minutes: Math.max(1, Math.round(gapMs / 60000))
+      })
+    }
+
+    var infos = Array.isArray(leg.infos) ? leg.infos : []
+    var alert = infos.length ? infos[0] : null
+    for (var a = 0; a < infos.length; a++) if (isDisruption(infos[a])) {
+      alert = infos[a]
+      break
+    }
+    rows.push({
+      kind: leg.kind,
+      mode: leg.kind === "walk" ? "walk" : (leg.mode || "other"),
+      line: leg.kind === "walk" ? "" : String(leg.line || ""),
+      headsign: leg.kind === "walk" ? "" : String(leg.destination || ""),
+      from: String(leg.from || ""),
+      to: String(leg.to || ""),
+      departText: clockText(leg.departMs),
+      arriveText: clockText(leg.arriveMs),
+      platform: leg.kind === "walk" ? "" : String(leg.platform || ""),
+      realtime: leg.kind === "ride" && leg.realtime === true,
+      alertTitle: alert ? String(alert.title || "") : "",
+      disruption: alert ? isDisruption(alert) : false,
+      minutes: Math.max(1, Math.round(Number(leg.durationSec || 0) / 60))
+    })
+  }
+  return rows
 }
 
 function hasDestination(place) { return !!(place && place.destStopId) }
@@ -229,6 +284,7 @@ function projectRow(dep, place, nowMs) {
     mode: dep.mode,
     glyph: glyphFor(dep.mode),
     destination: dep.destination,
+    headsign: dep.headsign || dep.destination,
     platform: dep.platform,
     timeText: clockText(Api.effectiveMs(dep)),
     plannedText: clockText(dep.plannedMs),
@@ -291,12 +347,23 @@ function notificationFor(board, place, nowMs, sent) {
   if (leave > 2 * 60 * 1000 || leave < 0) return null
   var key = String(next.id)
   if (sent && sent[key]) return null
+  var changeAt = ""
+  var legs = next && Array.isArray(next.legs) ? next.legs : []
+  var ridesSeen = 0
+  for (var i = 0; i < legs.length; i++) if (legs[i].kind === "ride") {
+    ridesSeen++
+    if (ridesSeen === 2) {
+      changeAt = firstWord(legs[i].from)
+      break
+    }
+  }
   return {
     key: key,
     headline: "Leave now for the " + clockText(Api.effectiveMs(next)) + " " + next.line,
     body: next.destination + (next.platform ? " · Platform " + next.platform : "")
       + (place && place.walkMinutes ? " · " + place.walkMinutes + " min walk" : "")
       + (next.arriveMs ? " · arrives " + clockText(next.arriveMs) : "")
+      + (changeAt ? " · change at " + changeAt : "")
   }
 }
 

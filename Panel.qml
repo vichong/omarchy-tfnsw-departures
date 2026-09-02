@@ -207,28 +207,58 @@ Panel {
       Item {
         id: markSlot
 
-        // The shell's optical canvas: built-in vector icons draw at
-        // Style.space(11–12) centred in Style.bar.iconCanvas, so we match.
+        // A bar glyph is centred by its font line box, not its painted
+        // pixels, so a vector mark centred geometrically sits low and reads
+        // taller. Take the painted box of a reference bar glyph instead: the
+        // mark then has the same height and baseline as the shell's icons.
+        // glyphRef is laid out exactly like the shell's OpticalGlyph (centred
+        // Text, native rendering), so its baseline is where a real icon's
+        // baseline lands; tightBoundingRect is baseline-relative.
+        readonly property rect glyphBox: glyphMetrics.tightBoundingRect
+        readonly property real glyphTop: glyphRef.y + glyphRef.baselineOffset + glyphBox.y
+
         anchors.verticalCenter: parent.verticalCenter
         width: mark.width
-        height: Style.bar.iconCanvas
+        height: button.height
+
+        Text {
+          id: glyphRef
+
+          anchors.centerIn: parent
+          opacity: 0
+          textFormat: Text.PlainText
+          text: "󰖩"
+          font.family: root.family
+          font.pixelSize: Style.bar.iconFont
+          renderType: Text.NativeRendering
+        }
+
+        TextMetrics {
+          id: glyphMetrics
+
+          font: glyphRef.font
+          text: glyphRef.text
+        }
 
         TransportMark {
           id: mark
 
-          anchors.centerIn: parent
-          iconSize: Style.space(12)
+          x: 0
+          y: markSlot.glyphTop
+          iconSize: Math.max(1, markSlot.glyphBox.height)
           color: root.barFg
           colorful: root.ready && root.service.colorful
           dim: root.connected ? 1 : 0.45
         }
 
         // Urgency, the wayfinding way: a hairline in the line colour fills
-        // left→right as leave-in runs from 10 min to 0. Never red.
+        // left→right as leave-in runs from 10 min to 0. Never red. It sits
+        // where the bar draws its own open-panel indicator, and yields to it.
         Rectangle {
           anchors.left: parent.left
           anchors.bottom: parent.bottom
-          visible: !root.showCountdown && root.connected && width > 0
+          anchors.bottomMargin: Style.space(2)
+          visible: !root.showCountdown && root.connected && !root.opened && width > 0
           width: Math.round(mark.width * (root.ready ? root.service.underlineFraction : 0))
           height: Style.space(2)
           radius: height / 2

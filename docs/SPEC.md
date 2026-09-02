@@ -190,3 +190,24 @@ monochrome bar look), `dim`.
   shows Sydenham departures, and `omarchy-shell tfnsw status` returns a line.
 - Report at the end: files written, what was verified by running it, anything
   left undone, with exact commands.
+
+## v0.2 UI round (after the cleanup): TripView-inspired popup
+
+Reference: tripview.com.au screenshots (the most-used NSW transit app). Adopt:
+1. **Countdown block** on the left of each `DepartureRow`: a solid block in the
+   mode colour (`Api.modeById(mode).color`), ~Style.space(64) wide, full row
+   height, with the leave-in number large ("Now" / "6" + small "min") in white.
+   Dimmed (0.6 alpha) when timetable-only; `Color.urgent` when leave-in ≤ 2 min;
+   grey when cancelled. The right column then shows only the clock time
+   (planned struck-through under it when delayed).
+2. **Collapsed alerts**: one banner line "󰀦 3 alerts · tap for details" (red if
+   any `disruption`, muted otherwise); click toggles the full list. Remember the
+   expanded state while the popup stays open.
+3. **Hero meta**: "Sydenham Station · realtime · updated 22:41" (add seconds
+   only when `stale`).
+4. **Places switcher**: keep the `ButtonGroup`, prefix each label with the mode
+   roundel letter of the place's first line when `colorful`.
+5. **Bar icon** = `TransportMark` (mono, `colorful` config → gradient);
+   popup hero and overlay header = `TransportMark { colorful: true }`.
+   `ModeBadge` remains on rows and in the countdown block.
+Do not add: maps, occupancy, run numbers.

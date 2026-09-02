@@ -320,3 +320,18 @@ read with `setting("showCountdown", false)`, mirroring Gorelo's `showCount`).
 The icon itself still carries the two quiet cues: `Color.urgent` tint when
 urgency is "now", and the warning glyph while a disruption alert is active.
 Tooltip keeps the full pill text. README documents the setting.
+
+## v0.5.1 addendum: urgency as a progress underline (no red in the bar)
+- The bar mark stays in the theme foreground (or the line colour when
+  `colorful`). It never turns `Color.urgent`.
+- Under the mark, a hairline (height = the bar's active-underline thickness,
+  see how `WidgetButton`/the bar draws the active indicator) in the **line
+  colour** of the next catchable service, filling left→right as leave-in runs
+  from 10 min to 0: width = clamp(1 − leaveIn/10min, 0, 1) × icon width.
+  Hidden when leave-in > 10 min or nothing catchable. Recomputed on the
+  15 s clock tick (`Service.leaveInMs` for the next service exposed as a
+  property, plus `nextLineColor`).
+- In the last 2 minutes only, a small caption number ("2", "1", "now") in the
+  line colour appears right of the mark. Not before.
+- Disruption glyph unchanged. Tooltip keeps the full pill text.
+- `showCountdown: true` still shows the full text pill instead.

@@ -1,8 +1,9 @@
 # Transport NSW departures for Omarchy
 
 A shell plugin that puts the next catchable Transport for NSW service or trip in
-the Omarchy bar. The countdown is **leave in** time: departure time minus your
-walk to the stop. The popup shows departures, arrivals, travel time, platforms,
+the Omarchy bar. Everything counts down in **leave in** time: departure time
+minus your walk to the stop. The bar shows the Transport mark with a
+line-colour underline that fills as your leave time approaches. The popup shows departures, arrivals, travel time, platforms,
 realtime delays, cancellations and disruption alerts; the Here view plans a trip
 back to your active place.
 
@@ -26,6 +27,17 @@ omarchy plugin add https://github.com/vichong/omarchy-tfnsw-departures.git --ena
 
 Plugins run inside the shell process. Review third-party plugin code before
 enabling it.
+
+### Dependencies
+
+All present on a stock Omarchy install: `curl` (HTTPS calls to
+`api.transport.nsw.gov.au` only, no redirects), `secret-tool` from libsecret
+(stores the API key in the system keyring), `nmcli` from NetworkManager
+(optional, reads the current Wi-Fi SSID for automatic place switching) and
+Omarchy's own `omarchy-notification-send`. Child processes run through
+`scripts/tfnsw-bounded`, which caps their output. No sudo or pkexec, no
+installer, no bundled binaries, no writes outside
+`~/.config/omarchy/tfnsw-departures/` and `~/.cache/omarchy/tfnsw-departures/`.
 
 ## Get a Transport NSW API key
 

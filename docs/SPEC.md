@@ -241,3 +241,22 @@ the labels together:
   picker in the place editor; Save-as-place from Here fills it with the active
   place's stop.
 - Poll cost is unchanged: one call per poll either way.
+
+### v0.3 addendum: multi-leg journeys (e.g. Surry Hills L3 → Central → M1 Chatswood)
+Verified live (fixture `tests/fixtures/trip_surry_hills_to_chatswood.json`): the
+trip API returns both ride legs with realtime, platforms and per-leg alerts;
+`Model.boardFromJourneys` already yields `changes`, `legsSummary` ("L3 → M1")
+and arrival. Show it the way TripView's trip detail does:
+- **Collapsed row**: countdown block in the *first* leg's mode colour; title
+  `L3 → M1 · Chatswood`; subtitle `1 change at Central · 26 min`; right column
+  `11:28 PM → 11:54 PM`. No change → as before.
+- **Expanded row** (click/Enter, one open at a time like the Gorelo queue): one
+  line per leg with a small `ModeBadge`, `L3  Surry Hills 11:28 PM → Central
+  Chalmers St 11:31 PM · realtime`, then a muted `change · 9 min` line for the
+  gap (or `walk 4′` when the API gives a walking leg), then `M1  Central
+  11:40 PM · Platform 26 → Chatswood 11:54 PM`. Per-leg alert titles under the
+  leg in `Color.urgent` when it is a disruption. The service must expose the
+  raw legs per board entry (`legs` on the entry from `Model.boardFromJourneys`,
+  or a `legsFor(depId)` lookup) so `DepartureRow` can render them.
+- The pill stays `L3 · 9′ → 11:54 PM`; the notification body appends
+  `· change at Central`.

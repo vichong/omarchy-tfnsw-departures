@@ -70,6 +70,14 @@ equal(Api.shortLine({ disassembledName: "358", number: "358" }), "358", "bus rou
 equal(Api.platformOf({ properties: { platform: "SYD6" } }), "6", "platform from station code")
 equal(Api.platformOf({ properties: { platformName: "Platform 12" } }), "12", "platform from name")
 equal(Api.platformOf({ properties: { platform: "E" } }), "E", "bus stand letters survive")
+equal(Api.platformOf({ properties: { platform: "Surry Hills Light Rail" } }), "", "a stop name echoed as platform is not a platform")
+
+// --- multi-leg journey: light rail → metro with a change at Central
+const multi = Api.parseJourneys(fixture("trip_surry_hills_to_chatswood.json"))
+assert(multi.length >= 2, "several journeys parsed")
+const legs = multi[0].legs.filter(l => l.kind === "ride")
+equal([legs.length, legs[0].mode, legs[0].line.charAt(0), legs[1].line, legs[1].platform, legs[0].platform], [2, "lightrail", "L", "M1", "26", ""], "two ride legs with modes, lines and platforms")
+assert(legs[0].arriveMs < legs[1].departMs && legs[1].departMs - legs[0].arriveMs < 15 * 60000, "the change at Central is a short gap between legs")
 
 // --- journeys
 const journeys = Api.parseJourneys(fixture("trip_sydenham_to_wynyard.json"))

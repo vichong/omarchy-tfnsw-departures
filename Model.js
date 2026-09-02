@@ -62,6 +62,78 @@ function boardFor(departures, place, nowMs) {
   return out
 }
 
+// Journeys (origin stop → destination stop) as board entries: the same shape
+// as a departure so every filter, pill and notification path is shared, plus
+// arrival, travel time and changes. The line/mode/platform come from the
+// first ride; a journey with no ride (walk only) is skipped.
+function boardFromJourneys(journeys, place, nowMs) {
+  var list = Array.isArray(journeys) ? journeys : []
+  var entries = []
+  for (var i = 0; i < list.length; i++) {
+    var journey = list[i]
+    var legs = journey && Array.isArray(journey.legs) ? journey.legs : []
+    var rides = []
+    for (var l = 0; l < legs.length; l++) if (legs[l].kind === "ride") rides.push(legs[l])
+    if (!rides.length) continue
+    var first = rides[0]
+    var infos = []
+    var seen = {}
+    for (var r = 0; r < legs.length; r++) {
+      var legInfos = legs[r].infos || []
+      for (var a = 0; a < legInfos.length; a++) {
+        if (seen[legInfos[a].id]) continue
+        seen[legInfos[a].id] = true
+        infos.push(legInfos[a])
+      }
+    }
+    var summary = []
+    for (var j = 0; j < legs.length; j++) {
+      summary.push(legs[j].kind === "walk" ? "walk " + Math.max(1, Math.round(legs[j].durationSec / 60)) + "′" : legs[j].line)
+    }
+    var realtime = rides.every(function(ride) { return ride.realtime })
+    entries.push({
+      id: first.line + "@" + journey.departMs + "→" + journey.arriveMs,
+      tripId: "",
+      line: first.line,
+      lineName: first.line,
+      destination: first.destination,
+      platform: first.platform,
+      mode: first.mode,
+      plannedMs: journey.departMs,
+      estimatedMs: realtime ? journey.departMs : 0,
+      realtime: realtime,
+      cancelled: false,
+      infos: infos,
+      stopName: first.from,
+      arriveMs: journey.arriveMs,
+      travelSec: Math.max(0, Math.round((journey.arriveMs - journey.departMs) / 1000)),
+      changes: Math.max(0, rides.length - 1),
+      legsSummary: summary.join(" → ")
+    })
+  }
+  return boardFor(entries, place, nowMs)
+}
+
+function hasDestination(place) { return !!(place && place.destStopId) }
+
+// "From Home" / "Home → Wynyard": what the switcher chips say.
+function placeLabel(place) {
+  if (!place) return ""
+  if (!hasDestination(place)) return "From " + place.name
+  return place.name + " → " + firstWord(place.destStopName || "destination")
+}
+
+function firstWord(text) {
+  var name = String(text || "").replace(/\s+(Station|Wharf|Interchange|Light Rail)\b.*$/i, "").trim()
+  return name.split(",")[0].trim() || String(text || "")
+}
+
+function travelText(sec) {
+  if (!sec) return ""
+  var minutes = Math.max(1, Math.round(sec / 60))
+  return minutes + " min"
+}
+
 function nextCatchable(board, place, nowMs) {
   for (var i = 0; i < board.length; i++) {
     if (board[i].cancelled) continue
@@ -89,7 +161,9 @@ function clockText(ms) {
 function pillText(board, place, nowMs) {
   var next = nextCatchable(board, place, nowMs)
   if (!next) return ""
-  return next.line + " · " + minutesText(leaveInMs(next, place, nowMs))
+  var text = next.line + " · " + minutesText(leaveInMs(next, place, nowMs))
+  if (next.arriveMs) text += " → " + clockText(next.arriveMs)
+  return text
 }
 
 function pillMode(board, place, nowMs) {
@@ -134,7 +208,11 @@ function projectRow(dep, place, nowMs) {
     status: status,
     missed: !dep.cancelled && leave < 0,
     alertCount: dep.infos.length,
-    alertTitle: dep.infos.length ? dep.infos[0].title : ""
+    alertTitle: dep.infos.length ? dep.infos[0].title : "",
+    arriveText: dep.arriveMs ? clockText(dep.arriveMs) : "",
+    travelText: dep.arriveMs ? travelText(dep.travelSec) : "",
+    changesText: !dep.arriveMs ? "" : (dep.changes === 0 ? "direct" : dep.changes + (dep.changes === 1 ? " change" : " changes")),
+    legsSummary: dep.legsSummary || ""
   }
 }
 

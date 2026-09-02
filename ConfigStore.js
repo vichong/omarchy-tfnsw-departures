@@ -54,11 +54,15 @@ function placeId(value, index) {
 function parsePlace(raw, index) {
   if (!raw || typeof raw !== "object") return null
   if (!Api.isStopId(raw.stopId)) return null
+  // A destination makes the place a trip; it needs a valid stop id or is dropped.
+  var hasDestination = Api.isStopId(raw.destStopId) && String(raw.destStopId) !== String(raw.stopId)
   return {
     id: placeId(raw.id, index),
     name: cleanText(raw.name, 40) || ("Place " + (index + 1)),
     stopId: String(raw.stopId),
     stopName: cleanText(raw.stopName, 80),
+    destStopId: hasDestination ? String(raw.destStopId) : "",
+    destStopName: hasDestination ? cleanText(raw.destStopName, 80) : "",
     lines: lineList(raw.lines),
     destination: cleanText(raw.destination, 60),
     modes: modeList(raw.modes),

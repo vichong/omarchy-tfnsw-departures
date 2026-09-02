@@ -211,3 +211,33 @@ Reference: tripview.com.au screenshots (the most-used NSW transit app). Adopt:
    popup hero and overlay header = `TransportMark { colorful: true }`.
    `ModeBadge` remains on rows and in the countdown block.
 Do not add: maps, occupancy, run numbers.
+
+## v0.3: places become trips (origin → destination), with arrival time
+
+Every NSW app labels saved items as trips: Opal Travel's Home/Work buttons are
+*destinations* under "Where to?", NextThere's widget reads "North Sydney to
+Crows Nest", TripView stacks From/To. A bare "Home" chip is therefore read as
+"where I'm going", which is the opposite of our v0.1 meaning. Fix the model and
+the labels together:
+
+- **Config**: a place gains optional `destStopId` + `destStopName` (validated
+  like `stopId`; both or neither). Existing configs stay valid.
+- **Board source**: with a destination, the service polls
+  `Api.tripPath(place.stopId, place.destStopId, 6)` instead of `departure_mon`,
+  and `Model.boardFromJourneys(journeys, place, now)` turns each journey into a
+  board entry (same shape as a departure, plus `arriveMs`, `travelSec`,
+  `changes`, `legsSummary`). All existing filters, pill, urgency, alerts and
+  notifications then work unchanged. Without a destination, behaviour is v0.2.
+- **Rows** (`Model.projectRow`): `arriveText` ("23:27"), `travelText` ("26 min"),
+  `changesText` ("1 change"); the row's right column shows depart → arrive on
+  one line, travel time under it. Pill gains the arrival: `T4 · 6′ → 23:27`
+  when a destination is set (`Model.pillText`).
+- **Labels**: place chips read `From Home` when no destination and
+  `Home → Wynyard` when one is set (`Model.placeLabel(place)`); hero title is
+  the place name, hero meta `Sydenham Station → Wynyard Station · realtime ·
+  updated 22:41`. The Here tab's "Plan to" dropdown lists destinations as
+  `<name> (<destStopName or stopName>)`.
+- **Editor**: a second stop picker "Going to (optional)" under the origin
+  picker in the place editor; Save-as-place from Here fills it with the active
+  place's stop.
+- Poll cost is unchanged: one call per poll either way.

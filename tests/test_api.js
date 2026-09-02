@@ -24,6 +24,8 @@ equal([Api.modeFor(1).id, Api.modeFor(2).id, Api.modeFor(9).id, Api.modeFor("5")
   ["train", "metro", "ferry", "bus", "other"], "product class to mode")
 equal(Api.modeById("lightrail").letter, "L", "mode letter")
 equal(Api.modeById("bogus").id, "other", "unknown mode id")
+equal([Api.lineColor("T1", "train"), Api.lineColor("t9", "train"), Api.lineColor("M1", "metro"), Api.lineColor("333", "bus"), Api.lineColor("", "ferry")],
+  ["#F99D1C", "#D11F2F", "#168388", "#00B5EF", "#5AB031"], "line colours with mode fallback")
 equal(Api.clip("x".repeat(140), 120), "x".repeat(120), "display strings are clipped to their cap")
 
 // --- responses

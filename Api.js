@@ -38,6 +38,24 @@ function clip(text, max) {
   return String(text || "").slice(0, limit)
 }
 
+// Line colours from TfNSW wayfinding. Sydney Trains verified against each
+// line's page on transportnsw.info (2026-09-02); metro, light rail and
+// ferries from the published network maps. Anything else uses its mode colour.
+var LINE_COLORS = {
+  T1: "#F99D1C", T2: "#0098CD", T3: "#F37021", T4: "#005AA3", T5: "#C4258F",
+  T6: "#7C3E21", T7: "#6F818E", T8: "#00954C", T9: "#D11F2F",
+  M1: "#168388",
+  L1: "#BE1622", L2: "#DD1E25", L3: "#781140", L4: "#2EBBB4",
+  F1: "#00774B", F2: "#144734", F3: "#648C3C", F4: "#BFD730", F5: "#286142",
+  F6: "#00AB51", F7: "#00B189", F8: "#55622B", F9: "#65B32E", F10: "#5AB031",
+  B1: "#FFB81C"
+}
+function lineColor(line, modeId) {
+  var key = String(line || "").trim().toUpperCase()
+  if (LINE_COLORS[key]) return LINE_COLORS[key]
+  return modeById(modeId).color
+}
+
 function modeFor(cls) {
   var n = parseInt(cls, 10)
   for (var i = 0; i < MODES.length; i++) if (MODES[i].cls === n) return MODES[i]

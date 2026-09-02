@@ -266,3 +266,41 @@ and arrival. Show it the way TripView's trip detail does:
   journey's end only in the right column (arrival) — that is what you need at
   the first stop. Expanded legs: `M1 towards Tallawong · Platform 26 · alight
   Chatswood 11:54 PM`. Plain departure rows keep the headsign as now.
+
+## v0.5: station indicator-board language (TfNSW wayfinding, with the Omarchy twist)
+
+Reference: the platform "Next service" boards. Their hierarchy is: line badge
+(rounded square in the *line* colour, white bold code) + destination, large;
+a stop list; "Platform 1" large; "Departs 2 min" large; small dark pills for
+"8 carriages" / "All stops". We keep that hierarchy and vocabulary but stay in
+the Omarchy theme: panel background and foreground from `Color`, mono bar,
+`Color.accent`/`Color.urgent` where the board uses orange, JetBrains Mono.
+
+- **Line badge** (`LineBadge.qml`, replaces `ModeBadge` in rows and legs):
+  rounded square (radius ≈ 22% of size), fill `Api.lineColor(line, mode)`,
+  white bold code text ("T1", "M1", "L3", "333"), auto-width for long bus
+  numbers. `ModeBadge` stays for mode-only contexts (place editor results).
+- **Countdown block** keeps its role but takes the line colour, not the mode
+  colour, and its label becomes the board's wording: big number + "min", or
+  "Now". Below the number, small: "Departs" (the board word).
+- **Collapsed row** = the board's top line: `LineBadge` + headsign in
+  Style.font.body bold; second line `Platform 2 · On time · L3 → M1`.
+- **Expanded row** = a mini board:
+  ```
+  [L3] Circular Quay                              Platform  2
+  Surry Hills · Central Chalmers St                Departs 6 min
+  ─ change · 5 min at Central ─
+  [M1] Tallawong                                  Platform 26
+  Central · Chatswood                             12:04 AM
+  ```
+  Each ride leg: badge + headsign (bold), then its stop sequence from
+  `leg.stops` (names joined with " · ", eliding to the first 6 and "… +N" when
+  longer; if the API gave no intermediate stops show `from · to`), right column
+  "Platform N" (caption label over a bold number, like the board) and, for the
+  first leg, "Departs" over the leave-in minutes; for later legs the arrival
+  clock. Alerts under their leg as now. Walk legs: `walk 4′ · from → to`.
+- **Pills**: a small filled pill (Color foreground at 15% alpha, caption
+  text) after the headsign for `realtime`/`scheduled` and `direct`/`1 change`
+  — the board's "All stops"/"8 carriages" treatment.
+- **Hero**: unchanged (Transport mark, place name, route meta).
+- Nothing white: the boards are white/black/orange; ours are theme colours.

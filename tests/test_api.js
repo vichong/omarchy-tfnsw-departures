@@ -24,6 +24,7 @@ equal([Api.modeFor(1).id, Api.modeFor(2).id, Api.modeFor(9).id, Api.modeFor("5")
   ["train", "metro", "ferry", "bus", "other"], "product class to mode")
 equal(Api.modeById("lightrail").letter, "L", "mode letter")
 equal(Api.modeById("bogus").id, "other", "unknown mode id")
+equal(Api.clip("x".repeat(140), 120), "x".repeat(120), "display strings are clipped to their cap")
 
 // --- responses
 equal(Api.parseResponse(401, "").kind, "credential", "401 is a credential error")

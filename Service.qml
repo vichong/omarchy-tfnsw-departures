@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.1.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.2.0"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -33,11 +33,11 @@ QtObject {
   property bool colorful: false
   readonly property var effectivePlaces: demoMode && places.length === 0 ? [Demo.defaultPlace()] : places
   readonly property var activePlace: {
-    var list = effectivePlaces;
+    var list = effectivePlaces
     for (var i = 0; i < list.length; i++) if (String(list[i].id) === activePlaceId) {
-      return list[i];
+      return list[i]
     }
-    return list.length ? list[0] : null;
+    return list.length ? list[0] : null
   }
   property FileView configFile
 
@@ -65,8 +65,8 @@ QtObject {
     command: ["mkdir", "-p", root.configDir, root.cacheDir]
     onExited: function(exitCode) {
       if (exitCode === 0) {
-        configFile.reload();
-        cacheRead.running = true;
+        configFile.reload()
+        cacheRead.running = true
       }
     }
   }
@@ -89,35 +89,35 @@ QtObject {
   credentials: CredentialManager {
     onKeyReady: function(key) {
       if (root.demoMode)
-        return ;
+        return
 
       if (root.keyUnsupported(key)) {
-        root.apiKey = "";
-        root.setError("credential", "The stored API key contains unsupported characters.");
-        return ;
+        root.apiKey = ""
+        root.setError("credential", "The stored API key contains unsupported characters.")
+        return
       }
-      root.apiKey = key;
-      root.connect();
+      root.apiKey = key
+      root.connect()
     }
     onMissing: {
       if (!root.demoMode) {
-        root.apiKey = "";
-        root.phase = "idle";
-        root.clearError();
+        root.apiKey = ""
+        root.phase = "idle"
+        root.clearError()
       }
     }
     onCleared: {
       if (!root.demoMode) {
-        root.apiKey = "";
-        root.supersede();
-        root.phase = "idle";
-        root.clearError();
-        root.resetBoard();
+        root.apiKey = ""
+        root.supersede()
+        root.phase = "idle"
+        root.clearError()
+        root.resetBoard()
       }
     }
     onFailed: function(message) {
       if (!root.demoMode)
-        root.setError("credential", message);
+        root.setError("credential", message)
     }
   }
 
@@ -139,7 +139,7 @@ QtObject {
     interval: Math.min(300000, 30000 * Math.pow(2, Math.min(4, root.reconnectAttempts)))
     onTriggered: {
       if (!root.connected && root.hasKey && root.transientError) {
-        root.connect();
+        root.connect()
       }
     }
   }
@@ -162,6 +162,7 @@ QtObject {
   property bool polling: false
   property bool pollRequested: false
   property int pollBackoff: 0
+  property double quotaBackoffUntil: 0
   property bool popupOpen: false
   readonly property int effectivePollMs: Math.min(600000, (popupOpen ? 30000 : pollSeconds * 1000) * Math.pow(2, pollBackoff))
   property var sentTripIds: ({
@@ -174,6 +175,18 @@ QtObject {
     repeat: true
     running: root.connected
     onTriggered: root.poll()
+  }
+
+  property Timer quotaBackoffTimer
+
+  quotaBackoffTimer: Timer {
+    onTriggered: {
+      root.quotaBackoffUntil = 0
+      if (root.connected)
+        root.poll()
+      else if (root.hasKey)
+        root.connect()
+    }
   }
 
   property Timer clockTimer
@@ -201,26 +214,35 @@ QtObject {
   searchDebounce: Timer {
     interval: 200
     onTriggered: {
-      var query = root.pendingSearchText, callback = root.pendingSearchCallback, serial = root.searchSerial;
+      if (root.quotaBlocked()) {
+        if (root.pendingSearchCallback)
+          root.pendingSearchCallback([])
+
+        return
+      }
+      var query = root.pendingSearchText
+      var callback = root.pendingSearchCallback
+      var serial = root.searchSerial
       function complete(result) {
         if (serial !== root.searchSerial)
           return
 
         root.searchRequest = null
+        root.noteRateLimit(result)
         callback(result.ok ? result.data : [])
       }
 
       if (root.demoMode)
-        root.demoBackend.searchStops(query, complete);
+        root.demoBackend.searchStops(query, complete)
       else if (!root.connected)
-        callback([]);
+        callback([])
       else
         root.searchRequest = root.liveBackend.request(Api.stopFinderPath(query), function(response) {
-        if (response.ok)
-          response.data = Api.parseLocations(response.data);
+          if (response.ok)
+            response.data = Api.parseLocations(response.data)
 
-        complete(response);
-      });
+          complete(response)
+        })
     }
   }
 
@@ -242,7 +264,7 @@ QtObject {
     running: root.hereOpen && root.connected
     onTriggered: {
       if (root.lastHereLocation) {
-        root.planFrom(root.lastHereLocation, null);
+        root.planFrom(root.lastHereLocation, null)
       }
     }
   }
@@ -260,18 +282,18 @@ QtObject {
     })
     onExited: function(exitCode) {
       if (exitCode !== 0 && exitCode !== 90)
-        return ;
+        return
 
-      var lines = root.wifiOutput.split(/\r?\n/);
-      root.wifiOutput = "";
+      var lines = root.wifiOutput.split(/\r?\n/)
+      root.wifiOutput = ""
       for (var i = 0; i < lines.length; i++) if (lines[i].indexOf("yes:") === 0) {
-        root.lastSsid = lines[i].slice(4).replace(/\\:/g, ":");
+        root.lastSsid = lines[i].slice(4).replace(/\\:/g, ":")
         if (root.autoPlace && Date.now() - root.lastManualPlaceAt >= 30 * 60 * 1000) {
-          var place = Model.placeForSsid(root.places, root.lastSsid);
+          var place = Model.placeForSsid(root.places, root.lastSsid)
           if (place)
-            root.setActivePlace(place.id, false);
+            root.setActivePlace(place.id, false)
         }
-        break;
+        break
       }
     }
 
@@ -290,7 +312,7 @@ QtObject {
     triggeredOnStart: true
     onTriggered: {
       if (!wifiProcess.running) {
-        wifiProcess.running = true;
+        wifiProcess.running = true
       }
     }
   }
@@ -306,22 +328,22 @@ QtObject {
     })
     onExited: function(exitCode) {
       if (exitCode !== 0 || root.cacheOutput.length >= Api.MAX_RESPONSE_BYTES) {
-        root.cacheOutput = "";
-        return ;
+        root.cacheOutput = ""
+        return
       }
       try {
-        var cached = JSON.parse(root.cacheOutput);
-        var sameStop = cached && root.activePlace && String(cached.stopId || "") === String(root.activePlace.stopId);
+        var cached = JSON.parse(root.cacheOutput)
+        var sameStop = cached && root.activePlace && String(cached.stopId || "") === String(root.activePlace.stopId)
         if (sameStop && Array.isArray(cached.departures) && cached.departures.length <= Api.MAX_STOP_EVENTS) {
-          root.departures = cached.departures;
-          root.lastPolledMs = Number(cached.savedAt) || 0;
-          root.lastPolledAt = root.lastPolledMs ? new Date(root.lastPolledMs).toISOString() : "";
-          root.stale = true;
-          root.project(Date.now());
+          root.departures = cached.departures
+          root.lastPolledMs = Number(cached.savedAt) || 0
+          root.lastPolledAt = root.lastPolledMs ? new Date(root.lastPolledMs).toISOString() : ""
+          root.stale = true
+          root.project(Date.now())
         }
       } catch (e) {
       }
-      root.cacheOutput = "";
+      root.cacheOutput = ""
     }
 
     stdout: StdioCollector {
@@ -339,405 +361,456 @@ QtObject {
       "pollSeconds": pollSeconds,
       "notify": notify,
       "colorful": colorful
-    };
+    }
   }
 
   function saveConfig(patch) {
     var text = ConfigStore.serialize(ConfigStore.merge(currentConfig(), patch || {
-    }));
-    configFile.setText(text);
-    applyConfig(text);
+    }))
+    configFile.setText(text)
+    applyConfig(text)
   }
 
   function applyConfig(text) {
-    var parsed = ConfigStore.parse(text), c = parsed.config;
-    var connectionChanged = !configLoaded || demoMode !== c.demoMode;
-    var boardChanged = JSON.stringify(places) !== JSON.stringify(c.places) || activePlaceId !== c.activePlaceId;
-    var previousStopId = activePlace ? activePlace.stopId : "";
-    configError = parsed.error;
-    demoMode = c.demoMode;
-    places = c.places;
-    activePlaceId = c.activePlaceId;
-    autoPlace = c.autoPlace;
-    pollSeconds = c.pollSeconds;
-    notify = c.notify;
-    colorful = c.colorful;
-    var stopChanged = (activePlace ? activePlace.stopId : "") !== previousStopId;
-    configLoaded = true;
+    var parsed = ConfigStore.parse(text), c = parsed.config
+    var connectionChanged = !configLoaded || demoMode !== c.demoMode
+    var boardChanged = JSON.stringify(places) !== JSON.stringify(c.places) || activePlaceId !== c.activePlaceId
+    var previousStopId = activePlace ? activePlace.stopId : ""
+    configError = parsed.error
+    demoMode = c.demoMode
+    if (demoMode) {
+      quotaBackoffUntil = 0
+      quotaBackoffTimer.stop()
+    }
+    places = c.places
+    activePlaceId = c.activePlaceId
+    autoPlace = c.autoPlace
+    pollSeconds = c.pollSeconds
+    notify = c.notify
+    colorful = c.colorful
+    var stopChanged = (activePlace ? activePlace.stopId : "") !== previousStopId
+    configLoaded = true
     if (connectionChanged) {
-      supersede();
-      apiKey = "";
-      phase = "idle";
-      clearError();
+      supersede()
+      apiKey = ""
+      phase = "idle"
+      clearError()
       if (demoMode) {
-        demoBackend.reset();
-        connect();
+        demoBackend.reset()
+        connect()
       } else if (!credentials.busy) {
-        credentials.lookup();
+        credentials.lookup()
       }
     } else if (boardChanged) {
       if (stopChanged) {
-        departures = [];
-        stale = false;
-        lastPolledMs = 0;
-        lastPolledAt = "";
+        departures = []
+        stale = false
+        lastPolledMs = 0
+        lastPolledAt = ""
       }
-      project(Date.now());
+      project(Date.now())
       if (connected)
-        poll();
+        poll()
     }
   }
 
   function savePlaces(list) {
     var normalized = ConfigStore.parse(ConfigStore.serialize(ConfigStore.merge(currentConfig(), {
       "places": list
-    }))).config;
+    }))).config
     saveConfig({
       "places": normalized.places,
       "activePlaceId": normalized.activePlaceId
-    });
+    })
   }
 
   function setActivePlace(id, manual) {
-    var wanted = String(id || ""), found = false;
+    var wanted = String(id || ""), found = false
     for (var i = 0; i < effectivePlaces.length; i++) if (effectivePlaces[i].id === wanted) {
-      found = true;
+      found = true
     }
     if (!found || wanted === activePlaceId)
-      return false;
+      return false
 
     if (manual !== false)
-      lastManualPlaceAt = Date.now();
+      lastManualPlaceAt = Date.now()
 
     saveConfig({
       "activePlaceId": wanted
-    });
-    return true;
+    })
+    return true
   }
 
   function addPlace(place) {
-    var list = places.slice();
+    var list = places.slice()
     if (list.length >= ConfigStore.MAX_PLACES)
-      return false;
+      return false
 
-    list.push(place);
+    list.push(place)
     saveConfig({
       "places": list,
       "activePlaceId": place.id
-    });
-    return true;
+    })
+    return true
   }
 
   function retryDeferredLookup() {
     if (!credentialBusy && !demoMode && configLoaded && !hasKey && phase === "idle")
-      credentials.lookup();
+      credentials.lookup()
   }
 
   function keyUnsupported(key) {
-    return /["\\\x00-\x1f\x7f]/.test(String(key || ""));
+    return /["\\\x00-\x1f\x7f]/.test(String(key || ""))
   }
 
   function applyConnection(key) {
     if (demoMode || credentials.busy)
-      return false;
+      return false
 
-    var raw = String(key || "");
+    var raw = String(key || "")
     if (keyUnsupported(raw)) {
-      setError("credential", "The API key contains unsupported characters.");
-      return false;
+      setError("credential", "The API key contains unsupported characters.")
+      return false
     }
-    var trimmed = raw.trim();
+    var trimmed = raw.trim()
     if (trimmed) {
-      phase = "connecting";
-      clearError();
-      return credentials.store(trimmed);
+      phase = "connecting"
+      clearError()
+      return credentials.store(trimmed)
     }
     if (apiKey) {
-      connect();
-      return true;
+      connect()
+      return true
     }
-    return credentials.lookup();
+    return credentials.lookup()
   }
 
   function removeConnection() {
-    return !demoMode && !credentials.busy ? credentials.clear() : false;
+    return !demoMode && !credentials.busy ? credentials.clear() : false
   }
 
   function setDemoMode(value) {
     if (credentials.busy)
-      return false;
+      return false
 
     saveConfig({
       "demoMode": value === true
-    });
-    return true;
+    })
+    return true
   }
 
   function clearError() {
-    lastError = "";
-    lastErrorKind = "";
+    lastError = ""
+    lastErrorKind = ""
   }
 
   function setError(kind, message) {
-    lastErrorKind = String(kind || "");
-    lastError = String(message || "");
+    lastErrorKind = String(kind || "")
+    lastError = String(message || "")
     if (kind === "credential")
-      phase = "error";
+      phase = "error"
   }
 
   function supersede() {
-    liveBackend.supersede();
-    demoBackend.supersede();
-    generation++;
-    polling = false;
-    searchRequest = null;
-    journeyRequest = null;
+    liveBackend.supersede()
+    demoBackend.supersede()
+    generation++
+    polling = false
+    searchRequest = null
+    journeyRequest = null
+  }
+
+  function quotaBlocked() {
+    if (demoMode)
+      return false
+
+    if (!quotaBackoffUntil)
+      return false
+
+    if (quotaBackoffUntil <= Date.now()) {
+      quotaBackoffUntil = 0
+      return false
+    }
+    return true
+  }
+
+  function noteRateLimit(result) {
+    if (!result || result.ok || result.kind !== "ratelimit")
+      return false
+
+    var delay = Math.min(10 * 60 * 1000, Math.max(60 * 1000, effectivePollMs * 2))
+    quotaBackoffUntil = Date.now() + delay
+    quotaBackoffTimer.interval = delay
+    quotaBackoffTimer.restart()
+    return true
   }
 
   function connect() {
+    if (!hasKey)
+      return
+
+    if (quotaBlocked())
+      return
+
+    supersede()
+    reconnectTimer.stop()
+    phase = "connecting"
+    clearError()
+    var token = generation
     function complete(result) {
       if (token !== generation)
-        return ;
+        return
 
+      noteRateLimit(result)
       if (!result.ok) {
-        phase = "error";
-        setError(result.kind, result.error);
-        if (transientError) {
-          reconnectAttempts++;
-          reconnectTimer.restart();
+        phase = "error"
+        setError(result.kind, result.error)
+        if (transientError && result.kind !== "ratelimit") {
+          reconnectAttempts++
+          reconnectTimer.restart()
         }
-        return ;
+        return
       }
-      reconnectAttempts = 0;
-      pollBackoff = 0;
-      phase = "connected";
-      poll();
+      reconnectAttempts = 0
+      pollBackoff = 0
+      phase = "connected"
+      poll()
     }
 
-    if (!hasKey)
-      return ;
-
-    supersede();
-    reconnectTimer.stop();
-    phase = "connecting";
-    clearError();
-    var token = generation;
     if (demoMode)
-      demoBackend.probe(complete);
+      demoBackend.probe(complete)
     else
-      liveBackend.request(Api.connectionProbePath(), complete);
+      liveBackend.request(Api.connectionProbePath(), complete)
   }
 
   function retryConnection() {
-    reconnectAttempts = 0;
+    reconnectAttempts = 0
     if (hasKey)
-      connect();
+      connect()
     else if (!credentials.busy)
-      credentials.lookup();
+      credentials.lookup()
   }
 
   function excludedModes(place) {
     if (!place || !place.modes || !place.modes.length)
-      return [];
+      return []
 
-    var out = [];
+    var out = []
     for (var i = 0; i < Api.MODES.length; i++) if (place.modes.indexOf(Api.MODES[i].id) === -1) {
-      out.push(Api.MODES[i].id);
+      out.push(Api.MODES[i].id)
     }
-    return out;
+    return out
   }
 
   function poll() {
+    if (!connected || !activePlace)
+      return
+
+    if (quotaBlocked())
+      return
+
+    if (polling) {
+      pollRequested = true
+      return
+    }
+    polling = true
+    pollRequested = false
+    var token = generation
+    var placeId = activePlace.id
     function complete(result) {
       if (token !== generation)
-        return ;
+        return
 
-      polling = false;
+      polling = false
       if (!root.activePlace || root.activePlace.id !== placeId) {
         // The place changed under this request; its board belongs to the old stop.
         if (pollRequested) {
-          pollRequested = false;
-          Qt.callLater(root.poll);
+          pollRequested = false
+          Qt.callLater(root.poll)
         }
-        return ;
+        return
       }
+      noteRateLimit(result)
       if (!result.ok) {
-        setError(result.kind, result.error);
+        setError(result.kind, result.error)
         if (result.kind === "network" || result.kind === "ratelimit")
-          pollBackoff = Math.min(5, pollBackoff + 1);
+          pollBackoff = Math.min(5, pollBackoff + 1)
       } else {
-        departures = result.data.slice(0, Api.MAX_STOP_EVENTS);
-        pollBackoff = 0;
-        phase = "connected";
-        clearError();
-        lastPolledMs = Date.now();
-        lastPolledAt = new Date(lastPolledMs).toISOString();
-        stale = false;
-        project(lastPolledMs);
-        writeCache();
+        departures = result.data.slice(0, Api.MAX_STOP_EVENTS)
+        pollBackoff = 0
+        phase = "connected"
+        clearError()
+        lastPolledMs = Date.now()
+        lastPolledAt = new Date(lastPolledMs).toISOString()
+        stale = false
+        project(lastPolledMs)
+        writeCache()
       }
       if (pollRequested) {
-        pollRequested = false;
-        Qt.callLater(root.poll);
+        pollRequested = false
+        Qt.callLater(root.poll)
       }
     }
 
-    if (!connected || !activePlace)
-      return ;
-
-    if (polling) {
-      pollRequested = true;
-      return ;
-    }
-    polling = true;
-    pollRequested = false;
-    var token = generation, placeId = activePlace.id;
     if (demoMode) {
-      demoBackend.departures(complete);
+      demoBackend.departures(complete)
     } else {
-      var path = Api.departuresPath(activePlace.stopId, excludedModes(activePlace));
+      var path = Api.departuresPath(activePlace.stopId, excludedModes(activePlace))
       liveBackend.request(path, function(response) {
         if (!response.ok) {
-          complete(response);
-          return ;
+          complete(response)
+          return
         }
-        response.data = Api.parseDepartures(response.data);
-        complete(response);
-      });
+        response.data = Api.parseDepartures(response.data)
+        complete(response)
+      })
     }
   }
 
   function refresh() {
     if (connected)
-      poll();
+      poll()
     else
-      retryConnection();
+      retryConnection()
   }
 
   function resetBoard() {
-    departures = [];
-    board = [];
-    rows.clear();
-    alerts = [];
-    pillText = "";
-    urgency = "none";
+    departures = []
+    board = []
+    rows.clear()
+    alerts = []
+    pillText = ""
+    urgency = "none"
   }
 
   function project(now) {
-    var place = activePlace;
+    var place = activePlace
     if (!place) {
-      resetBoard();
-      return ;
+      resetBoard()
+      return
     }
-    board = Model.boardFor(departures, place, now);
-    var projected = Model.buildRows(board, place, now);
-    rows.clear();
+    board = Model.boardFor(departures, place, now)
+    var projected = Model.buildRows(board, place, now)
+    rows.clear()
     for (var i = 0; i < projected.length && i < Model.MAX_ROWS; i++) rows.append(projected[i])
-    alerts = Model.collectAlerts(board);
-    pillText = Model.pillText(board, place, now);
-    pillMode = Model.pillMode(board, place, now);
-    urgency = Model.urgency(board, place, now);
-    maybeNotify(now);
+    alerts = Model.collectAlerts(board)
+    pillText = Model.pillText(board, place, now)
+    pillMode = Model.pillMode(board, place, now)
+    urgency = Model.urgency(board, place, now)
+    maybeNotify(now)
   }
 
   function setPopupOpen(value) {
-    popupOpen = value === true;
+    popupOpen = value === true
     if (popupOpen && connected)
-      poll();
+      poll()
   }
 
   function dayKey(now) {
-    var d = new Date(now);
-    return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+    var d = new Date(now)
+    return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate()
   }
 
   function maybeNotify(now) {
     if (!notify || !connected)
-      return ;
+      return
 
-    var today = dayKey(now);
+    var today = dayKey(now)
     if (sentDay !== today) {
-      sentDay = today;
+      sentDay = today
       sentTripIds = ({
-      });
+      })
     }
-    var event = Model.notificationFor(board, activePlace, now, sentTripIds);
+    var event = Model.notificationFor(board, activePlace, now, sentTripIds)
     if (!event)
-      return ;
+      return
 
     var next = {
-    };
+    }
     for (var key in sentTripIds) next[key] = true
-    next[event.key] = true;
-    sentTripIds = next;
-    notification.command = ["omarchy-notification-send", "--app-name", "Transport NSW", "-g", Model.glyphFor(pillMode), "-u", "critical", "-r", Model.notificationTag(event.key), event.headline, event.body];
+    next[event.key] = true
+    sentTripIds = next
+    notification.command = ["omarchy-notification-send", "--app-name", "Transport NSW", "-g", Model.glyphFor(pillMode), "-u", "critical", "-r", Model.notificationTag(event.key), Model.escapeMarkup(event.headline), Model.escapeMarkup(event.body)]
     if (!notification.running)
-      notification.running = true;
+      notification.running = true
   }
 
   function searchStops(text, callback) {
-    pendingSearchText = String(text || "").trim();
-    pendingSearchCallback = callback;
-    searchSerial++;
-    if (searchRequest && typeof searchRequest.abort === "function")
-      searchRequest.abort();
+    if (quotaBlocked()) {
+      searchSerial++
+      searchDebounce.stop()
+      if (searchRequest && typeof searchRequest.abort === "function")
+        searchRequest.abort()
 
-    searchRequest = null;
-    if (pendingSearchText.length < 2) {
-      searchDebounce.stop();
-      callback([]);
-      return ;
+      searchRequest = null
+      if (callback)
+        callback([])
+
+      return
     }
-    searchDebounce.restart();
+    pendingSearchText = String(text || "").trim()
+    pendingSearchCallback = callback
+    searchSerial++
+    if (searchRequest && typeof searchRequest.abort === "function")
+      searchRequest.abort()
+
+    searchRequest = null
+    if (pendingSearchText.length < 2) {
+      searchDebounce.stop()
+      callback([])
+      return
+    }
+    searchDebounce.restart()
   }
 
   function planFrom(location, callback) {
-    function complete(result) {
-      journeyRequest = null;
-      if (!result.ok) {
-        journeyError = result.error;
-        if (callback)
-          callback([]);
-
-        return ;
-      }
-      var list = result.data.slice(0, Api.MAX_JOURNEYS);
-      for (var i = 0; i < list.length; i++) journeyRows.append(Model.projectJourney(list[i], Date.now()))
+    if (!connected || !activePlace || !location || quotaBlocked()) {
       if (callback)
-        callback(list);
-    }
+        callback([])
 
-    if (!connected || !activePlace || !location) {
-      if (callback)
-        callback([]);
-
-      return ;
+      return
     }
-    lastHereLocation = location;
-    journeyError = "";
-    journeyRows.clear();
+    lastHereLocation = location
+    journeyError = ""
+    journeyRows.clear()
     if (journeyRequest && typeof journeyRequest.abort === "function")
-      journeyRequest.abort();
+      journeyRequest.abort()
 
     var origin = location.isStop ? location.id : {
       "lat": location.lat,
       "lon": location.lon
-    };
+    }
+    function complete(result) {
+      journeyRequest = null
+      noteRateLimit(result)
+      if (!result.ok) {
+        journeyError = result.error
+        if (callback)
+          callback([])
+
+        return
+      }
+      var list = result.data.slice(0, Api.MAX_JOURNEYS)
+      for (var i = 0; i < list.length; i++) journeyRows.append(Model.projectJourney(list[i], Date.now()))
+      if (callback)
+        callback(list)
+    }
+
     if (demoMode)
-      demoBackend.plan(complete);
+      demoBackend.plan(complete)
     else
       journeyRequest = liveBackend.request(Api.tripPath(origin, activePlace.stopId, 4), function(response) {
-      if (response.ok)
-        response.data = Api.parseJourneys(response.data);
+        if (response.ok)
+          response.data = Api.parseJourneys(response.data)
 
-      complete(response);
-    });
+        complete(response)
+      })
   }
 
   function setHereOpen(value) {
-    hereOpen = value === true;
+    hereOpen = value === true
     if (hereOpen && lastHereLocation)
-      planFrom(lastHereLocation, null);
+      planFrom(lastHereLocation, null)
   }
 
   function writeCache() {
@@ -746,21 +819,21 @@ QtObject {
       "placeId": activePlace ? activePlace.id : "",
       "stopId": activePlace ? activePlace.stopId : "",
       "departures": departures.slice(0, Api.MAX_STOP_EVENTS)
-    }) + "\n";
+    }) + "\n"
     if (text.length < Api.MAX_RESPONSE_BYTES)
-      cacheFile.setText(text);
+      cacheFile.setText(text)
   }
 
   function statusLine() {
-    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " backoff=" + pollBackoff + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none");
+    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
   }
 
   Component.onCompleted: prepareDirs.running = true
-  // A lookup deferred because the keyring was busy runs once it frees up;
+  // A lookup deferred because the keyring was busy runs once it frees up
   // deferred to the next event loop turn so the busy binding never re-enters itself.
   onCredentialBusyChanged: {
     if (!credentialBusy) {
-      Qt.callLater(root.retryDeferredLookup);
+      Qt.callLater(root.retryDeferredLookup)
     }
   }
 }

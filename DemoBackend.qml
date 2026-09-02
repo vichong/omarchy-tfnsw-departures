@@ -15,58 +15,58 @@ QtObject {
       "kind": "",
       "error": "",
       "data": data
-    };
+    }
   }
 
   function queryValue(path, name) {
-    var match = String(path || "").match(new RegExp("(?:[?&])" + name + "=([^&]*)"));
-    return match ? decodeURIComponent(match[1]) : "";
+    var match = String(path || "").match(new RegExp("(?:[?&])" + name + "=([^&]*)"))
+    return match ? decodeURIComponent(match[1]) : ""
   }
 
   function request(path, callback) {
     var text = String(path || ""), data = {
-    };
+    }
     if (text.indexOf("/stop_finder") !== -1)
       data = {
       "locations": Demo.locations(queryValue(text, "name_sf"))
-    };
+    }
     else if (text.indexOf("/departure_mon") !== -1)
       data = {
       "stopEvents": []
-    };
+    }
     else if (text.indexOf("/trip") !== -1)
       data = {
       "journeys": []
-    };
-    callback(success(data));
+    }
+    callback(success(data))
     return {
       "abort": function() {
       }
-    };
+    }
   }
 
   function probe(callback) {
     callback(success({
-    }));
+    }))
   }
 
   function departures(callback) {
-    callback(success(Demo.board(Date.now())));
+    callback(success(Demo.board(Date.now())))
   }
 
   function searchStops(text, callback) {
-    callback(success(Demo.locations(text)));
+    callback(success(Demo.locations(text)))
   }
 
   function plan(callback) {
-    callback(success(Demo.journeys(Date.now())));
+    callback(success(Demo.journeys(Date.now())))
   }
 
   function supersede() {
-    generation++;
+    generation++
   }
 
   function reset() {
-    generation++;
+    generation++
   }
 }

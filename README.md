@@ -36,8 +36,8 @@ key and makes no network calls.
 
 Add a place, search for its stop, optionally filter lines, destination text and
 modes, then set the walking time. An empty line/mode filter shows everything.
-The bar badge can remain monochrome with the rest of Omarchy or use TfNSW mode
-colours. Leave-now notifications and polling (30–600 seconds) are configurable.
+The bar mark can remain monochrome with the rest of Omarchy or use the TfNSW
+gradient. Leave-now notifications and polling (30–600 seconds) are configurable.
 
 Configuration lives at
 `~/.config/omarchy/tfnsw-departures/config.json`:
@@ -71,7 +71,7 @@ you manually selected a place in the previous 30 minutes.
 
 In the popup, `↑`/`↓` or `j`/`k` moves through departures, `←`/`→` changes
 place, `Esc` closes, and `Tab` moves to the next panel. Enter has no action in
-v0.1.
+v0.2.
 
 ## IPC scripting
 

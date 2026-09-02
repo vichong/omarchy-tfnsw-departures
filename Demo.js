@@ -12,13 +12,17 @@ function departure(id, line, destination, platform, mode, plannedMs, estimatedMs
 }
 function board(now) {
   var at = typeof now === "number" ? now : Date.now(), m = 60000
-  var disruption = info("demo-alert", "T4 replacement buses may affect some services", "high", "https://transportnsw.info/alerts")
+  var disruption = info("demo-disruption", "T4 replacement buses may affect some services", "high", "https://transportnsw.info/alerts")
+  var advisory = info("demo-advisory", "Extra services are running after tonight's event", "normal", "https://transportnsw.info/alerts")
   return [
-    departure("demo-cancelled", "T4", "Bondi Junction", "6", "train", at + 8*m, 0, false, true, [disruption]),
-    departure("demo-t4", "T4", "Bondi Junction", "6", "train", at + 14*m, at + 17*m, true, false, [disruption]),
+    departure("demo-cancelled", "T4", "Bondi Junction", "6", "train", at + 8*m, at + 8*m, true, true, [disruption]),
+    departure("demo-t4", "T4", "Bondi Junction", "6", "train", at + 13*m, at + 17*m, true, false, [disruption]),
     departure("demo-m1", "M1", "Tallawong", "1", "metro", at + 20*m, at + 20*m, true, false, []),
     departure("demo-t8", "T8", "City Circle via Airport", "4", "train", at + 29*m, 0, false, false, []),
-    departure("demo-t4-2", "T4", "Waterfall", "3", "train", at + 38*m, at + 38*m, true, false, [])
+    departure("demo-t4-2", "T4", "Waterfall", "3", "train", at + 38*m, at + 38*m, true, false, [advisory]),
+    departure("demo-m1-2", "M1", "Tallawong", "1", "metro", at + 46*m, 0, false, false, []),
+    departure("demo-t8-2", "T8", "Macarthur via Airport", "4", "train", at + 55*m, at + 55*m, true, false, []),
+    departure("demo-t4-3", "T4", "Cronulla", "3", "train", at + 67*m, at + 68*m, true, false, [advisory])
   ]
 }
 function locations(query) {

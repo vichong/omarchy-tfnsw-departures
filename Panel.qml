@@ -5,7 +5,7 @@ import qs.Ui
 import qs.Commons
 import "Api.js" as Api
 
-// Bar button plus the departures popup. The service owns transport state;
+// Bar button plus the departures popup. The service owns transport state,
 // this component owns the popup cursor and the shell IPC target.
 Panel {
   id: root
@@ -18,71 +18,85 @@ Panel {
   readonly property string family: bar ? bar.fontFamily : Style.font.family
   property int cursorIndex: 0
   property bool cursorActive: false
+  property bool alertsExpanded: false
   readonly property int rowCount: ready ? service.rows.count : 0
   readonly property bool hasDisruption: {
     if (!ready)
-      return false;
+      return false
 
     for (var i = 0; i < service.alerts.length; i++) if (service.alerts[i].disruption) {
-      return true;
+      return true
     }
-    return false;
+    return false
   }
   readonly property string heroMeta: {
     if (!ready)
-      return "Service unavailable";
+      return "Service unavailable"
 
-    var parts = [];
+    var parts = []
     if (service.activePlace && service.activePlace.stopName)
-      parts.push(service.activePlace.stopName);
+      parts.push(service.activePlace.stopName)
+
+    if (service.rows.count)
+      parts.push(service.rows.get(0).realtime ? "realtime" : "scheduled")
 
     if (service.lastPolledMs) {
-      var d = new Date(service.lastPolledMs), two = function two(n) {
-        return (n < 10 ? "0" : "") + n;
-      };
-      parts.push("as of " + two(d.getHours()) + ":" + two(d.getMinutes()));
-    }
-    if (service.stale)
-      parts.push("cached");
-    else if (service.rows.count)
-      parts.push(service.rows.get(0).realtime ? "realtime" : "scheduled");
-    if (service.lastError)
-      parts.push(service.lastError);
+      var d = new Date(service.lastPolledMs)
+      var clock = twoDigits(d.getHours()) + ":" + twoDigits(d.getMinutes())
+      if (service.stale)
+        clock += ":" + twoDigits(d.getSeconds())
 
-    return parts.join(" · ");
+      parts.push((service.stale ? "cached " : "updated ") + clock)
+    }
+
+    return parts.join(" · ")
+  }
+
+  function twoDigits(n) {
+    return (n < 10 ? "0" : "") + n
+  }
+
+  function placeLabel(place) {
+    if (!ready || !service.colorful)
+      return place.name
+
+    var firstLine = place.lines && place.lines.length ? String(place.lines[0]) : ""
+    var letter = firstLine ? firstLine.charAt(0).toUpperCase() : Api.modeById(place.modes && place.modes.length ? place.modes[0] : "other").letter
+    return letter + "  " + place.name
   }
 
   function moveCursor(delta) {
     if (rowCount)
-      cursorIndex = Math.max(0, Math.min(rowCount - 1, cursorIndex + delta));
+      cursorIndex = Math.max(0, Math.min(rowCount - 1, cursorIndex + delta))
   }
 
   function switchPlace(delta) {
     if (!ready || service.effectivePlaces.length < 2)
-      return ;
+      return
 
-    var list = service.effectivePlaces, current = 0;
+    var list = service.effectivePlaces
+    var current = 0
     for (var i = 0; i < list.length; i++) if (service.activePlace && list[i].id === service.activePlace.id) {
-      current = i;
+      current = i
     }
-    var next = (current + delta + list.length) % list.length;
-    service.setActivePlace(list[next].id, true);
-    cursorIndex = 0;
+    var next = (current + delta + list.length) % list.length
+    service.setActivePlace(list[next].id, true)
+    cursorIndex = 0
   }
 
   function openOverlay(tab) {
     if (!bar || !bar.shell || typeof bar.shell.summon !== "function")
-      return ;
+      return
 
-    close();
+    close()
     bar.shell.summon(moduleName, JSON.stringify({
       "tab": tab || "settings"
-    }));
+    }))
   }
 
   function openAlert(url) {
-    var safe = Api.httpsOnly(url) || Api.ALERTS_URL;
-    Quickshell.execDetached(["gio", "open", safe]);
+    var safe = Api.httpsOnly(url) || Api.ALERTS_URL
+    Quickshell.execDetached(["gio", "open", safe])
   }
 
   moduleName: "io.github.vichong.tfnsw-departures"
@@ -90,11 +104,12 @@ Panel {
   manageIpc: false
   onOpenedChanged: {
     if (ready)
-      service.setPopupOpen(opened);
+      service.setPopupOpen(opened)
 
     if (!opened) {
-      cursorIndex = 0;
-      cursorActive = false;
+      cursorIndex = 0
+      cursorActive = false
+      alertsExpanded = false
     }
   }
   implicitWidth: button.implicitWidth
@@ -126,16 +141,16 @@ Panel {
     labelVisible: false
     hasVisualContent: true
     tooltipText: root.ready && root.service.activePlace ? root.service.activePlace.name + " · " + (root.service.pillText || "No departure") : "Transport NSW"
-    fixedWidth: vertical ? -1 : pill.implicitWidth + scaledHorizontalMargin * 2
+    fixedWidth: pill.implicitWidth + scaledHorizontalMargin * 2
     fixedHeight: vertical ? Style.bar.iconSlot : -1
     onPressed: function(mouseButton) {
       if (mouseButton === Qt.RightButton) {
-        root.openOverlay("settings");
+        root.openOverlay("settings")
       } else if (mouseButton === Qt.MiddleButton) {
         if (root.ready)
-          root.service.refresh();
+          root.service.refresh()
       } else {
-        root.toggle();
+        root.toggle()
       }
     }
 
@@ -145,13 +160,12 @@ Panel {
       anchors.centerIn: parent
       spacing: Style.spacing.sm
 
-      ModeBadge {
+      TransportMark {
         anchors.verticalCenter: parent.verticalCenter
-        size: Style.bar.iconCanvas
-        mode: root.ready ? root.service.pillMode : "train"
+        iconSize: Style.bar.iconCanvas
         color: root.barFg
         colorful: root.ready && root.service.colorful
-        dim: !root.connected
+        dim: root.connected ? 1 : 0.45
       }
 
       Text {
@@ -185,17 +199,17 @@ Panel {
       anchors.fill: parent
       onCloseRequested: root.close()
       onTabRequested: function(direction) {
-        root.switchPanel(direction);
+        root.switchPanel(direction)
       }
       onMoveRequested: function(dx, dy) {
         if (!root.cursorActive) {
-          root.cursorActive = true;
-          return ;
+          root.cursorActive = true
+          return
         }
         if (dy)
-          root.moveCursor(dy);
+          root.moveCursor(dy)
         else if (dx)
-          root.switchPlace(dx);
+          root.switchPlace(dx)
       }
       onActivateRequested: {
       }
@@ -214,12 +228,8 @@ Panel {
           fontFamily: root.family
           iconOpacity: root.connected ? 1 : 0.5
 
-          // The hero always carries the transport mode colour; the bar badge
-          // follows the user's monochrome/colourful preference.
-          iconComponent: ModeBadge {
-            size: Style.font.display
-            mode: root.ready ? root.service.pillMode : "train"
-            color: root.fg
+          iconComponent: TransportMark {
+            iconSize: Style.font.display
             colorful: true
           }
 
@@ -234,7 +244,7 @@ Panel {
                 fontFamily: root.family
                 onClicked: {
                   if (root.ready) {
-                    root.service.refresh();
+                    root.service.refresh()
                   }
                 }
               }
@@ -272,33 +282,32 @@ Panel {
           options: root.ready ? root.service.effectivePlaces.map(function(p) {
             return {
               "value": p.id,
-              "label": p.name
-            };
+              "label": root.placeLabel(p)
+            }
           }) : []
           value: root.ready && root.service.activePlace ? root.service.activePlace.id : ""
           onChanged: function(value) {
-            root.service.setActivePlace(value, true);
+            root.service.setActivePlace(value, true)
           }
         }
 
-        Repeater {
-          model: root.ready ? root.service.alerts : []
+        Column {
+          width: parent.width
+          visible: root.ready && root.service.alerts.length > 0
 
-          delegate: CursorSurface {
-            required property var modelData
-
-            width: column.width
+          CursorSurface {
+            width: parent.width
             foreground: root.fg
-            implicitHeight: alertText.implicitHeight + Style.spacing.rowPaddingX
+            implicitHeight: alertSummary.implicitHeight + Style.spacing.rowPaddingX
 
             MouseArea {
               anchors.fill: parent
               cursorShape: Qt.PointingHandCursor
-              onClicked: root.openAlert(modelData.url)
+              onClicked: root.alertsExpanded = !root.alertsExpanded
             }
 
             Text {
-              id: alertText
+              id: alertSummary
 
               anchors.left: parent.left
               anchors.right: parent.right
@@ -306,11 +315,47 @@ Panel {
               anchors.leftMargin: Style.spacing.xl
               anchors.rightMargin: Style.spacing.xl
               textFormat: Text.PlainText
-              text: "󰀦  " + modelData.title
-              wrapMode: Text.WordWrap
-              color: modelData.disruption ? Color.urgent : Qt.darker(root.fg, 1.35)
+              text: root.ready && root.service.alerts.length === 1
+                ? "󰀦  " + root.service.alerts[0].title
+                : "󰀦  " + (root.ready ? root.service.alerts.length : 0) + " alerts · tap for details"
+              elide: Text.ElideRight
+              color: root.hasDisruption ? Color.urgent : Qt.darker(root.fg, 1.35)
               font.family: root.family
               font.pixelSize: Style.font.caption
+            }
+          }
+
+          Repeater {
+            model: root.alertsExpanded && root.ready ? root.service.alerts : []
+
+            delegate: CursorSurface {
+              required property var modelData
+
+              width: column.width
+              foreground: root.fg
+              implicitHeight: alertText.implicitHeight + Style.spacing.rowPaddingX
+
+              MouseArea {
+                anchors.fill: parent
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.openAlert(modelData.url)
+              }
+
+              Text {
+                id: alertText
+
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                anchors.leftMargin: Style.spacing.xl
+                anchors.rightMargin: Style.spacing.xl
+                textFormat: Text.PlainText
+                text: "󰀦  " + modelData.title
+                wrapMode: Text.WordWrap
+                color: modelData.disruption ? Color.urgent : Qt.darker(root.fg, 1.35)
+                font.family: root.family
+                font.pixelSize: Style.font.caption
+              }
             }
           }
         }
@@ -364,9 +409,9 @@ Panel {
           visible: root.ready && root.service.connected && root.service.activePlace && root.rowCount === 0
           textFormat: Text.PlainText
           text: {
-            var place = root.ready ? root.service.activePlace : null;
-            var lines = place && place.lines && place.lines.length ? place.lines.join(", ") : "matching";
-            return "No " + lines + " services in the next 3 hours";
+            var place = root.ready ? root.service.activePlace : null
+            var lines = place && place.lines && place.lines.length ? place.lines.join(", ") : "matching"
+            return "No " + lines + " services in the next 3 hours"
           }
           wrapMode: Text.WordWrap
           color: Qt.darker(root.fg, 1.4)
@@ -390,8 +435,10 @@ Panel {
             timeText: model.timeText
             plannedText: model.plannedText
             leaveText: model.leaveText
+            leaveMs: model.leaveMs
             realtime: model.realtime
             cancelled: model.cancelled
+            missed: model.missed
             delayMin: model.delayMin
             status: model.status
             alertTitle: model.alertTitle

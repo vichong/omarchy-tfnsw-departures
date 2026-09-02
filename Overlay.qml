@@ -53,92 +53,92 @@ Item {
   readonly property var borderSpec: Border.surfaceSpec("menu", "border", Color.menu.border, Math.max(1, Style.space(2)))
 
   function open(payloadJson) {
-    opened = true;
-    keyDraft = "";
+    opened = true
+    keyDraft = ""
     try {
       var payload = payloadJson ? JSON.parse(payloadJson) : {
-      };
-      tab = payload.tab === "here" ? "here" : "settings";
+      }
+      tab = payload.tab === "here" ? "here" : "settings"
     } catch (e) {
-      tab = "settings";
+      tab = "settings"
     }
     if (service && !service.configured)
-      tab = "settings";
+      tab = "settings"
 
     if (service) {
-      selectedPlaceId = service.activePlace ? service.activePlace.id : "";
-      loadPlace(selectedPlaceId);
-      service.setHereOpen(tab === "here");
+      selectedPlaceId = service.activePlace ? service.activePlace.id : ""
+      loadPlace(selectedPlaceId)
+      service.setHereOpen(tab === "here")
     }
     Qt.callLater(function() {
-      keyCatcher.forceActiveFocus();
-    });
+      keyCatcher.forceActiveFocus()
+    })
   }
 
   function close() {
-    opened = false;
+    opened = false
     if (service)
-      service.setHereOpen(false);
+      service.setHereOpen(false)
   }
 
   function dismiss() {
-    close();
+    close()
     if (shell && typeof shell.hide === "function")
-      shell.hide((manifest && manifest.id) || "io.github.vichong.tfnsw-departures");
+      shell.hide((manifest && manifest.id) || "io.github.vichong.tfnsw-departures")
   }
 
   function placeById(id) {
     if (!service)
-      return null;
+      return null
 
     for (var i = 0; i < service.places.length; i++) if (service.places[i].id === id) {
-      return service.places[i];
+      return service.places[i]
     }
-    return null;
+    return null
   }
 
   function loadPlace(id) {
-    var p = placeById(id);
-    placeSearchText = "";
-    placeSearchComplete = false;
-    stopResults = [];
+    var p = placeById(id)
+    placeSearchText = ""
+    placeSearchComplete = false
+    stopResults = []
     if (!p) {
-      placeName = "";
-      placeStopId = "";
-      placeStopName = "";
-      placeLines = "";
-      placeDestination = "";
-      placeModes = [];
-      placeWalk = 0;
-      placeSsid = "";
-      selectedStop = null;
-      return ;
+      placeName = ""
+      placeStopId = ""
+      placeStopName = ""
+      placeLines = ""
+      placeDestination = ""
+      placeModes = []
+      placeWalk = 0
+      placeSsid = ""
+      selectedStop = null
+      return
     }
-    placeName = p.name;
-    placeStopId = p.stopId;
-    placeStopName = p.stopName;
-    placeLines = p.lines.join(", ");
-    placeDestination = p.destination;
-    placeModes = p.modes.slice();
-    placeWalk = p.walkMinutes;
-    placeSsid = p.ssid;
+    placeName = p.name
+    placeStopId = p.stopId
+    placeStopName = p.stopName
+    placeLines = p.lines.join(", ")
+    placeDestination = p.destination
+    placeModes = p.modes.slice()
+    placeWalk = p.walkMinutes
+    placeSsid = p.ssid
     selectedStop = {
       "id": p.stopId,
       "shortName": p.stopName,
       "name": p.stopName,
       "isStop": true,
       "modes": p.modes
-    };
+    }
   }
 
   function addPlaceDraft() {
-    selectedPlaceId = ConfigStore.newPlaceId(service ? service.places : []);
-    loadPlace("");
+    selectedPlaceId = ConfigStore.newPlaceId(service ? service.places : [])
+    loadPlace("")
   }
 
   function savePlaceDraft() {
     if (!service || !Api.isStopId(placeStopId))
-      return ;
+      return
 
     var item = {
       "id": selectedPlaceId || ConfigStore.newPlaceId(service.places),
@@ -150,97 +150,97 @@ Item {
       "modes": placeModes,
       "walkMinutes": placeWalk,
       "ssid": placeSsid
-    };
-    var list = service.places.slice(), replaced = false;
+    }
+    var list = service.places.slice(), replaced = false
     for (var i = 0; i < list.length; i++) if (list[i].id === item.id) {
-      list[i] = item;
-      replaced = true;
+      list[i] = item
+      replaced = true
     }
     if (!replaced && list.length < ConfigStore.MAX_PLACES)
-      list.push(item);
+      list.push(item)
 
-    selectedPlaceId = item.id;
+    selectedPlaceId = item.id
     service.saveConfig({
       "places": list,
       "activePlaceId": item.id
-    });
+    })
   }
 
   function removePlace() {
     if (!service || !selectedPlaceId)
-      return ;
+      return
 
     var list = service.places.filter(function(p) {
-      return p.id !== selectedPlaceId;
-    });
-    selectedPlaceId = list.length ? list[0].id : "";
+      return p.id !== selectedPlaceId
+    })
+    selectedPlaceId = list.length ? list[0].id : ""
     service.saveConfig({
       "places": list,
       "activePlaceId": selectedPlaceId
-    });
-    loadPlace(selectedPlaceId);
+    })
+    loadPlace(selectedPlaceId)
   }
 
   function pickStop(loc) {
-    selectedStop = loc;
-    placeStopId = loc.id;
-    placeStopName = loc.shortName || loc.name;
-    placeSearchText = "";
-    placeSearchComplete = false;
-    stopResults = [];
+    selectedStop = loc
+    placeStopId = loc.id
+    placeStopName = loc.shortName || loc.name
+    placeSearchText = ""
+    placeSearchComplete = false
+    stopResults = []
   }
 
   function searchPlaceStops(text) {
     if (!service)
-      return ;
+      return
 
-    placeSearchText = String(text || "").trim();
-    placeSearchComplete = false;
+    placeSearchText = String(text || "").trim()
+    placeSearchComplete = false
     service.searchStops(text, function(results) {
       root.stopResults = results.filter(function(x) {
-        return x.isStop;
-      });
-      root.placeSearchComplete = true;
-    });
+        return x.isStop
+      })
+      root.placeSearchComplete = true
+    })
   }
 
   function searchHere(text) {
     if (!service)
-      return ;
+      return
 
     service.searchStops(text, function(results) {
-      root.hereResults = results;
-      root.nearestStop = null;
+      root.hereResults = results
+      root.nearestStop = null
       for (var i = 0; i < results.length; i++) if (results[i].isStop) {
-        root.nearestStop = results[i];
-        break;
+        root.nearestStop = results[i]
+        break
       }
-    });
+    })
   }
 
   function pickHere(loc) {
-    hereLocation = loc;
-    hereResults = [];
+    hereLocation = loc
+    hereResults = []
     if (service)
       service.planFrom(loc, function(journeys) {
-      root.lastJourneys = journeys;
-    });
+        root.lastJourneys = journeys
+      })
   }
 
   function saveHereAsPlace() {
     if (!service || !nearestStop)
-      return ;
+      return
 
-    var walk = 0;
+    var walk = 0
     if (lastJourneys.length && lastJourneys[0].legs) {
       for (var i = 0; i < lastJourneys[0].legs.length; i++) {
-      if (lastJourneys[0].legs[i].kind === "walk") {
-        walk = Math.max(0, Math.round(lastJourneys[0].legs[i].durationSec / 60));
-        break;
+        if (lastJourneys[0].legs[i].kind === "walk") {
+          walk = Math.max(0, Math.round(lastJourneys[0].legs[i].durationSec / 60))
+          break
+        }
       }
-    };
     }
-    var id = ConfigStore.newPlaceId(service.places);
+    var id = ConfigStore.newPlaceId(service.places)
     service.addPlace({
       "id": id,
       "name": nearestStop.shortName || "New place",
@@ -251,21 +251,31 @@ Item {
       "modes": nearestStop.modes || [],
       "walkMinutes": walk,
       "ssid": ""
-    });
-    selectedPlaceId = id;
-    loadPlace(id);
-    tab = "settings";
+    })
+    selectedPlaceId = id
+    loadPlace(id)
+    tab = "settings"
   }
 
   function openUrl(url) {
-    var safe = Api.httpsOnly(url);
+    var safe = Api.httpsOnly(url)
     if (safe)
-      Quickshell.execDetached(["gio", "open", safe]);
+      Quickshell.execDetached(["gio", "open", safe])
+  }
+
+  function quotaCaptionText() {
+    if (!service || !service.quotaBackoffUntil)
+      return ""
+
+    var retry = new Date(service.quotaBackoffUntil)
+    var hour = (retry.getHours() < 10 ? "0" : "") + retry.getHours()
+    var minute = (retry.getMinutes() < 10 ? "0" : "") + retry.getMinutes()
+    return "Transport NSW quota reached — retrying at " + hour + ":" + minute
   }
 
   onTabChanged: {
     if (service && opened) {
-      service.setHereOpen(tab === "here");
+      service.setHereOpen(tab === "here")
     }
   }
 
@@ -348,9 +358,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Style.spacing.lg
 
-            ModeBadge {
-              size: Style.font.display
-              mode: root.service ? root.service.pillMode : "train"
+            TransportMark {
+              iconSize: Style.font.display
               colorful: true
             }
 
@@ -382,7 +391,7 @@ Item {
             }]
             value: root.tab
             onChanged: function(value) {
-              root.tab = value;
+              root.tab = value
             }
           }
         }
@@ -398,11 +407,23 @@ Item {
           }
         }
 
+        Caption {
+          id: quotaCaption
+
+          anchors.top: rule.bottom
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.topMargin: Style.space(10)
+          visible: root.service && root.service.quotaBackoffUntil > 0
+          text: root.quotaCaptionText()
+          color: Color.urgent
+        }
+
         Loader {
           sourceComponent: root.tab === "here" ? herePane : settingsPane
 
           anchors {
-            top: rule.bottom
+            top: quotaCaption.visible ? quotaCaption.bottom : rule.bottom
             bottom: parent.bottom
             left: parent.left
             right: parent.right
@@ -457,7 +478,7 @@ Item {
               fontFamily: root.family
               onClicked: {
                 if (root.service && root.service.applyConnection(root.keyDraft)) {
-                  root.keyDraft = "";
+                  root.keyDraft = ""
                 }
               }
             }
@@ -500,7 +521,7 @@ Item {
             fontFamily: root.family
             onClicked: {
               if (root.service) {
-                root.service.setDemoMode(!root.service.demoMode);
+                root.service.setDemoMode(!root.service.demoMode)
               }
             }
           }
@@ -557,12 +578,12 @@ Item {
               return {
                 "value": p.id,
                 "label": p.name
-              };
+              }
             }) : []
             value: root.selectedPlaceId
             onChanged: function(value) {
-              root.selectedPlaceId = value;
-              root.loadPlace(value);
+              root.selectedPlaceId = value
+              root.loadPlace(value)
             }
           }
 
@@ -696,12 +717,12 @@ Item {
               return {
                 "value": m.id,
                 "label": m.label
-              };
+              }
             })
             foreground: root.foreground
             fontFamily: root.family
             onChanged: function(values) {
-              root.placeModes = values;
+              root.placeModes = values
             }
           }
 
@@ -717,7 +738,7 @@ Item {
               foreground: root.foreground
               fontFamily: root.family
               onModified: function(value) {
-                root.placeWalk = value;
+                root.placeWalk = value
               }
             }
 
@@ -752,7 +773,7 @@ Item {
                   fontFamily: root.family
                   onClicked: {
                     if (root.service) {
-                      root.placeSsid = root.service.lastSsid;
+                      root.placeSsid = root.service.lastSsid
                     }
                   }
                 }
@@ -771,7 +792,7 @@ Item {
               if (root.service) {
                 root.service.saveConfig({
                 "autoPlace": !root.service.autoPlace
-              });
+              })
               }
             }
           }
@@ -784,7 +805,7 @@ Item {
             fontFamily: root.family
             onClicked: {
               if (Api.isStopId(root.placeStopId)) {
-                root.savePlaceDraft();
+                root.savePlaceDraft()
               }
             }
           }
@@ -813,7 +834,7 @@ Item {
               if (root.service)
                 root.service.saveConfig({
                 "pollSeconds": value
-              });
+              })
             }
           }
 
@@ -827,7 +848,7 @@ Item {
               if (root.service) {
                 root.service.saveConfig({
                 "notify": !root.service.notify
-              });
+              })
               }
             }
           }
@@ -842,7 +863,7 @@ Item {
               if (root.service) {
                 root.service.saveConfig({
                 "colorful": !root.service.colorful
-              });
+              })
               }
             }
           }
@@ -856,7 +877,7 @@ Item {
           spacing: Style.spacing.lg
 
           Caption {
-            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.1.0")
+            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.2.0")
           }
 
           Button {
@@ -904,11 +925,11 @@ Item {
             return {
               "value": p.id,
               "label": p.name
-            };
+            }
           }) : []
           value: root.service && root.service.activePlace ? root.service.activePlace.id : ""
           onChanged: function(value) {
-            root.service.setActivePlace(value, true);
+            root.service.setActivePlace(value, true)
           }
         }
 

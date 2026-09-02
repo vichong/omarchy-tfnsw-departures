@@ -33,6 +33,11 @@ var MODES = [
 var WALK_CLASS = 100
 var DEFAULT_MODE = { cls: 0, id: "other", label: "Service", letter: "•", color: "#888888", motBit: 0 }
 
+function clip(text, max) {
+  var limit = Math.max(0, parseInt(max, 10) || 0)
+  return String(text || "").slice(0, limit)
+}
+
 function modeFor(cls) {
   var n = parseInt(cls, 10)
   for (var i = 0; i < MODES.length; i++) if (MODES[i].cls === n) return MODES[i]
@@ -150,7 +155,7 @@ function parseResponse(status, body) {
   var data = null
   try { data = JSON.parse(text) } catch (e) { data = null }
   if (status < 200 || status >= 300) {
-    var message = data && data.ErrorDetails && data.ErrorDetails.message ? String(data.ErrorDetails.message) : ""
+    var message = data && data.ErrorDetails && data.ErrorDetails.message ? clip(data.ErrorDetails.message, 120) : ""
     return errorResult(status >= 500 ? "network" : "api", message || ("Transport NSW API error (HTTP " + status + ")."))
   }
   if (!data || typeof data !== "object" || Array.isArray(data)) return errorResult("protocol", "Unexpected response from Transport NSW.")
@@ -170,7 +175,7 @@ function systemErrors(data) {
     if (!m || m.type !== "error") continue
     // -2000 "stop invalid" simply means no match; callers treat empty lists.
     if (m.code === -2000) continue
-    out.push(String(m.text || ("Transport NSW error " + m.code)))
+    out.push(clip(m.text || ("Transport NSW error " + m.code), 120))
   }
   return out
 }
@@ -194,19 +199,19 @@ function shortLine(transportation) {
   if (short && short.length <= 6) return short
   var number = String(transportation.number || "").trim()
   var match = number.match(/^([A-Z]{1,2}[0-9]{1,3}[A-Z]?|[0-9]{1,4}[A-Z]?)\b/)
-  return match ? match[1] : (short || number.split(" ")[0] || "")
+  return clip(match ? match[1] : (short || number.split(" ")[0] || ""), 120)
 }
 
-function firstSegment(name) { return String(name || "").split(",")[0].trim() }
+function firstSegment(name) { return clip(String(name || "").split(",")[0].trim(), 120) }
 
 function platformOf(location) {
   var props = location && location.properties ? location.properties : {}
   var name = String(props.platformName || "").trim()
-  if (name) return name.replace(/^Platform\s+/i, "")
+  if (name) return clip(name.replace(/^Platform\s+/i, ""), 120)
   var raw = String(props.platform || "").trim()
   // "SYD6" style codes carry the platform number after the station prefix.
   var match = raw.match(/([0-9]+[A-Z]?)$/)
-  return match ? match[1] : raw
+  return clip(match ? match[1] : raw, 120)
 }
 
 function parseInfos(infos) {
@@ -217,7 +222,7 @@ function parseInfos(infos) {
     var info = list[i]
     if (!info || typeof info !== "object") continue
     var id = String(info.id || "")
-    var title = String(info.urlText || info.subtitle || "").trim()
+    var title = clip(String(info.urlText || info.subtitle || "").trim(), 120)
     if (!title || (id && seen[id])) continue
     if (id) seen[id] = true
     out.push({ id: id || title, title: title, priority: String(info.priority || "normal"),
@@ -248,7 +253,7 @@ function parseLocations(data) {
       if (mode.cls && modes.indexOf(mode.id) === -1) modes.push(mode.id)
     }
     out.push({
-      id: String(loc.id), name: String(loc.name), shortName: String(loc.disassembledName || firstSegment(loc.name)),
+      id: String(loc.id), name: clip(loc.name, 120), shortName: clip(loc.disassembledName || firstSegment(loc.name), 120),
       type: String(loc.type || ""), lat: isFinite(lat) ? lat : null, lon: isFinite(lon) ? lon : null,
       modes: modes, isStop: isStop, isBest: loc.isBest === true
     })
@@ -276,8 +281,8 @@ function parseDepartures(data) {
       id: tripId || (line + "@" + (planned || estimated)),
       tripId: tripId,
       line: line,
-      lineName: String(t.number || t.name || line),
-      destination: String(t.destination && t.destination.name ? t.destination.name : ""),
+      lineName: clip(t.number || t.name || line, 120),
+      destination: clip(t.destination && t.destination.name ? t.destination.name : "", 120),
       platform: platformOf(ev.location),
       mode: modeFor(product.class).id,
       plannedMs: planned || estimated,
@@ -343,7 +348,7 @@ function parseLeg(leg) {
     kind: isWalk ? "walk" : "ride",
     mode: isWalk ? "walk" : modeFor(product.class).id,
     line: isWalk ? "" : shortLine(t),
-    destination: String(t.destination && t.destination.name ? t.destination.name : ""),
+    destination: clip(t.destination && t.destination.name ? t.destination.name : "", 120),
     platform: isWalk ? "" : platformOf(origin),
     from: firstSegment(origin.disassembledName || origin.name),
     to: firstSegment(destination.disassembledName || destination.name),

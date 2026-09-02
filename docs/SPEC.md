@@ -304,3 +304,10 @@ the Omarchy theme: panel background and foreground from `Color`, mono bar,
   — the board's "All stops"/"8 carriages" treatment.
 - **Hero**: unchanged (Transport mark, place name, route meta).
 - Nothing white: the boards are white/black/orange; ours are theme colours.
+- **Walk time must be visible**: the countdown is *leave-in* (departure −
+  `walkMinutes`), so (a) hero meta becomes `Surry Hills → Chatswood · 6 min
+  walk · realtime`; (b) the countdown block's small label is **"leave"** (not
+  "Departs") — the board's "Departs" word goes next to the departure clock in
+  the row's right column ("Departs 11:40 PM"); (c) when `walkMinutes` is 0 the
+  label is "departs" and the hero omits the walk; (d) the place chips'
+  tooltip shows `Surry Hills Light Rail → Chatswood Station · 6 min walk`.

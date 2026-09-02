@@ -1,0 +1,1809 @@
+{
+  "version": "10.6.21.17",
+  "journeys": [
+    {
+      "rating": 0,
+      "isAdditional": false,
+      "interchanges": 0,
+      "legs": [
+        {
+          "duration": 1254,
+          "isRealtimeControlled": true,
+          "realtimeStatus": [
+            "MONITORED"
+          ],
+          "origin": {
+            "isGlobalId": true,
+            "id": "204473",
+            "name": "Sydenham Station, Platform 3, Sydenham",
+            "disassembledName": "Sydenham Station, Platform 3",
+            "type": "platform",
+            "coord": [
+              -33.914302,
+              151.166638
+            ],
+            "niveau": 0,
+            "parent": {
+              "isGlobalId": true,
+              "id": "204420",
+              "name": "Sydenham Station, Platform 3, Sydenham",
+              "disassembledName": "Sydenham Station, Platform 3",
+              "type": "stop",
+              "parent": {
+                "id": "placeID:95338008:1",
+                "name": "Sydenham",
+                "type": "locality"
+              },
+              "properties": {
+                "stopId": "10101326"
+              },
+              "coord": [
+                -33.914459,
+                151.166526
+              ],
+              "niveau": 0
+            },
+            "departureTimeBaseTimetable": "2026-09-02T12:07:30Z",
+            "departureTimePlanned": "2026-09-02T12:07:30Z",
+            "departureTimeEstimated": "2026-09-02T12:07:30Z",
+            "properties": {
+              "WheelchairAccess": "true",
+              "AREA_NIVEAU_DIVA": "0",
+              "AREA_NIVEAU_GIS": "0.00",
+              "stoppingPointPlanned": "Platform 3",
+              "area": "2",
+              "platform": "SYD3",
+              "platformName": "Platform 3",
+              "plannedPlatformName": "Platform 3",
+              "accessArray": [
+                {
+                  "stoppointAccess": {
+                    "height": 780,
+                    "equipment": 0,
+                    "maxWeight": 0,
+                    "distanceTrack": 0,
+                    "lengthAvail": 0,
+                    "widthAvail": 0,
+                    "attributes": 0
+                  }
+                }
+              ]
+            },
+            "modes": [
+              1,
+              2,
+              5
+            ]
+          },
+          "destination": {
+            "isGlobalId": true,
+            "id": "2000405",
+            "name": "Wynyard Station, Platform 5, Sydney",
+            "disassembledName": "Wynyard Station, Platform 5",
+            "type": "platform",
+            "coord": [
+              -33.86587,
+              151.205916
+            ],
+            "niveau": -3,
+            "parent": {
+              "isGlobalId": true,
+              "id": "200080",
+              "name": "Wynyard Station, Platform 5, Sydney",
+              "disassembledName": "Wynyard Station, Platform 5",
+              "type": "stop",
+              "parent": {
+                "id": "placeID:95301001:1",
+                "name": "Sydney",
+                "type": "locality"
+              },
+              "properties": {
+                "stopId": "10101102"
+              },
+              "coord": [
+                -33.865945,
+                151.206103
+              ],
+              "niveau": 0
+            },
+            "arrivalTimeBaseTimetable": "2026-09-02T12:28:24Z",
+            "arrivalTimePlanned": "2026-09-02T12:28:24Z",
+            "arrivalTimeEstimated": "2026-09-02T12:28:24Z",
+            "properties": {
+              "WheelchairAccess": "true",
+              "AREA_NIVEAU_DIVA": "-3",
+              "stoppingPointPlanned": "Platform 5",
+              "area": "2",
+              "platform": "WYN5",
+              "platformName": "Platform 5",
+              "plannedPlatformName": "Platform 5",
+              "accessArray": [
+                {
+                  "stoppointAccess": {
+                    "height": 780,
+                    "equipment": 0,
+                    "maxWeight": 0,
+                    "distanceTrack": 0,
+                    "lengthAvail": 0,
+                    "widthAvail": 0,
+                    "attributes": 0,
+                    "stepFromStreet": 0
+                  }
+                }
+              ]
+            },
+            "modes": [
+              1,
+              4,
+              5,
+              11
+            ]
+          },
+          "transportation": {
+            "id": "nsw:020T4: :R:sj2",
+            "name": "Sydney Trains Network T4 Eastern Suburbs & Illawarra Line",
+            "disassembledName": "T4",
+            "number": "T4 Eastern Suburbs & Illawarra Line",
+            "description": "Waterfall or Cronulla to Bondi Junction",
+            "product": {
+              "id": 1,
+              "class": 1,
+              "name": "Sydney Trains Network",
+              "iconId": 1
+            },
+            "operator": {
+              "id": "x0001",
+              "name": "Sydney Trains"
+            },
+            "destination": {
+              "id": "10101100",
+              "name": "City Circle via Museum",
+              "type": "stop"
+            },
+            "properties": {
+              "isTTB": true,
+              "tripCode": 263,
+              "timetablePeriod": "NSW JP",
+              "lineDisplay": "LINE",
+              "globalId": "3001",
+              "AVMSTripID": "623S.1396.158.16.T.8.90985901",
+              "RealtimeTripId": "623S.1396.158.16.T.8.90985901",
+              "OperatorURL": "http://www.sydneytrains.info/",
+              "gtfsTripId": "3001.nsw-2-T4.1.TA.1059.sj2",
+              "attributes": [
+                "PLAN_LOWFLOORVEHICLE",
+                "PLAN_WHEELCHAIRACCESS"
+              ]
+            },
+            "iconId": 1
+          },
+          "stopSequence": [
+            {
+              "isGlobalId": true,
+              "id": "204473",
+              "name": "Sydenham Station, Platform 3, Sydenham",
+              "disassembledName": "Sydenham Station, Platform 3",
+              "type": "platform",
+              "coord": [
+                -33.914302,
+                151.166638
+              ],
+              "niveau": 0,
+              "parent": {
+                "isGlobalId": true,
+                "id": "204420",
+                "name": "Sydenham Station, Platform 3, Sydenham",
+                "disassembledName": "Sydenham Station, Platform 3",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95338008:1",
+                  "name": "Sydenham",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101326"
+                },
+                "coord": [
+                  -33.914459,
+                  151.166526
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "WheelchairAccess": "true",
+                "AREA_NIVEAU_DIVA": "0",
+                "AREA_NIVEAU_GIS": "0.00",
+                "stoppingPointPlanned": "Platform 3",
+                "area": "2",
+                "platform": "SYD3",
+                "platformName": "Platform 3",
+                "plannedPlatformName": "Platform 3",
+                "accessArray": [
+                  {
+                    "stoppointAccess": {
+                      "height": 780,
+                      "equipment": 0,
+                      "maxWeight": 0,
+                      "distanceTrack": 0,
+                      "lengthAvail": 0,
+                      "widthAvail": 0,
+                      "attributes": 0
+                    }
+                  }
+                ]
+              },
+              "departureTimePlanned": "2026-09-02T12:07:30Z",
+              "departureTimeEstimated": "2026-09-02T12:07:30Z",
+              "modes": [
+                1,
+                2,
+                5
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "204461",
+              "name": "St Peters Station, Platform 1, St Peters",
+              "disassembledName": "St Peters Station, Platform 1",
+              "type": "platform",
+              "coord": [
+                -33.90722,
+                151.180437
+              ],
+              "niveau": -1,
+              "parent": {
+                "isGlobalId": true,
+                "id": "204410",
+                "name": "St Peters Station, Platform 1, St Peters",
+                "disassembledName": "St Peters Station, Platform 1",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301028:1",
+                  "name": "St Peters",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101325"
+                },
+                "coord": [
+                  -33.907273,
+                  151.180743
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "AREA_NIVEAU_DIVA": "-1",
+                "AREA_NIVEAU_GIS": "-1.00",
+                "stoppingPointPlanned": "Platform 1",
+                "area": "1",
+                "platform": "STP1",
+                "platformName": "Platform 1",
+                "plannedPlatformName": "Platform 1"
+              },
+              "modes": [
+                1,
+                5
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "204331",
+              "name": "Erskineville Station, Platform 1, Erskineville",
+              "disassembledName": "Erskineville Station, Platform 1",
+              "type": "platform",
+              "coord": [
+                -33.90068,
+                151.185185
+              ],
+              "niveau": 0,
+              "parent": {
+                "isGlobalId": true,
+                "id": "204310",
+                "name": "Erskineville Station, Platform 1, Erskineville",
+                "disassembledName": "Erskineville Station, Platform 1",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301013:1",
+                  "name": "Erskineville",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101324"
+                },
+                "coord": [
+                  -33.900183,
+                  151.185496
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "AREA_NIVEAU_DIVA": "0",
+                "AREA_NIVEAU_GIS": "0.00",
+                "stoppingPointPlanned": "Platform 1",
+                "area": "1",
+                "platform": "ERS1",
+                "platformName": "Platform 1",
+                "plannedPlatformName": "Platform 1"
+              },
+              "modes": [
+                1
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "2015137",
+              "name": "Redfern Station, Platform 7, Eveleigh",
+              "disassembledName": "Redfern Station, Platform 7",
+              "type": "platform",
+              "coord": [
+                -33.892207,
+                151.198513
+              ],
+              "niveau": -1,
+              "parent": {
+                "isGlobalId": true,
+                "id": "201510",
+                "name": "Redfern Station, Platform 7, Eveleigh",
+                "disassembledName": "Redfern Station, Platform 7",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301014:1",
+                  "name": "Eveleigh",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101421"
+                },
+                "coord": [
+                  -33.892048,
+                  151.198419
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "WheelchairAccess": "true",
+                "AREA_NIVEAU_DIVA": "-1",
+                "AREA_NIVEAU_GIS": "-1.00",
+                "stoppingPointPlanned": "Platform 7",
+                "occupancy": "MANY_SEATS",
+                "area": "4",
+                "platform": "RD07",
+                "platformName": "Platform 7",
+                "plannedPlatformName": "Platform 7",
+                "accessArray": [
+                  {
+                    "stoppointAccess": {
+                      "height": 780,
+                      "equipment": 0,
+                      "maxWeight": 0,
+                      "distanceTrack": 0,
+                      "lengthAvail": 0,
+                      "widthAvail": 0,
+                      "attributes": 0
+                    }
+                  }
+                ]
+              },
+              "arrivalTimePlanned": "2026-09-02T12:15:00Z",
+              "departureTimePlanned": "2026-09-02T12:15:30Z",
+              "arrivalTimeEstimated": "2026-09-02T12:15:00Z",
+              "departureTimeEstimated": "2026-09-02T12:15:30Z",
+              "modes": [
+                1,
+                5
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "2000340",
+              "name": "Central Station, Platform 20, Sydney",
+              "disassembledName": "Central Station, Platform 20",
+              "type": "platform",
+              "coord": [
+                -33.884137,
+                151.207127
+              ],
+              "niveau": 1,
+              "parent": {
+                "isGlobalId": true,
+                "id": "200060",
+                "name": "Central Station, Platform 20, Sydney",
+                "disassembledName": "Central Station, Platform 20",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301001:1",
+                  "name": "Sydney",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101100"
+                },
+                "coord": [
+                  -33.884024,
+                  151.206203
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "WheelchairAccess": "true",
+                "AREA_NIVEAU_DIVA": "1",
+                "AREA_NIVEAU_GIS": "1.00",
+                "stoppingPointPlanned": "Platform 20",
+                "area": "11",
+                "platform": "CE20",
+                "platformName": "Platform 20",
+                "plannedPlatformName": "Platform 20",
+                "callType": [
+                  "NOALIGHTING"
+                ],
+                "accessArray": [
+                  {
+                    "stoppointAccess": {
+                      "height": 780,
+                      "equipment": 0,
+                      "maxWeight": 0,
+                      "distanceTrack": 0,
+                      "lengthAvail": 0,
+                      "widthAvail": 0,
+                      "attributes": 0,
+                      "stepFromStreet": 0
+                    }
+                  }
+                ]
+              },
+              "arrivalTimePlanned": "2026-09-02T12:18:00Z",
+              "departureTimePlanned": "2026-09-02T12:19:00Z",
+              "arrivalTimeEstimated": "2026-09-02T12:18:00Z",
+              "departureTimeEstimated": "2026-09-02T12:19:00Z",
+              "modes": [
+                1,
+                2,
+                4,
+                5,
+                7,
+                11
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "2000371",
+              "name": "Museum Station, Platform 1, Sydney",
+              "disassembledName": "Museum Station, Platform 1",
+              "type": "platform",
+              "coord": [
+                -33.876069,
+                151.209863
+              ],
+              "niveau": -2,
+              "parent": {
+                "isGlobalId": true,
+                "id": "200040",
+                "name": "Museum Station, Platform 1, Sydney",
+                "disassembledName": "Museum Station, Platform 1",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301001:1",
+                  "name": "Sydney",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101104"
+                },
+                "coord": [
+                  -33.875571,
+                  151.209946
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "WheelchairAccess": "true",
+                "AREA_NIVEAU_DIVA": "-2",
+                "AREA_NIVEAU_GIS": "-2.00",
+                "stoppingPointPlanned": "Platform 1",
+                "area": "1",
+                "platform": "MSM1",
+                "platformName": "Platform 1",
+                "plannedPlatformName": "Platform 1",
+                "accessArray": [
+                  {
+                    "stoppointAccess": {
+                      "height": 780,
+                      "equipment": 0,
+                      "maxWeight": 0,
+                      "distanceTrack": 0,
+                      "lengthAvail": 0,
+                      "widthAvail": 0,
+                      "attributes": 0
+                    }
+                  }
+                ]
+              },
+              "arrivalTimePlanned": "2026-09-02T12:21:00Z",
+              "departureTimePlanned": "2026-09-02T12:21:30Z",
+              "arrivalTimeEstimated": "2026-09-02T12:21:00Z",
+              "departureTimeEstimated": "2026-09-02T12:21:30Z",
+              "modes": [
+                1
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "2000381",
+              "name": "St James Station, Platform 1, Sydney",
+              "disassembledName": "St James Station, Platform 1",
+              "type": "platform",
+              "coord": [
+                -33.870654,
+                151.211735
+              ],
+              "niveau": -2,
+              "parent": {
+                "isGlobalId": true,
+                "id": "200050",
+                "name": "St James Station, Platform 1, Sydney",
+                "disassembledName": "St James Station, Platform 1",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301001:1",
+                  "name": "Sydney",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101105"
+                },
+                "coord": [
+                  -33.870622,
+                  151.211863
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "WheelchairAccess": "true",
+                "AREA_NIVEAU_DIVA": "-2",
+                "stoppingPointPlanned": "Platform 1",
+                "area": "1",
+                "platform": "STJ1",
+                "platformName": "Platform 1",
+                "plannedPlatformName": "Platform 1",
+                "accessArray": [
+                  {
+                    "stoppointAccess": {
+                      "height": 780,
+                      "equipment": 0,
+                      "maxWeight": 0,
+                      "distanceTrack": 0,
+                      "lengthAvail": 0,
+                      "widthAvail": 0,
+                      "attributes": 0
+                    }
+                  }
+                ]
+              },
+              "arrivalTimePlanned": "2026-09-02T12:22:48Z",
+              "departureTimePlanned": "2026-09-02T12:23:18Z",
+              "arrivalTimeEstimated": "2026-09-02T12:22:48Z",
+              "departureTimeEstimated": "2026-09-02T12:23:18Z",
+              "modes": [
+                1,
+                5,
+                11
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "2000351",
+              "name": "Circular Quay, Platform 1, Sydney",
+              "disassembledName": "Circular Quay, Platform 1",
+              "type": "platform",
+              "coord": [
+                -33.861351,
+                151.210295
+              ],
+              "niveau": 1,
+              "parent": {
+                "isGlobalId": true,
+                "id": "200020",
+                "name": "Circular Quay, Platform 1, Sydney",
+                "disassembledName": "Circular Quay, Platform 1",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301001:1",
+                  "name": "Sydney",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101103"
+                },
+                "coord": [
+                  -33.861351,
+                  151.210813
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "WheelchairAccess": "true",
+                "AREA_NIVEAU_DIVA": "1",
+                "stoppingPointPlanned": "Platform 1",
+                "area": "1",
+                "platform": "CCQ1",
+                "platformName": "Platform 1",
+                "plannedPlatformName": "Platform 1",
+                "accessArray": [
+                  {
+                    "stoppointAccess": {
+                      "height": 780,
+                      "equipment": 0,
+                      "maxWeight": 0,
+                      "lengthAvail": 0,
+                      "widthAvail": 0,
+                      "attributes": 0,
+                      "stepFromStreet": 0
+                    }
+                  }
+                ]
+              },
+              "arrivalTimePlanned": "2026-09-02T12:25:42Z",
+              "departureTimePlanned": "2026-09-02T12:26:30Z",
+              "arrivalTimeEstimated": "2026-09-02T12:25:42Z",
+              "departureTimeEstimated": "2026-09-02T12:26:30Z",
+              "modes": [
+                1,
+                4,
+                5,
+                9
+              ]
+            },
+            {
+              "isGlobalId": true,
+              "id": "2000405",
+              "name": "Wynyard Station, Platform 5, Sydney",
+              "disassembledName": "Wynyard Station, Platform 5",
+              "type": "platform",
+              "coord": [
+                -33.86587,
+                151.205916
+              ],
+              "niveau": -3,
+              "parent": {
+                "isGlobalId": true,
+                "id": "200080",
+                "name": "Wynyard Station, Platform 5, Sydney",
+                "disassembledName": "Wynyard Station, Platform 5",
+                "type": "stop",
+                "parent": {
+                  "id": "placeID:95301001:1",
+                  "name": "Sydney",
+                  "type": "locality"
+                },
+                "properties": {
+                  "stopId": "10101102"
+                },
+                "coord": [
+                  -33.865945,
+                  151.206103
+                ],
+                "niveau": 0
+              },
+              "properties": {
+                "WheelchairAccess": "true",
+                "AREA_NIVEAU_DIVA": "-3",
+                "stoppingPointPlanned": "Platform 5",
+                "area": "2",
+                "platform": "WYN5",
+                "platformName": "Platform 5",
+                "plannedPlatformName": "Platform 5",
+                "accessArray": [
+                  {
+                    "stoppointAccess": {
+                      "height": 780,
+                      "equipment": 0,
+                      "maxWeight": 0,
+                      "distanceTrack": 0,
+                      "lengthAvail": 0,
+                      "widthAvail": 0,
+                      "attributes": 0,
+                      "stepFromStreet": 0
+                    }
+                  }
+                ]
+              },
+              "arrivalTimePlanned": "2026-09-02T12:28:24Z",
+              "arrivalTimeEstimated": "2026-09-02T12:28:24Z",
+              "modes": [
+                1,
+                4,
+                5,
+                11
+              ]
+            }
+          ],
+          "infos": [
+            {
+              "timestamps": {
+                "creation": "2026-08-17T23:36:00Z"
+              },
+              "priority": "normal",
+              "id": "ems-76903",
+              "version": 1,
+              "type": "lineInfo",
+              "properties": {
+                "publisher": "ems.comm.addinfo",
+                "infoType": "lineInfo",
+                "smsText": "Buses replace trains between Central and Bondi Junction. Trains do not stop at Wolli Creek",
+                "speechText": "Wednesday 2 and Thursday 3 September\nNightly from 9:50PM to 1:30AM, buses replace trains between Central and Bondi Junction, but do not stop at Martin Place.\nMost trains run to a changed timetable between Cronulla, Waterfall and the City Circle, with some making extra stops at St Peters and Erskineville.\nNightly from 10:10PM to 1:30AM, trains do not stop at Wolli Creek but make an extra stop at Arncliffe.\nBuses run between Sydenham, Wolli Creek and Arncliffe.\nChange at Arncliffe or Sydenham for a bus to Wolli Creek or change at Central for a T8 Airport & South Line train if you have luggage or accessibility needs."
+              },
+              "infoLinks": [
+                {
+                  "urlText": "Buses replace trains between Central and Bondi Junction. Trains do not stop at Wolli Creek",
+                  "url": "https://transportnsw.info/alerts/details#/ems-76903",
+                  "content": "<div><strong>Wednesday 2 and Thursday 3 September</strong></div>\n<ul>\n<li><strong>Nightly from 9.50pm to 1.30am</strong>, buses replace trains between Central and Bondi Junction, but do not stop at Martin Place.</li>\n<li>Most trains run to a changed timetable between Cronulla, Waterfall and the City Circle, with some making extra stops at St Peters and Erskineville.</li>\n<li>Change at:<br />- <strong>Sydenham</strong> or <strong>Central</strong> for metro services to Martin Place<br />- <strong>Central</strong> for buses to Kings Cross and Edgecliff<br />- <strong>Town</strong> <strong>Hall</strong> for express buses to Bondi Junction.<br /><br /></li>\n<li><strong>Nightly from 10.10pm to 1.30am</strong>, trains do not stop at Wolli Creek but make an extra stop at Arncliffe.</li>\n<li>Buses run between Sydenham, Wolli Creek and Arncliffe.</li>\n<li>Change at Arncliffe or Sydenham for a bus to Wolli Creek or change at Central for a T8 Airport &amp; South Line train if you have luggage or accessibility needs.<br /><br /></li>\n<li><a href=\"https://transportnsw.info/trip-planner\">Plan your trip</a>&nbsp;before you travel for up-to-date real time information.&nbsp;You can also subscribe to <a href=\"https://transportnsw.info/travel-info/ways-to-get-around/train/about-trackwork#subscribe\">planned trackwork alerts</a>.</li>\n</ul>\n<div>\n<div><strong>Bus routes</strong></div>\n<div>20T4&nbsp; Bondi Junction, Edgecliff, Kings Cross, Central and return (bypassing Martin Place)</div>\n<div>23T4&nbsp; Bondi Junction, Town Hall and return</div>\n<div>36T4&nbsp; Arncliffe, Wolli Creek, Sydenham and return</div>\n<div>324/325&nbsp; City, Walsh Bay to Watsons Bay via Town Hall (Park St), Kings Cross, Edgecliff stations and return</div>\n<div>333&nbsp; City to Bondi Beach via Martin Place and Bondi Junction stations and return</div>\n<div>&nbsp;</div>\n<div><strong>Replacement buses</strong></div>\n<ul>\n<li>Most replacement buses are Opal-enabled. Tap on and off with a valid Opal or contactless card. Fines apply without a valid ticket.</li>\n<li>Bikes aren&rsquo;t allowed on replacement buses. Use a nearby bike shed or locker.</li>\n<li>Services may be delayed or cancelled due to driver shortages. We're working to minimise disruptions and keep your journey safe.</li>\n</ul>\n</div>",
+                  "subtitle": "Buses replace trains between Central and Bondi Junction. Trains do not stop at Wolli Creek",
+                  "smsText": "Buses replace trains between Central and Bondi Junction. Trains do not stop at Wolli Creek",
+                  "speechText": "Wednesday 2 and Thursday 3 September\nNightly from 9:50PM to 1:30AM, buses replace trains between Central and Bondi Junction, but do not stop at Martin Place.\nMost trains run to a changed timetable between Cronulla, Waterfall and the City Circle, with some making extra stops at St Peters and Erskineville.\nNightly from 10:10PM to 1:30AM, trains do not stop at Wolli Creek but make an extra stop at Arncliffe.\nBuses run between Sydenham, Wolli Creek and Arncliffe.\nChange at Arncliffe or Sydenham for a bus to Wolli Creek or change at Central for a T8 Airport & South Line train if you have luggage or accessibility needs."
+                }
+              ],
+              "urlText": "Buses replace trains between Central and Bondi Junction. Trains do not stop at Wolli Creek",
+              "url": "https://transportnsw.info/alerts/details#/ems-76903",
+              "content": "<div><strong>Wednesday 2 and Thursday 3 September</strong></div>\n<ul>\n<li><strong>Nightly from 9.50pm to 1.30am</strong>, buses replace trains between Central and Bondi Junction, but do not stop at Martin Place.</li>\n<li>Most trains run to a changed timetable between Cronulla, Waterfall and the City Circle, with some making extra stops at St Peters and Erskineville.</li>\n<li>Change at:<br />- <strong>Sydenham</strong> or <strong>Central</strong> for metro services to Martin Place<br />- <strong>Central</strong> for buses to Kings Cross and Edgecliff<br />- <strong>Town</strong> <strong>Hall</strong> for express buses to Bondi Junction.<br /><br /></li>\n<li><strong>Nightly from 10.10pm to 1.30am</strong>, trains do not stop at Wolli Creek but make an extra stop at Arncliffe.</li>\n<li>Buses run between Sydenham, Wolli Creek and Arncliffe.</li>\n<li>Change at Arncliffe or Sydenham for a bus to Wolli Creek or change at Central for a T8 Airport &amp; South Line train if you have luggage or accessibility needs.<br /><br /></li>\n<li><a href=\"https://transportnsw.info/trip-planner\">Plan your trip</a>&nbsp;before you travel for up-to-date real time information.&nbsp;You can also subscribe to <a href=\"https://transportnsw.info/travel-info/ways-to-get-around/train/about-trackwork#subscribe\">planned trackwork alerts</a>.</li>\n</ul>\n<div>\n<div><strong>Bus routes</strong></div>\n<div>20T4&nbsp; Bondi Junction, Edgecliff, Kings Cross, Central and return (bypassing Martin Place)</div>\n<div>23T4&nbsp; Bondi Junction, Town Hall and return</div>\n<div>36T4&nbsp; Arncliffe, Wolli Creek, Sydenham and return</div>\n<div>324/325&nbsp; City, Walsh Bay to Watsons Bay via Town Hall (Park St), Kings Cross, Edgecliff stations and return</div>\n<div>333&nbsp; City to Bondi Beach via Martin Place and Bondi Junction stations and return</div>\n<div>&nbsp;</div>\n<div><strong>Replacement buses</strong></div>\n<ul>\n<li>Most replacement buses are Opal-enabled. Tap on and off with a valid Opal or contactless card. Fines apply without a valid ticket.</li>\n<li>Bikes aren&rsquo;t allowed on replacement buses. Use a nearby bike shed or locker.</li>\n<li>Services may be delayed or cancelled due to driver shortages. We're working to minimise disruptions and keep your journey safe.</li>\n</ul>\n</div>",
+              "subtitle": "Buses replace trains between Central and Bondi Junction. Trains do not stop at Wolli Creek"
+            }
+          ],
+          "coords": [
+            [
+              -33.914348,
+              151.166684
+            ],
+            [
+              -33.914041,
+              151.167153
+            ],
+            [
+              -33.913956,
+              151.167275
+            ],
+            [
+              -33.913825,
+              151.167458
+            ],
+            [
+              -33.913716,
+              151.167606
+            ],
+            [
+              -33.913568,
+              151.167798
+            ],
+            [
+              -33.913457,
+              151.167954
+            ],
+            [
+              -33.913327,
+              151.168147
+            ],
+            [
+              -33.912045,
+              151.170083
+            ],
+            [
+              -33.911315,
+              151.171179
+            ],
+            [
+              -33.910242,
+              151.172797
+            ],
+            [
+              -33.909936,
+              151.173262
+            ],
+            [
+              -33.909618,
+              151.17377
+            ],
+            [
+              -33.909358,
+              151.174224
+            ],
+            [
+              -33.909134,
+              151.174641
+            ],
+            [
+              -33.908741,
+              151.175476
+            ],
+            [
+              -33.908596,
+              151.175834
+            ],
+            [
+              -33.908433,
+              151.176289
+            ],
+            [
+              -33.9083,
+              151.17671
+            ],
+            [
+              -33.90795,
+              151.17802
+            ],
+            [
+              -33.907776,
+              151.178594
+            ],
+            [
+              -33.907669,
+              151.178892
+            ],
+            [
+              -33.907568,
+              151.179198
+            ],
+            [
+              -33.907195,
+              151.180428
+            ],
+            [
+              -33.906956,
+              151.181209
+            ],
+            [
+              -33.906812,
+              151.181647
+            ],
+            [
+              -33.906778,
+              151.18174
+            ],
+            [
+              -33.906656,
+              151.18202
+            ],
+            [
+              -33.906492,
+              151.182334
+            ],
+            [
+              -33.906307,
+              151.182626
+            ],
+            [
+              -33.906111,
+              151.182886
+            ],
+            [
+              -33.905901,
+              151.183134
+            ],
+            [
+              -33.905651,
+              151.183393
+            ],
+            [
+              -33.905456,
+              151.183573
+            ],
+            [
+              -33.905327,
+              151.183684
+            ],
+            [
+              -33.905151,
+              151.18382
+            ],
+            [
+              -33.905035,
+              151.183908
+            ],
+            [
+              -33.904703,
+              151.184117
+            ],
+            [
+              -33.904374,
+              151.184285
+            ],
+            [
+              -33.904047,
+              151.184414
+            ],
+            [
+              -33.903918,
+              151.184459
+            ],
+            [
+              -33.903765,
+              151.184508
+            ],
+            [
+              -33.903238,
+              151.184665
+            ],
+            [
+              -33.902577,
+              151.184834
+            ],
+            [
+              -33.902376,
+              151.184889
+            ],
+            [
+              -33.902007,
+              151.184971
+            ],
+            [
+              -33.901576,
+              151.185042
+            ],
+            [
+              -33.901144,
+              151.185109
+            ],
+            [
+              -33.900778,
+              151.185192
+            ],
+            [
+              -33.900686,
+              151.185221
+            ],
+            [
+              -33.900586,
+              151.185251
+            ],
+            [
+              -33.900396,
+              151.185321
+            ],
+            [
+              -33.900126,
+              151.185433
+            ],
+            [
+              -33.899572,
+              151.185678
+            ],
+            [
+              -33.899287,
+              151.185811
+            ],
+            [
+              -33.899064,
+              151.18592
+            ],
+            [
+              -33.898713,
+              151.186119
+            ],
+            [
+              -33.8985,
+              151.186256
+            ],
+            [
+              -33.898245,
+              151.186424
+            ],
+            [
+              -33.89799,
+              151.186617
+            ],
+            [
+              -33.897744,
+              151.186818
+            ],
+            [
+              -33.897505,
+              151.187035
+            ],
+            [
+              -33.897281,
+              151.187273
+            ],
+            [
+              -33.89707,
+              151.187534
+            ],
+            [
+              -33.896792,
+              151.187898
+            ],
+            [
+              -33.896465,
+              151.18834
+            ],
+            [
+              -33.896184,
+              151.188755
+            ],
+            [
+              -33.895978,
+              151.189114
+            ],
+            [
+              -33.89575,
+              151.189556
+            ],
+            [
+              -33.89556,
+              151.19
+            ],
+            [
+              -33.895352,
+              151.19055
+            ],
+            [
+              -33.895238,
+              151.190898
+            ],
+            [
+              -33.895157,
+              151.19116
+            ],
+            [
+              -33.895038,
+              151.191533
+            ],
+            [
+              -33.894767,
+              151.192361
+            ],
+            [
+              -33.894655,
+              151.192781
+            ],
+            [
+              -33.894552,
+              151.193215
+            ],
+            [
+              -33.894477,
+              151.193584
+            ],
+            [
+              -33.894337,
+              151.194071
+            ],
+            [
+              -33.89417,
+              151.194589
+            ],
+            [
+              -33.894019,
+              151.194994
+            ],
+            [
+              -33.893833,
+              151.195459
+            ],
+            [
+              -33.89367,
+              151.195788
+            ],
+            [
+              -33.893439,
+              151.196269
+            ],
+            [
+              -33.893264,
+              151.196585
+            ],
+            [
+              -33.893112,
+              151.196895
+            ],
+            [
+              -33.892849,
+              151.197446
+            ],
+            [
+              -33.892624,
+              151.197906
+            ],
+            [
+              -33.892537,
+              151.198071
+            ],
+            [
+              -33.892448,
+              151.198223
+            ],
+            [
+              -33.892358,
+              151.198365
+            ],
+            [
+              -33.892234,
+              151.198542
+            ],
+            [
+              -33.892046,
+              151.198783
+            ],
+            [
+              -33.891844,
+              151.199015
+            ],
+            [
+              -33.891769,
+              151.199096
+            ],
+            [
+              -33.891402,
+              151.199481
+            ],
+            [
+              -33.891104,
+              151.199743
+            ],
+            [
+              -33.890724,
+              151.200069
+            ],
+            [
+              -33.890398,
+              151.200329
+            ],
+            [
+              -33.890106,
+              151.200573
+            ],
+            [
+              -33.889786,
+              151.20085
+            ],
+            [
+              -33.889448,
+              151.20116
+            ],
+            [
+              -33.889176,
+              151.201387
+            ],
+            [
+              -33.888772,
+              151.2017
+            ],
+            [
+              -33.88855,
+              151.201885
+            ],
+            [
+              -33.888278,
+              151.202141
+            ],
+            [
+              -33.88801,
+              151.202449
+            ],
+            [
+              -33.887716,
+              151.202826
+            ],
+            [
+              -33.887404,
+              151.203251
+            ],
+            [
+              -33.886911,
+              151.203947
+            ],
+            [
+              -33.885959,
+              151.205266
+            ],
+            [
+              -33.885764,
+              151.205542
+            ],
+            [
+              -33.885631,
+              151.205726
+            ],
+            [
+              -33.885518,
+              151.205878
+            ],
+            [
+              -33.885415,
+              151.206003
+            ],
+            [
+              -33.885225,
+              151.20621
+            ],
+            [
+              -33.885059,
+              151.206378
+            ],
+            [
+              -33.884925,
+              151.206493
+            ],
+            [
+              -33.88478,
+              151.206603
+            ],
+            [
+              -33.884127,
+              151.207114
+            ],
+            [
+              -33.883756,
+              151.207403
+            ],
+            [
+              -33.883631,
+              151.207494
+            ],
+            [
+              -33.883593,
+              151.207523
+            ],
+            [
+              -33.883442,
+              151.207625
+            ],
+            [
+              -33.883282,
+              151.207716
+            ],
+            [
+              -33.883145,
+              151.207789
+            ],
+            [
+              -33.882997,
+              151.20786
+            ],
+            [
+              -33.882829,
+              151.207929
+            ],
+            [
+              -33.882576,
+              151.208046
+            ],
+            [
+              -33.882424,
+              151.208111
+            ],
+            [
+              -33.881851,
+              151.208273
+            ],
+            [
+              -33.880547,
+              151.208608
+            ],
+            [
+              -33.88019,
+              151.208704
+            ],
+            [
+              -33.879769,
+              151.208801
+            ],
+            [
+              -33.879605,
+              151.208836
+            ],
+            [
+              -33.879219,
+              151.20889
+            ],
+            [
+              -33.879025,
+              151.208912
+            ],
+            [
+              -33.878756,
+              151.208953
+            ],
+            [
+              -33.878654,
+              151.208971
+            ],
+            [
+              -33.878488,
+              151.209015
+            ],
+            [
+              -33.87832,
+              151.209071
+            ],
+            [
+              -33.878174,
+              151.209127
+            ],
+            [
+              -33.878046,
+              151.209174
+            ],
+            [
+              -33.877884,
+              151.209224
+            ],
+            [
+              -33.877309,
+              151.209388
+            ],
+            [
+              -33.87707,
+              151.209459
+            ],
+            [
+              -33.876878,
+              151.209526
+            ],
+            [
+              -33.876761,
+              151.209575
+            ],
+            [
+              -33.876575,
+              151.209661
+            ],
+            [
+              -33.876328,
+              151.20979
+            ],
+            [
+              -33.876084,
+              151.209905
+            ],
+            [
+              -33.875208,
+              151.210318
+            ],
+            [
+              -33.874398,
+              151.210691
+            ],
+            [
+              -33.874294,
+              151.210731
+            ],
+            [
+              -33.873946,
+              151.210842
+            ],
+            [
+              -33.873775,
+              151.210901
+            ],
+            [
+              -33.872473,
+              151.211319
+            ],
+            [
+              -33.872247,
+              151.211395
+            ],
+            [
+              -33.872051,
+              151.211458
+            ],
+            [
+              -33.871852,
+              151.211508
+            ],
+            [
+              -33.871696,
+              151.211541
+            ],
+            [
+              -33.871642,
+              151.211551
+            ],
+            [
+              -33.870647,
+              151.211687
+            ],
+            [
+              -33.870073,
+              151.211766
+            ],
+            [
+              -33.869894,
+              151.2118
+            ],
+            [
+              -33.869716,
+              151.211839
+            ],
+            [
+              -33.869535,
+              151.211874
+            ],
+            [
+              -33.869252,
+              151.211912
+            ],
+            [
+              -33.86901,
+              151.211953
+            ],
+            [
+              -33.868799,
+              151.211996
+            ],
+            [
+              -33.868632,
+              151.212028
+            ],
+            [
+              -33.866819,
+              151.212284
+            ],
+            [
+              -33.866669,
+              151.212318
+            ],
+            [
+              -33.866537,
+              151.212364
+            ],
+            [
+              -33.866428,
+              151.212406
+            ],
+            [
+              -33.866273,
+              151.212482
+            ],
+            [
+              -33.866158,
+              151.212553
+            ],
+            [
+              -33.86605,
+              151.21263
+            ],
+            [
+              -33.865968,
+              151.212696
+            ],
+            [
+              -33.865843,
+              151.212817
+            ],
+            [
+              -33.865751,
+              151.212918
+            ],
+            [
+              -33.865629,
+              151.213067
+            ],
+            [
+              -33.865063,
+              151.213876
+            ],
+            [
+              -33.864932,
+              151.214055
+            ],
+            [
+              -33.864799,
+              151.214215
+            ],
+            [
+              -33.864661,
+              151.214364
+            ],
+            [
+              -33.864563,
+              151.214462
+            ],
+            [
+              -33.864438,
+              151.214562
+            ],
+            [
+              -33.864282,
+              151.214666
+            ],
+            [
+              -33.864118,
+              151.214753
+            ],
+            [
+              -33.863945,
+              151.214816
+            ],
+            [
+              -33.863792,
+              151.214861
+            ],
+            [
+              -33.863613,
+              151.214889
+            ],
+            [
+              -33.863442,
+              151.214898
+            ],
+            [
+              -33.863269,
+              151.214889
+            ],
+            [
+              -33.863123,
+              151.214865
+            ],
+            [
+              -33.862955,
+              151.214819
+            ],
+            [
+              -33.86277,
+              151.214745
+            ],
+            [
+              -33.862604,
+              151.214656
+            ],
+            [
+              -33.862423,
+              151.214528
+            ],
+            [
+              -33.862288,
+              151.214414
+            ],
+            [
+              -33.862194,
+              151.214311
+            ],
+            [
+              -33.862063,
+              151.214157
+            ],
+            [
+              -33.861956,
+              151.214006
+            ],
+            [
+              -33.86189,
+              151.213895
+            ],
+            [
+              -33.861811,
+              151.21376
+            ],
+            [
+              -33.861751,
+              151.213609
+            ],
+            [
+              -33.861693,
+              151.213417
+            ],
+            [
+              -33.861667,
+              151.213294
+            ],
+            [
+              -33.861618,
+              151.213033
+            ],
+            [
+              -33.861575,
+              151.212748
+            ],
+            [
+              -33.861564,
+              151.212652
+            ],
+            [
+              -33.861461,
+              151.211548
+            ],
+            [
+              -33.86134,
+              151.210298
+            ],
+            [
+              -33.861125,
+              151.208095
+            ],
+            [
+              -33.86112,
+              151.207994
+            ],
+            [
+              -33.861119,
+              151.207782
+            ],
+            [
+              -33.861137,
+              151.207568
+            ],
+            [
+              -33.861162,
+              151.207388
+            ],
+            [
+              -33.861195,
+              151.207219
+            ],
+            [
+              -33.861237,
+              151.207057
+            ],
+            [
+              -33.861305,
+              151.206864
+            ],
+            [
+              -33.861377,
+              151.206695
+            ],
+            [
+              -33.861435,
+              151.206571
+            ],
+            [
+              -33.861486,
+              151.206484
+            ],
+            [
+              -33.861553,
+              151.206378
+            ],
+            [
+              -33.861659,
+              151.20623
+            ],
+            [
+              -33.861812,
+              151.206046
+            ],
+            [
+              -33.86196,
+              151.20591
+            ],
+            [
+              -33.862095,
+              151.205803
+            ],
+            [
+              -33.862226,
+              151.20572
+            ],
+            [
+              -33.862398,
+              151.205632
+            ],
+            [
+              -33.862585,
+              151.205564
+            ],
+            [
+              -33.862764,
+              151.205514
+            ],
+            [
+              -33.862863,
+              151.205494
+            ],
+            [
+              -33.862996,
+              151.205475
+            ],
+            [
+              -33.863161,
+              151.205467
+            ],
+            [
+              -33.863312,
+              151.205481
+            ],
+            [
+              -33.863442,
+              151.205495
+            ],
+            [
+              -33.864167,
+              151.205629
+            ],
+            [
+              -33.864658,
+              151.205698
+            ],
+            [
+              -33.865151,
+              151.205858
+            ],
+            [
+              -33.865862,
+              151.205957
+            ]
+          ],
+          "coupledTripsInfo": [
+            {
+              "positionInTrain": "-1",
+              "usableForLeg": false,
+              "infoOnCarLevel": true,
+              "transportation": {
+                "id": "nsw:020T4: :R:sj2",
+                "name": "Sydney Trains Network T4 Eastern Suburbs & Illawarra Line",
+                "disassembledName": "T4",
+                "number": "T4 Eastern Suburbs & Illawarra Line",
+                "product": {
+                  "id": 1,
+                  "class": 1,
+                  "name": "Sydney Trains Network",
+                  "iconId": 1
+                },
+                "destination": {
+                  "name": "City Circle via Museum",
+                  "type": "stop"
+                },
+                "properties": {
+                  "lineDisplay": "LINE",
+                  "globalId": "3001"
+                }
+              },
+              "section": {
+                "from": {
+                  "stopKey": {
+                    "id": "10101326",
+                    "type": "stop"
+                  },
+                  "type": "stopDeparture",
+                  "departureTime": "2026-09-02T12:18:00Z"
+                },
+                "to": {
+                  "stopKey": {
+                    "id": "10101326",
+                    "type": "stop"
+                  },
+                  "type": "stopArrival",
+                  "arrivalTime": "2026-09-02T12:18:00Z"
+                }
+              },
+              "properties": {
+                "tripId": "263"
+              }
+            }
+          ],
+          "properties": {
+            "vehicleAccess": [
+              {
+                "height": 0,
+                "halfWidth": 0,
+                "doorWidth": 0,
+                "attributes": 1073741824,
+                "areaToStay": 0,
+                "areaToMove": 0,
+                "equipments": [
+                  {
+                    "vehicleEquipment": {
+                      "equipmentType": 1,
+                      "length": 0,
+                      "width": 0,
+                      "lengthAtPl": 0,
+                      "widthAtPl": 0,
+                      "maxWeight": 0
+                    }
+                  }
+                ]
+              }
+            ],
+            "PlanLowFloorVehicle": "1",
+            "PlanWheelChairAccess": "1"
+          }
+        }
+      ],
+      "fare": {
+        "tickets": []
+      },
+      "daysOfService": {
+        "rvb": "0000000600000000"
+      }
+    }
+  ]
+}

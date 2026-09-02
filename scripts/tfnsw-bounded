@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Cap a producer before QML's StdioCollector buffers its stdout. Exit 90 means
+# head closed the pipe at the limit; callers also reject an exact-size result.
+limit=${TFNSW_MAX_BYTES:-}
+[[ $limit =~ ^[1-9][0-9]*$ ]] || exit 64
+(( $# > 0 )) || exit 64
+
+exec 4<&0
+coproc TFNSW_PRODUCER { exec "$@" <&4; }
+producer_pid=$TFNSW_PRODUCER_PID
+exec 5<&"${TFNSW_PRODUCER[0]}"
+head -c "$limit" <&5 &
+head_pid=$!
+# Drop this shell's copies of the pipe: once head exits, the producer's next
+# write must fail with EPIPE/SIGPIPE instead of blocking on a full pipe.
+exec 5<&- {TFNSW_PRODUCER[0]}<&- {TFNSW_PRODUCER[1]}>&-
+
+terminate_children() {
+  kill -TERM "$producer_pid" "$head_pid" 2>/dev/null || true
+}
+trap terminate_children TERM INT
+
+set +e
+wait "$head_pid"
+head_status=$?
+wait "$producer_pid"
+producer_status=$?
+set -e
+trap - TERM INT
+
+if (( head_status != 0 )); then
+  exit "$head_status"
+fi
+if (( producer_status == 141 )); then
+  exit 90
+fi
+exit "$producer_status"

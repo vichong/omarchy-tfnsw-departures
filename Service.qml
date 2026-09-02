@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.5.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.5.1"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -182,6 +182,11 @@ QtObject {
   property string pillText: ""
   property string pillMode: "train"
   property string urgency: "none"
+  // Icon-only bar cues: leave-in for the next catchable service and its line colour.
+  property double nextLeaveMs: -1
+  property string nextLineColor: ""
+  property real underlineFraction: 0
+  property string barCaption: ""
   property string lastPolledAt: ""
   property double lastPolledMs: 0
   property bool stale: false
@@ -720,6 +725,10 @@ QtObject {
     alerts = []
     pillText = ""
     urgency = "none"
+    nextLeaveMs = -1
+    nextLineColor = ""
+    underlineFraction = 0
+    barCaption = ""
   }
 
   function project(now) {
@@ -738,6 +747,11 @@ QtObject {
     pillText = Model.pillText(board, place, now)
     pillMode = Model.pillMode(board, place, now)
     urgency = Model.urgency(board, place, now)
+    var barState = Model.barState(board, place, now)
+    nextLeaveMs = barState.leaveMs
+    nextLineColor = barState.lineColor
+    underlineFraction = barState.fraction
+    barCaption = barState.caption
     maybeNotify(now)
   }
 

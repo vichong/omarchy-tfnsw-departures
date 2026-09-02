@@ -88,6 +88,21 @@ Configuration lives at
 With Wi-Fi auto-switch enabled, an exact SSID match selects that place unless
 you manually selected a place in the previous 30 minutes.
 
+## Bar widget
+
+The bar shows only the Transport mark. As leave-in for the next catchable
+service runs from 10 minutes down to 0, a hairline in that service's line
+colour fills under the mark; in the last two minutes a small "2", "1" or
+"now" appears beside it. A warning glyph appears while a disruption alert is
+active. Hover for the full countdown, arrival time and place.
+
+To show the countdown text in the bar instead, set it on the widget entry in
+`~/.config/omarchy/shell.json`:
+
+```json
+{ "id": "io.github.vichong.tfnsw-departures", "showCountdown": true }
+```
+
 ## Keyboard
 
 In the popup, `↑`/`↓` or `j`/`k` moves through departures, `←`/`→` changes

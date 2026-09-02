@@ -43,6 +43,15 @@ const urgencyNow = Model.urgency([{ id: "a", line: "T4", destination: "City", mo
 equal(urgencyNow, "now", "one minute of slack after the walk is urgent")
 equal(Model.urgency([{ id: "a", line: "T4", destination: "City", mode: "train", plannedMs: now + 30 * 60000, estimatedMs: 0, realtime: false, cancelled: false, infos: [] }], home, now), "calm", "plenty of time is calm")
 
+equal(Model.underlineFraction(-1), 0, "no underline once the service is missed")
+equal(Model.underlineFraction(15 * 60000), 0, "no underline beyond ten minutes")
+equal(Model.underlineFraction(5 * 60000), 0.5, "underline is half full at five minutes")
+equal(Model.underlineFraction(0), 1, "underline is full at zero")
+equal([Model.barCaption(5 * 60000), Model.barCaption(119000), Model.barCaption(59000), Model.barCaption(-5)], ["", "1", "now", ""], "caption only in the last two minutes")
+const barNow = Model.barState([{ id: "a", line: "T4", destination: "City", mode: "train", plannedMs: now + 6 * 60000, estimatedMs: 0, realtime: false, cancelled: false, infos: [] }], home, now)
+equal([barNow.lineColor, barNow.caption, barNow.fraction > 0.85], ["#005AA3", "1", true], "bar state carries the T4 line colour, caption and fill")
+equal(Model.barState([], home, now), { leaveMs: -1, lineColor: "", fraction: 0, caption: "" }, "empty board yields an idle bar state")
+
 const alerts = Model.collectAlerts(board)
 assert(alerts.length >= 1 && alerts[0].id === "ems-76903", "alerts collected from the board")
 assert(alerts[0].disruption === true, "replacement buses count as a disruption")

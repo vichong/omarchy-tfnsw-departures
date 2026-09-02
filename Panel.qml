@@ -17,6 +17,9 @@ Panel {
   readonly property color fg: bar ? bar.foreground : Color.foreground
   readonly property color barFg: bar ? bar.barForeground : Color.foreground
   readonly property string family: bar ? bar.fontFamily : Style.font.family
+  // Per-instance layout setting in shell.json; the bar is icon-only by default.
+  readonly property bool showCountdown: setting("showCountdown", false) === true
+  readonly property color lineAccent: ready && service.nextLineColor !== "" ? service.nextLineColor : barFg
   property int cursorIndex: 0
   property bool cursorActive: false
   property bool alertsExpanded: false
@@ -201,24 +204,59 @@ Panel {
       anchors.centerIn: parent
       spacing: Style.spacing.sm
 
-      TransportMark {
+      Item {
+        id: markSlot
+
+        // The shell's optical canvas: built-in vector icons draw at
+        // Style.space(11–12) centred in Style.bar.iconCanvas, so we match.
         anchors.verticalCenter: parent.verticalCenter
-        iconSize: Style.bar.iconCanvas
-        color: root.barFg
-        colorful: root.ready && root.service.colorful
-        dim: root.connected ? 1 : 0.45
+        width: mark.width
+        height: Style.bar.iconCanvas
+
+        TransportMark {
+          id: mark
+
+          anchors.centerIn: parent
+          iconSize: Style.space(12)
+          color: root.barFg
+          colorful: root.ready && root.service.colorful
+          dim: root.connected ? 1 : 0.45
+        }
+
+        // Urgency, the wayfinding way: a hairline in the line colour fills
+        // left→right as leave-in runs from 10 min to 0. Never red.
+        Rectangle {
+          anchors.left: parent.left
+          anchors.bottom: parent.bottom
+          visible: !root.showCountdown && root.connected && width > 0
+          width: Math.round(mark.width * (root.ready ? root.service.underlineFraction : 0))
+          height: Style.space(2)
+          radius: height / 2
+          color: root.lineAccent
+        }
+      }
+
+      // Last two minutes only: a small caption in the line colour.
+      Text {
+        anchors.verticalCenter: parent.verticalCenter
+        visible: !root.showCountdown && !button.vertical && root.connected && root.service.barCaption !== ""
+        textFormat: Text.PlainText
+        text: root.ready ? root.service.barCaption : ""
+        color: root.lineAccent
+        font.family: root.family
+        font.pixelSize: Style.font.caption
+        font.weight: Font.DemiBold
       }
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
-        visible: !button.vertical && root.connected && root.service.pillText !== ""
+        visible: !button.vertical && root.connected && (root.showCountdown ? root.service.pillText !== "" : root.hasDisruption)
         textFormat: Text.PlainText
-        text: root.service.pillText + (root.hasDisruption ? " 󰀦" : "")
-        color: root.service.urgency === "now" ? Color.urgent : root.service.urgency === "soon" ? Color.accent : root.barFg
-        opacity: root.service.rows.count && !root.service.rows.get(0).realtime ? 0.65 : 1
+        text: (root.showCountdown ? root.service.pillText : "") + (root.hasDisruption ? (root.showCountdown ? " " : "") + "󰀦" : "")
+        color: root.barFg
+        opacity: root.showCountdown && root.service.rows.count && !root.service.rows.get(0).realtime ? 0.65 : 1
         font.family: root.family
         font.pixelSize: Style.font.body
-        font.weight: root.service.urgency === "now" ? Font.DemiBold : Font.Normal
       }
     }
   }

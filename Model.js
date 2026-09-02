@@ -302,6 +302,36 @@ function pillMode(board, place, nowMs) {
   return next ? next.mode : (place && place.modes && place.modes.length === 1 ? place.modes[0] : "train")
 }
 
+// Bar state for the icon-only widget: leave-in for the next catchable
+// service, its line colour, and a caption that only appears at the end.
+var UNDERLINE_WINDOW_MS = 10 * 60 * 1000
+var CAPTION_WINDOW_MS = 2 * 60 * 1000
+
+function barState(board, place, nowMs) {
+  var next = nextCatchable(board, place, nowMs)
+  if (!next) return { leaveMs: -1, lineColor: "", fraction: 0, caption: "" }
+  var leave = leaveInMs(next, place, nowMs)
+  return {
+    leaveMs: leave,
+    lineColor: Api.lineColor(next.line, next.mode),
+    fraction: underlineFraction(leave),
+    caption: barCaption(leave)
+  }
+}
+
+// Fills left→right as leave-in runs from 10 min to 0; hidden beyond that.
+function underlineFraction(leaveMs) {
+  if (!isFinite(leaveMs) || leaveMs < 0) return 0
+  return Math.max(0, Math.min(1, 1 - leaveMs / UNDERLINE_WINDOW_MS))
+}
+
+// Only in the last two minutes: "2", "1" or "now".
+function barCaption(leaveMs) {
+  if (!isFinite(leaveMs) || leaveMs < 0 || leaveMs > CAPTION_WINDOW_MS) return ""
+  var minutes = Math.floor(leaveMs / 60000)
+  return minutes < 1 ? "now" : String(minutes)
+}
+
 // "leave in" under a couple of minutes for the next service is the moment
 // to shut the laptop; the pill turns urgent.
 function urgency(board, place, nowMs) {

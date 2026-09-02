@@ -1,10 +1,10 @@
 # Transport NSW departures for Omarchy
 
-A shell plugin that puts the next catchable Transport for NSW service in the
-Omarchy bar. The countdown is **leave in** time: departure time minus your walk
-to the stop. The popup shows departures, platforms, realtime delays,
-cancellations and disruption alerts; the Here view plans a trip back to your
-active place.
+A shell plugin that puts the next catchable Transport for NSW service or trip in
+the Omarchy bar. The countdown is **leave in** time: departure time minus your
+walk to the stop. The popup shows departures, arrivals, travel time, platforms,
+realtime delays, cancellations and disruption alerts; the Here view plans a trip
+back to your active place.
 
 | Bar | Departures popup |
 |:---:|:---:|
@@ -34,8 +34,14 @@ key and makes no network calls.
 
 ## Setup
 
-Add a place, search for its stop, optionally filter lines, destination text and
-modes, then set the walking time. An empty line/mode filter shows everything.
+Add a place and search for its origin stop. Leave **Going to** empty for a live
+departure board, or choose a destination stop to turn the place into a trip.
+Place chips make the distinction explicit: `From Home` is a departure board,
+while `Home → Wynyard` is a planned trip. Trip rows show departure → arrival in
+the right column, with travel time and changes underneath.
+
+You can optionally filter lines, destination text and modes, then set the walking
+time. An empty line/mode filter shows everything.
 The bar mark can remain monochrome with the rest of Omarchy or use the TfNSW
 gradient. Leave-now notifications and polling (30–600 seconds) are configurable.
 
@@ -50,6 +56,8 @@ Configuration lives at
     "name": "Home",
     "stopId": "204420",
     "stopName": "Sydenham Station",
+    "destStopId": "200080",
+    "destStopName": "Wynyard Station",
     "lines": ["T4", "T8"],
     "destination": "City",
     "modes": ["train", "metro"],
@@ -71,7 +79,7 @@ you manually selected a place in the previous 30 minutes.
 
 In the popup, `↑`/`↓` or `j`/`k` moves through departures, `←`/`→` changes
 place, `Esc` closes, and `Tab` moves to the next panel. Enter has no action in
-v0.2.
+v0.3.
 
 ## IPC scripting
 

@@ -6,6 +6,7 @@ import qs.Commons
 import qs.Ui
 import "Api.js" as Api
 import "ConfigStore.js" as ConfigStore
+import "Model.js" as Model
 
 // Full-screen settings and journey planner summoned by the shell.
 Item {
@@ -29,6 +30,9 @@ Item {
   property var selectedStop: null
   property string placeSearchText: ""
   property bool placeSearchComplete: false
+  property var destinationResults: []
+  property string destinationSearchText: ""
+  property bool destinationSearchComplete: false
 
   // Here-tab state.
   property var hereResults: []
@@ -38,6 +42,8 @@ Item {
   property string placeName: ""
   property string placeStopId: ""
   property string placeStopName: ""
+  property string placeDestStopId: ""
+  property string placeDestStopName: ""
   property string placeLines: ""
   property string placeDestination: ""
   property var placeModes: []
@@ -102,10 +108,15 @@ Item {
     placeSearchText = ""
     placeSearchComplete = false
     stopResults = []
+    destinationSearchText = ""
+    destinationSearchComplete = false
+    destinationResults = []
     if (!p) {
       placeName = ""
       placeStopId = ""
       placeStopName = ""
+      placeDestStopId = ""
+      placeDestStopName = ""
       placeLines = ""
       placeDestination = ""
       placeModes = []
@@ -117,6 +128,8 @@ Item {
     placeName = p.name
     placeStopId = p.stopId
     placeStopName = p.stopName
+    placeDestStopId = p.destStopId || ""
+    placeDestStopName = p.destStopName || ""
     placeLines = p.lines.join(", ")
     placeDestination = p.destination
     placeModes = p.modes.slice()
@@ -145,6 +158,8 @@ Item {
       "name": placeName || placeStopName || "Place",
       "stopId": placeStopId,
       "stopName": placeStopName,
+      "destStopId": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopId : "",
+      "destStopName": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopName : "",
       "lines": placeLines.split(","),
       "destination": placeDestination,
       "modes": placeModes,
@@ -185,9 +200,42 @@ Item {
     selectedStop = loc
     placeStopId = loc.id
     placeStopName = loc.shortName || loc.name
+    if (placeDestStopId === placeStopId)
+      clearDestination()
+
     placeSearchText = ""
     placeSearchComplete = false
     stopResults = []
+  }
+
+  function pickDestination(loc) {
+    placeDestStopId = loc.id
+    placeDestStopName = loc.shortName || loc.name
+    destinationSearchText = ""
+    destinationSearchComplete = false
+    destinationResults = []
+  }
+
+  function clearDestination() {
+    placeDestStopId = ""
+    placeDestStopName = ""
+    destinationSearchText = ""
+    destinationSearchComplete = false
+    destinationResults = []
+  }
+
+  function searchDestinationStops(text) {
+    if (!service)
+      return
+
+    destinationSearchText = String(text || "").trim()
+    destinationSearchComplete = false
+    service.searchStops(text, function(results) {
+      root.destinationResults = results.filter(function(x) {
+        return x.isStop && String(x.id) !== String(root.placeStopId)
+      })
+      root.destinationSearchComplete = true
+    })
   }
 
   function searchPlaceStops(text) {
@@ -241,11 +289,15 @@ Item {
       }
     }
     var id = ConfigStore.newPlaceId(service.places)
+    var destination = service.activePlace && String(service.activePlace.stopId) !== String(nearestStop.id)
+      ? service.activePlace : null
     service.addPlace({
       "id": id,
       "name": nearestStop.shortName || "New place",
       "stopId": nearestStop.id,
       "stopName": nearestStop.shortName || nearestStop.name,
+      "destStopId": destination ? destination.stopId : "",
+      "destStopName": destination ? destination.stopName : "",
       "lines": [],
       "destination": "",
       "modes": nearestStop.modes || [],
@@ -267,10 +319,7 @@ Item {
     if (!service || !service.quotaBackoffUntil)
       return ""
 
-    var retry = new Date(service.quotaBackoffUntil)
-    var hour = (retry.getHours() < 10 ? "0" : "") + retry.getHours()
-    var minute = (retry.getMinutes() < 10 ? "0" : "") + retry.getMinutes()
-    return "Transport NSW quota reached — retrying at " + hour + ":" + minute
+    return "Transport NSW quota reached — retrying at " + Model.clockText(service.quotaBackoffUntil)
   }
 
   onTabChanged: {
@@ -577,7 +626,7 @@ Item {
             options: root.service ? root.service.places.map(function(p) {
               return {
                 "value": p.id,
-                "label": p.name
+                "label": Model.placeLabel(p)
               }
             }) : []
             value: root.selectedPlaceId
@@ -617,7 +666,7 @@ Item {
             spacing: Style.spacing.sm
 
             FieldLabel {
-              text: "Stop"
+              text: "Leaving from"
             }
 
             TextField {
@@ -651,6 +700,74 @@ Item {
               visible: root.placeSearchText.length >= 2
                 && root.placeSearchComplete && root.stopResults.length === 0
               text: "No stations or stops match."
+            }
+          }
+
+          Column {
+            width: parent.width
+            spacing: Style.spacing.sm
+
+            FieldLabel {
+              text: "Going to (optional)"
+            }
+
+            Row {
+              width: parent.width
+              spacing: Style.spacing.sm
+
+              TextField {
+                id: destinationField
+
+                width: Math.max(0, parent.width - clearDestinationButton.width - parent.spacing)
+                height: root.controlHeight
+                verticalAlignment: TextInput.AlignVCenter
+                text: root.placeDestStopName
+                placeholderText: "Search stations and stops…"
+                foreground: root.foreground
+                onTextEdited: root.searchDestinationStops(text)
+
+                Connections {
+                  target: root
+                  function onPlaceDestStopNameChanged() {
+                    if (destinationField.text !== root.placeDestStopName)
+                      destinationField.text = root.placeDestStopName
+                  }
+                }
+              }
+
+              Button {
+                id: clearDestinationButton
+
+                bordered: true
+                text: "Clear"
+                opacity: root.placeDestStopId ? 1 : 0.45
+                foreground: root.foreground
+                fontFamily: root.family
+                onClicked: root.clearDestination()
+              }
+            }
+
+            Repeater {
+              model: root.destinationResults
+
+              delegate: Button {
+                required property var modelData
+
+                width: settingsColumn.width
+                leftAlign: true
+                bordered: true
+                text: modelData.shortName + " · " + modelData.modes.join(", ")
+                foreground: root.foreground
+                fontFamily: root.family
+                onClicked: root.pickDestination(modelData)
+              }
+            }
+
+            Caption {
+              width: parent.width
+              visible: root.destinationSearchText.length >= 2
+                && root.destinationSearchComplete && root.destinationResults.length === 0
+              text: "No other stations or stops match."
             }
           }
 
@@ -877,7 +994,7 @@ Item {
           spacing: Style.spacing.lg
 
           Caption {
-            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.2.0")
+            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.3.0")
           }
 
           Button {
@@ -918,13 +1035,13 @@ Item {
         Dropdown {
           visible: root.service && root.service.effectivePlaces.length > 1
           width: parent.width
-          label: "Destination place"
+          label: "Plan to"
           foreground: root.foreground
           fontFamily: root.family
           options: root.service ? root.service.effectivePlaces.map(function(p) {
             return {
               "value": p.id,
-              "label": p.name
+              "label": Model.placeLabel(p)
             }
           }) : []
           value: root.service && root.service.activePlace ? root.service.activePlace.id : ""

@@ -4,6 +4,7 @@ import Quickshell.Io
 import qs.Ui
 import qs.Commons
 import "Api.js" as Api
+import "Model.js" as Model
 
 // Bar button plus the departures popup. The service owns transport state,
 // this component owns the popup cursor and the shell IPC target.
@@ -29,40 +30,51 @@ Panel {
     }
     return false
   }
-  readonly property string heroMeta: {
+  readonly property string heroRoute: {
     if (!ready)
       return "Service unavailable"
 
-    var parts = []
-    if (service.activePlace && service.activePlace.stopName)
-      parts.push(service.activePlace.stopName)
+    var place = service.activePlace
+    if (!place)
+      return ""
 
-    if (service.rows.count)
-      parts.push(service.rows.get(0).realtime ? "realtime" : "scheduled")
+    var route = shortStopName(place.stopName)
+    if (Model.hasDestination(place))
+      route += " → " + shortStopName(place.destStopName)
 
-    if (service.lastPolledMs) {
-      var d = new Date(service.lastPolledMs)
-      var clock = twoDigits(d.getHours()) + ":" + twoDigits(d.getMinutes())
-      if (service.stale)
-        clock += ":" + twoDigits(d.getSeconds())
+    return route
+  }
+  readonly property string heroStatus: ready && service.rows.count
+    ? (service.rows.get(0).realtime ? "realtime" : "scheduled") : ""
+  readonly property real heroMetaAvailableWidth: Style.space(460) - Style.space(48) - Style.space(132)
+  readonly property string heroMeta: {
+    var longText = heroRoute + (heroStatus ? " · " + heroStatus : "")
+    if (heroMetaMeasure.advanceWidth <= heroMetaAvailableWidth)
+      return longText
 
-      parts.push((service.stale ? "cached " : "updated ") + clock)
-    }
+    return heroRoute + (heroStatus ? " · " + (heroStatus === "realtime" ? "rt" : "sched") : "")
+  }
+  readonly property string refreshTooltip: {
+    if (!ready || !service.lastPolledMs)
+      return "Refresh"
 
-    return parts.join(" · ")
+    return "Refresh · updated " + Model.clockText(service.lastPolledMs)
+  }
+
+  TextMetrics {
+    id: heroMetaMeasure
+
+    font.family: root.family
+    font.pixelSize: Style.font.caption
+    text: root.heroRoute + (root.heroStatus ? " · " + root.heroStatus : "")
   }
 
   function twoDigits(n) {
     return (n < 10 ? "0" : "") + n
   }
 
-  function placeLabel(place) {
-    if (!ready || !service.colorful)
-      return place.name
-
-    var firstLine = place.lines && place.lines.length ? String(place.lines[0]) : ""
-    var letter = firstLine ? firstLine.charAt(0).toUpperCase() : Api.modeById(place.modes && place.modes.length ? place.modes[0] : "other").letter
-    return letter + "  " + place.name
+  function shortStopName(name) {
+    return String(name || "").replace(/\s+(Station|Wharf)\b.*$/i, "").trim()
   }
 
   function moveCursor(delta) {
@@ -239,7 +251,7 @@ Panel {
 
               PanelActionButton {
                 iconText: "󰑐"
-                tooltipText: "Refresh"
+                tooltipText: root.refreshTooltip
                 foreground: Qt.darker(root.fg, 1.4)
                 fontFamily: root.family
                 onClicked: {
@@ -282,7 +294,7 @@ Panel {
           options: root.ready ? root.service.effectivePlaces.map(function(p) {
             return {
               "value": p.id,
-              "label": root.placeLabel(p)
+              "label": Model.placeLabel(p)
             }
           }) : []
           value: root.ready && root.service.activePlace ? root.service.activePlace.id : ""
@@ -434,6 +446,10 @@ Panel {
             platform: model.platform
             timeText: model.timeText
             plannedText: model.plannedText
+            arriveText: model.arriveText
+            travelText: model.travelText
+            changesText: model.changesText
+            legsSummary: model.legsSummary
             leaveText: model.leaveText
             leaveMs: model.leaveMs
             realtime: model.realtime

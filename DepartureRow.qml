@@ -15,6 +15,10 @@ CursorSurface {
   property string platform: ""
   property string timeText: ""
   property string plannedText: ""
+  property string arriveText: ""
+  property string travelText: ""
+  property string changesText: ""
+  property string legsSummary: ""
   property string leaveText: ""
   property double leaveMs: 0
   property bool realtime: false
@@ -30,6 +34,7 @@ CursorSurface {
   readonly property color countdownColor: cancelled || missed ? Color.muted : urgent ? Color.urgent : Api.modeById(mode).color
   readonly property string countdownText: cancelled ? "—" : missed ? "Missed" : leaveMs < 60 * 1000 ? "Now" : String(Math.min(99, Math.floor(leaveMs / 60000)))
   readonly property bool countdownHasUnit: !cancelled && !missed && leaveMs >= 60 * 1000
+  readonly property bool hasChanges: changesText !== "" && changesText !== "direct"
 
   foreground: fg
   current: selected
@@ -134,24 +139,15 @@ CursorSurface {
             }
           }
 
-          Row {
-            spacing: Style.spacing.sm
-
-            Text {
-              textFormat: Text.PlainText
-              text: root.platform ? "Platform " + root.platform : ""
-              color: root.muted
-              font.family: root.family
-              font.pixelSize: Style.font.caption
-            }
-
-            Text {
-              textFormat: Text.PlainText
-              text: root.status
-              color: root.cancelled ? Color.urgent : root.muted
-              font.family: root.family
-              font.pixelSize: Style.font.caption
-            }
+          Text {
+            width: parent.width
+            textFormat: Text.PlainText
+            text: (root.platform ? "Platform " + root.platform + " · " : "")
+              + root.status + (root.hasChanges && root.legsSummary ? " · " + root.legsSummary : "")
+            elide: Text.ElideRight
+            color: root.cancelled ? Color.urgent : root.muted
+            font.family: root.family
+            font.pixelSize: Style.font.caption
           }
         }
 
@@ -159,12 +155,12 @@ CursorSurface {
           id: times
 
           anchors.verticalCenter: parent.verticalCenter
-          width: Style.space(58)
+          width: root.arriveText ? Style.space(142) : Style.space(58)
 
           Text {
             anchors.right: parent.right
             textFormat: Text.PlainText
-            text: root.timeText
+            text: root.timeText + (root.arriveText ? " → " + root.arriveText : "")
             color: root.fg
             font.family: root.family
             font.pixelSize: Style.font.body
@@ -174,13 +170,13 @@ CursorSurface {
 
           Text {
             anchors.right: parent.right
-            visible: root.delayMin !== 0 && root.plannedText !== root.timeText
+            visible: root.arriveText !== "" || (root.delayMin !== 0 && root.plannedText !== root.timeText)
             textFormat: Text.PlainText
-            text: root.plannedText
+            text: root.arriveText ? root.travelText + " · " + root.changesText : root.plannedText
             color: root.muted
             font.family: root.family
             font.pixelSize: Style.font.caption
-            font.strikeout: true
+            font.strikeout: root.arriveText === ""
           }
         }
       }

@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.2.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.3.0"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -39,6 +39,32 @@ QtObject {
     }
     return list.length ? list[0] : null
   }
+  // Times follow the bar clock: the clock widget's format lives in shell.json.
+  readonly property string shellConfigPath: home + "/.config/omarchy/shell.json"
+  property bool twelveHour: false
+  property FileView shellConfigFile
+
+  shellConfigFile: FileView {
+    path: root.shellConfigPath
+    watchChanges: true
+    printErrors: false
+    onLoaded: root.applyClockFormat(text())
+    onLoadFailed: root.applyClockFormat("")
+    onFileChanged: reload()
+  }
+
+  function applyClockFormat(text) {
+    var format = Model.clockFormatFromShellConfig(String(text || "").slice(0, 1024 * 1024))
+    var next = Model.clockFormatIsTwelveHour(format)
+    if (next === twelveHour && configLoaded)
+      return
+
+    twelveHour = next
+    Model.setTwelveHour(next)
+    if (departures.length)
+      project(Date.now())
+  }
+
   property FileView configFile
 
   configFile: FileView {
@@ -333,7 +359,9 @@ QtObject {
       }
       try {
         var cached = JSON.parse(root.cacheOutput)
-        var sameStop = cached && root.activePlace && String(cached.stopId || "") === String(root.activePlace.stopId)
+        var sameStop = cached && root.activePlace
+          && String(cached.stopId || "") === String(root.activePlace.stopId)
+          && String(cached.destStopId || "") === String(root.activePlace.destStopId || "")
         if (sameStop && Array.isArray(cached.departures) && cached.departures.length <= Api.MAX_STOP_EVENTS) {
           root.departures = cached.departures
           root.lastPolledMs = Number(cached.savedAt) || 0
@@ -376,6 +404,7 @@ QtObject {
     var connectionChanged = !configLoaded || demoMode !== c.demoMode
     var boardChanged = JSON.stringify(places) !== JSON.stringify(c.places) || activePlaceId !== c.activePlaceId
     var previousStopId = activePlace ? activePlace.stopId : ""
+    var previousDestStopId = activePlace ? activePlace.destStopId : ""
     configError = parsed.error
     demoMode = c.demoMode
     if (demoMode) {
@@ -389,6 +418,7 @@ QtObject {
     notify = c.notify
     colorful = c.colorful
     var stopChanged = (activePlace ? activePlace.stopId : "") !== previousStopId
+      || (activePlace ? activePlace.destStopId : "") !== previousDestStopId
     configLoaded = true
     if (connectionChanged) {
       supersede()
@@ -617,13 +647,18 @@ QtObject {
     pollRequested = false
     var token = generation
     var placeId = activePlace.id
+    var stopId = String(activePlace.stopId || "")
+    var destStopId = String(activePlace.destStopId || "")
     function complete(result) {
       if (token !== generation)
         return
 
       polling = false
-      if (!root.activePlace || root.activePlace.id !== placeId) {
-        // The place changed under this request; its board belongs to the old stop.
+      if (!root.activePlace || root.activePlace.id !== placeId
+          || String(root.activePlace.stopId || "") !== stopId
+          || String(root.activePlace.destStopId || "") !== destStopId) {
+        // The place or either endpoint changed under this request; its board
+        // belongs to the old source.
         if (pollRequested) {
           pollRequested = false
           Qt.callLater(root.poll)
@@ -652,16 +687,20 @@ QtObject {
       }
     }
 
+    var trip = Model.hasDestination(activePlace)
     if (demoMode) {
-      demoBackend.departures(complete)
+      if (trip)
+        demoBackend.journeys(complete)
+      else
+        demoBackend.departures(complete)
     } else {
-      var path = Api.departuresPath(activePlace.stopId, excludedModes(activePlace))
+      var path = trip
+        ? Api.tripPath(activePlace.stopId, activePlace.destStopId, 6)
+        : Api.departuresPath(activePlace.stopId, excludedModes(activePlace))
       liveBackend.request(path, function(response) {
-        if (!response.ok) {
-          complete(response)
-          return
-        }
-        response.data = Api.parseDepartures(response.data)
+        if (response.ok)
+          response.data = trip ? Api.parseJourneys(response.data) : Api.parseDepartures(response.data)
+
         complete(response)
       })
     }
@@ -689,7 +728,9 @@ QtObject {
       resetBoard()
       return
     }
-    board = Model.boardFor(departures, place, now)
+    board = Model.hasDestination(place)
+      ? Model.boardFromJourneys(departures, place, now)
+      : Model.boardFor(departures, place, now)
     var projected = Model.buildRows(board, place, now)
     rows.clear()
     for (var i = 0; i < projected.length && i < Model.MAX_ROWS; i++) rows.append(projected[i])
@@ -818,6 +859,7 @@ QtObject {
       "savedAt": lastPolledMs,
       "placeId": activePlace ? activePlace.id : "",
       "stopId": activePlace ? activePlace.stopId : "",
+      "destStopId": activePlace ? activePlace.destStopId || "" : "",
       "departures": departures.slice(0, Api.MAX_STOP_EVENTS)
     }) + "\n"
     if (text.length < Api.MAX_RESPONSE_BYTES)

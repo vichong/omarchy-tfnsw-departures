@@ -54,6 +54,10 @@ QtObject {
     callback(success(Demo.board(Date.now())))
   }
 
+  function journeys(callback) {
+    callback(success(Demo.journeys(Date.now())))
+  }
+
   function searchStops(text, callback) {
     callback(success(Demo.locations(text)))
   }

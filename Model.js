@@ -296,6 +296,7 @@ function notificationFor(board, place, nowMs, sent) {
     headline: "Leave now for the " + clockText(Api.effectiveMs(next)) + " " + next.line,
     body: next.destination + (next.platform ? " · Platform " + next.platform : "")
       + (place && place.walkMinutes ? " · " + place.walkMinutes + " min walk" : "")
+      + (next.arriveMs ? " · arrives " + clockText(next.arriveMs) : "")
   }
 }
 

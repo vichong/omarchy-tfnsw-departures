@@ -309,11 +309,13 @@ var CAPTION_WINDOW_MS = 2 * 60 * 1000
 
 function barState(board, place, nowMs) {
   var next = nextCatchable(board, place, nowMs)
-  if (!next) return { leaveMs: -1, lineColor: "", fraction: 0, caption: "" }
+  if (!next) return { leaveMs: -1, lineColor: "", line: "", destination: "", fraction: 0, caption: "" }
   var leave = leaveInMs(next, place, nowMs)
   return {
     leaveMs: leave,
     lineColor: Api.lineColor(next.line, next.mode),
+    line: String(next.line || ""),
+    destination: String(next.headsign || next.destination || ""),
     fraction: underlineFraction(leave),
     caption: barCaption(leave)
   }

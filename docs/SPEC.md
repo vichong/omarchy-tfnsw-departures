@@ -335,3 +335,15 @@ Tooltip keeps the full pill text. README documents the setting.
   line colour appears right of the mark. Not before.
 - Disruption glyph unchanged. Tooltip keeps the full pill text.
 - `showCountdown: true` still shows the full text pill instead.
+
+## v0.5.2: flat bar, leave window in the popup
+None of the stock bar widgets carry colour or animate, so neither do we: the
+bar shows only the mono Transport mark (plus the disruption glyph), no
+underline, no caption, no colour. `showCountdown` stays as the opt-in.
+The urgency cue moves into the popup, directly under the hero: a full-width
+track (foreground at 15% alpha, 3 units high) with a fill in the **line
+colour** of the next catchable service, width = `underlineFraction`
+(1 − leaveIn/10 min, clamped), labelled in caption bold "Leave in 4′ · L2 to
+Circular Quay". Hidden when leave-in is over 10 min or nothing is catchable.
+`Model.barState` also returns `line` and `destination` (headsign) for the
+label; `Service` exposes `nextLine` / `nextDestination`.

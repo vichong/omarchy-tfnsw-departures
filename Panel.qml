@@ -19,7 +19,7 @@ Panel {
   readonly property string family: bar ? bar.fontFamily : Style.font.family
   // Per-instance layout setting in shell.json; the bar is icon-only by default.
   readonly property bool showCountdown: setting("showCountdown", false) === true
-  readonly property color lineAccent: ready && service.nextLineColor !== "" ? service.nextLineColor : barFg
+  readonly property color lineAccent: ready && service.nextLineColor !== "" ? service.nextLineColor : fg
   property int cursorIndex: 0
   property bool cursorActive: false
   property bool alertsExpanded: false
@@ -250,32 +250,6 @@ Panel {
           colorful: root.ready && root.service.colorful
           dim: root.connected ? 1 : 0.45
         }
-
-        // Urgency, the wayfinding way: a hairline in the line colour fills
-        // left→right as leave-in runs from 10 min to 0. Never red. It sits
-        // where the bar draws its own open-panel indicator, and yields to it.
-        Rectangle {
-          anchors.left: parent.left
-          anchors.bottom: parent.bottom
-          anchors.bottomMargin: Style.space(2)
-          visible: !root.showCountdown && root.connected && !root.opened && width > 0
-          width: Math.round(mark.width * (root.ready ? root.service.underlineFraction : 0))
-          height: Style.space(2)
-          radius: height / 2
-          color: root.lineAccent
-        }
-      }
-
-      // Last two minutes only: a small caption in the line colour.
-      Text {
-        anchors.verticalCenter: parent.verticalCenter
-        visible: !root.showCountdown && !button.vertical && root.connected && root.service.barCaption !== ""
-        textFormat: Text.PlainText
-        text: root.ready ? root.service.barCaption : ""
-        color: root.lineAccent
-        font.family: root.family
-        font.pixelSize: Style.font.caption
-        font.weight: Font.DemiBold
       }
 
       Text {
@@ -373,6 +347,56 @@ Panel {
                 fontFamily: root.family
                 onClicked: root.openOverlay("settings")
               }
+            }
+          }
+        }
+
+        // The leave window for the next catchable service: a track in the
+        // line colour that fills as leave-in runs from 10 min to 0. This is
+        // the urgency cue; the bar itself stays flat like the stock widgets.
+        Item {
+          id: leaveWindow
+
+          readonly property bool active: root.connected && root.service.nextLeaveMs >= 0 && root.service.underlineFraction > 0
+
+          width: parent.width
+          visible: active
+          implicitHeight: active ? windowLabel.implicitHeight + Style.spacing.xs + windowTrack.height : 0
+          height: implicitHeight
+
+          Text {
+            id: windowLabel
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            textFormat: Text.PlainText
+            text: "Leave in " + Model.minutesText(root.ready ? root.service.nextLeaveMs : 0)
+              + (root.ready && root.service.nextLine ? " · " + root.service.nextLine : "")
+              + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
+            elide: Text.ElideRight
+            color: root.lineAccent
+            font.family: root.family
+            font.pixelSize: Style.font.caption
+            font.bold: true
+          }
+
+          Rectangle {
+            id: windowTrack
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            height: Style.space(3)
+            radius: height / 2
+            color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.15)
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.top: parent.top
+              anchors.bottom: parent.bottom
+              width: Math.round(parent.width * (root.ready ? root.service.underlineFraction : 0))
+              radius: parent.radius
+              color: root.lineAccent
             }
           }
         }

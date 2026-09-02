@@ -2,8 +2,8 @@
 
 A shell plugin that puts the next catchable Transport for NSW service or trip in
 the Omarchy bar. Everything counts down in **leave in** time: departure time
-minus your walk to the stop. The bar shows the Transport mark with a
-line-colour underline that fills as your leave time approaches. The popup shows departures, arrivals, travel time, platforms,
+minus your walk to the stop. The bar shows just the Transport mark; the popup
+shows the leave window closing. The popup shows departures, arrivals, travel time, platforms,
 realtime delays, cancellations and disruption alerts; the Here view plans a trip
 back to your active place.
 
@@ -102,11 +102,11 @@ you manually selected a place in the previous 30 minutes.
 
 ## Bar widget
 
-The bar shows only the Transport mark. As leave-in for the next catchable
-service runs from 10 minutes down to 0, a hairline in that service's line
-colour fills under the mark; in the last two minutes a small "2", "1" or
-"now" appears beside it. A warning glyph appears while a disruption alert is
-active. Hover for the full countdown, arrival time and place.
+The bar shows only the Transport mark, flat and static like the stock widgets,
+plus a warning glyph while a disruption alert is active. Hover for the full
+countdown, arrival time and place. Open the popup and the **leave window**
+under the hero shows how much of your ten-minute window is gone, as a track in
+the next service's line colour with "Leave in 4′ · L2 to Circular Quay".
 
 To show the countdown text in the bar instead, set it on the widget entry in
 `~/.config/omarchy/shell.json`:

@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.5.1"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.5.2"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -185,6 +185,8 @@ QtObject {
   // Icon-only bar cues: leave-in for the next catchable service and its line colour.
   property double nextLeaveMs: -1
   property string nextLineColor: ""
+  property string nextLine: ""
+  property string nextDestination: ""
   property real underlineFraction: 0
   property string barCaption: ""
   property string lastPolledAt: ""
@@ -727,6 +729,8 @@ QtObject {
     urgency = "none"
     nextLeaveMs = -1
     nextLineColor = ""
+    nextLine = ""
+    nextDestination = ""
     underlineFraction = 0
     barCaption = ""
   }
@@ -750,6 +754,8 @@ QtObject {
     var barState = Model.barState(board, place, now)
     nextLeaveMs = barState.leaveMs
     nextLineColor = barState.lineColor
+    nextLine = barState.line
+    nextDestination = barState.destination
     underlineFraction = barState.fraction
     barCaption = barState.caption
     maybeNotify(now)

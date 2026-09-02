@@ -995,7 +995,7 @@ Item {
           spacing: Style.spacing.lg
 
           Caption {
-            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.5.1")
+            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.5.2")
           }
 
           Button {

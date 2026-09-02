@@ -260,3 +260,9 @@ and arrival. Show it the way TripView's trip detail does:
   or a `legsFor(depId)` lookup) so `DepartureRow` can render them.
 - The pill stays `L3 · 9′ → 11:54 PM`; the notification body appends
   `· change at Central`.
+- **Direction per leg**: each leg's `destination` is the headsign the platform
+  indicator shows ("Tallawong", "Circular Quay"). Collapsed trip row title =
+  first leg `line` + headsign, e.g. `L3 towards Circular Quay`, with the
+  journey's end only in the right column (arrival) — that is what you need at
+  the first stop. Expanded legs: `M1 towards Tallawong · Platform 26 · alight
+  Chatswood 11:54 PM`. Plain departure rows keep the headsign as now.

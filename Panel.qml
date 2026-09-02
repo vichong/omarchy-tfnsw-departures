@@ -74,7 +74,7 @@ Panel {
   }
 
   function shortStopName(name) {
-    return String(name || "").replace(/\s+(Station|Wharf)\b.*$/i, "").trim()
+    return String(name || "").replace(/\s+(Station|Wharf|Light Rail|Interchange)\b.*$/i, "").trim()
   }
 
   function moveCursor(delta) {

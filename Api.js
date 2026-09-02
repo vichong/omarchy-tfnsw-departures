@@ -206,8 +206,12 @@ function firstSegment(name) { return clip(String(name || "").split(",")[0].trim(
 
 function platformOf(location) {
   var props = location && location.properties ? location.properties : {}
-  var name = String(props.platformName || "").trim().replace(/^Platform\s+/i, "")
+  var fullName = String(props.platformName || "").trim()
+  var name = fullName.replace(/^Platform\s+/i, "")
   if (name && /^[A-Za-z0-9]{1,4}$/.test(name)) return name
+  // Light rail and wharves echo the stop name as the platform name ("Surry
+  // Hills Light Rail" with code "LR2"); there is no platform to show then.
+  if (fullName) return ""
   var raw = String(props.platform || "").trim()
   // "SYD6" style codes carry the platform number after the station prefix.
   var match = raw.match(/([0-9]+[A-Z]?)$/)

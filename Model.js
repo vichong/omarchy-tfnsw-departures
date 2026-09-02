@@ -18,6 +18,30 @@ function glyphFor(modeId) { return MODE_GLYPHS[modeId] || MODE_GLYPHS.other }
 
 function normalizeLine(text) { return String(text || "").trim().toUpperCase() }
 
+function boardStopName(name) {
+  return String(name || "")
+    .replace(/\s+(Station|Wharf|Light Rail|Interchange)\b.*$/i, "")
+    .replace(/\bStreet\b/g, "St")
+    .trim()
+}
+
+// A bounded stop sequence for the mini indicator board. Parsed stops are
+// objects, but accepting strings keeps the helper useful and easy to test.
+function stopListText(stops, max) {
+  var list = Array.isArray(stops) ? stops : []
+  var limit = isFinite(max) ? Math.max(1, Math.floor(Number(max))) : 6
+  var names = []
+  for (var i = 0; i < list.length && names.length < limit; i++) {
+    var item = list[i]
+    var name = boardStopName(item && typeof item === "object" ? item.name : item)
+    if (name) names.push(name)
+  }
+  var text = names.join(" · ")
+  if (list.length > limit)
+    text += (text ? " · " : "") + "… +" + (list.length - limit)
+  return text
+}
+
 // Does this departure belong on the board for this place?
 function matchesPlace(dep, place) {
   if (!dep || !place) return false
@@ -119,6 +143,7 @@ function boardFromJourneys(journeys, place, nowMs) {
 // Project parsed trip legs for the expandable departure row. When the API
 // omits a walking leg between two rides, make the transfer time explicit.
 function legRows(entry) {
+  var shownAlerts = {}
   var legs = entry && Array.isArray(entry.legs) ? entry.legs : []
   var rows = []
   for (var i = 0; i < legs.length; i++) {
@@ -140,6 +165,7 @@ function legRows(entry) {
         realtime: false,
         alertTitle: "",
         disruption: false,
+        stopsText: "",
         minutes: Math.max(1, Math.round(gapMs / 60000))
       })
     }
@@ -150,6 +176,12 @@ function legRows(entry) {
       alert = infos[a]
       break
     }
+    // One alert usually applies to every leg through the same station; show it once.
+    if (alert && shownAlerts[String(alert.title || "")]) alert = null
+    if (alert) shownAlerts[String(alert.title || "")] = true
+    var stopsText = leg.kind === "ride" ? stopListText(leg.stops, 6) : ""
+    if (leg.kind === "ride" && !stopsText)
+      stopsText = [boardStopName(leg.from), boardStopName(leg.to)].filter(function(name) { return name !== "" }).join(" · ")
     rows.push({
       kind: leg.kind,
       mode: leg.kind === "walk" ? "walk" : (leg.mode || "other"),
@@ -163,6 +195,7 @@ function legRows(entry) {
       realtime: leg.kind === "ride" && leg.realtime === true,
       alertTitle: alert ? String(alert.title || "") : "",
       disruption: alert ? isDisruption(alert) : false,
+      stopsText: stopsText,
       minutes: Math.max(1, Math.round(Number(leg.durationSec || 0) / 60))
     })
   }
@@ -176,6 +209,16 @@ function placeLabel(place) {
   if (!place) return ""
   if (!hasDestination(place)) return "From " + place.name
   return place.name + " → " + firstWord(place.destStopName || "destination")
+}
+
+function placeTooltip(place) {
+  if (!place) return ""
+  var text = String(place.stopName || place.name || "")
+  if (hasDestination(place))
+    text += " → " + String(place.destStopName || "destination")
+  var walk = isFinite(place.walkMinutes) ? Math.max(0, Math.round(Number(place.walkMinutes))) : 0
+  if (walk > 0) text += " · " + walk + " min walk"
+  return text
 }
 
 function firstWord(text) {

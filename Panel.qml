@@ -47,13 +47,18 @@ Panel {
   }
   readonly property string heroStatus: ready && service.rows.count
     ? (service.rows.get(0).realtime ? "realtime" : "scheduled") : ""
+  readonly property string heroWalk: ready && service.activePlace && service.activePlace.walkMinutes > 0
+    ? service.activePlace.walkMinutes + " min walk" : ""
   readonly property real heroMetaAvailableWidth: Style.space(460) - Style.space(48) - Style.space(132)
   readonly property string heroMeta: {
-    var longText = heroRoute + (heroStatus ? " · " + heroStatus : "")
+    var baseText = heroRoute + (heroWalk ? " · " + heroWalk : "")
+    var longText = baseText + (heroStatus ? " · " + heroStatus : "")
     if (heroMetaMeasure.advanceWidth <= heroMetaAvailableWidth)
       return longText
+    if (heroBaseMeasure.advanceWidth <= heroMetaAvailableWidth)
+      return baseText
 
-    return heroRoute
+    return heroWalk || heroRoute
   }
   readonly property string refreshTooltip: {
     if (!ready || !service.lastPolledMs)
@@ -67,7 +72,20 @@ Panel {
 
     font.family: root.family
     font.pixelSize: Style.font.caption
-    text: root.heroRoute + (root.heroStatus ? " · " + root.heroStatus : "")
+    font.bold: true
+    font.letterSpacing: 1.2
+    text: (root.heroRoute + (root.heroWalk ? " · " + root.heroWalk : "")
+      + (root.heroStatus ? " · " + root.heroStatus : "")).toUpperCase()
+  }
+
+  TextMetrics {
+    id: heroBaseMeasure
+
+    font.family: root.family
+    font.pixelSize: Style.font.caption
+    font.bold: true
+    font.letterSpacing: 1.2
+    text: (root.heroRoute + (root.heroWalk ? " · " + root.heroWalk : "")).toUpperCase()
   }
 
   function twoDigits(n) {
@@ -305,7 +323,8 @@ Panel {
           options: root.ready ? root.service.effectivePlaces.map(function(p) {
             return {
               "value": p.id,
-              "label": Model.placeLabel(p)
+              "label": Model.placeLabel(p),
+              "tooltip": Model.placeTooltip(p)
             }
           }) : []
           value: root.ready && root.service.activePlace ? root.service.activePlace.id : ""
@@ -467,6 +486,7 @@ Panel {
             legsSummary: model.legsSummary
             leaveText: model.leaveText
             leaveMs: model.leaveMs
+            walkMinutes: root.ready && root.service.activePlace ? root.service.activePlace.walkMinutes : 0
             realtime: model.realtime
             cancelled: model.cancelled
             missed: model.missed

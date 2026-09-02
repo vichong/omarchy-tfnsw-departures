@@ -6,6 +6,12 @@ walk to the stop. The popup shows departures, arrivals, travel time, platforms,
 realtime delays, cancellations and disruption alerts; the Here view plans a trip
 back to your active place.
 
+The popup follows a station indicator-board layout: line-colour badges lead each
+destination, compact pills show realtime and change status, and expanded trips
+become mini boards with per-leg platforms, clocks and bounded stop sequences.
+The hero and place tooltips also show the allocated walk time, so the line-colour
+countdown clearly means when to leave rather than when the service departs.
+
 | Bar | Departures popup |
 |:---:|:---:|
 | ![Transport NSW leave-in countdown in the Omarchy bar](docs/screenshots/bar.png) | ![Live departure board popup](docs/screenshots/popup.png) |

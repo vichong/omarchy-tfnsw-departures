@@ -87,7 +87,12 @@ equal(legRows.map(r => r.kind), ["ride", "change", "ride"], "a transfer gap betw
 equal([legRows[0].line, legRows[0].headsign, legRows[0].from, legRows[0].to, legRows[0].realtime], ["L3", "Circular Quay", "Surry Hills Light Rail", "Central Chalmers Street Light Rail", true], "first ride keeps its direction, endpoints and realtime state")
 equal([legRows[1].minutes, legRows[1].from], [9, "Central Station"], "change row gives rounded gap and change stop")
 equal([legRows[2].line, legRows[2].headsign, legRows[2].platform], ["M1", "Tallawong", "26"], "second ride keeps its own direction and platform")
-assert(Object.keys(legRows[0]).sort().join(",") === ["alertTitle", "arriveText", "departText", "disruption", "from", "headsign", "kind", "line", "minutes", "mode", "platform", "realtime", "to"].sort().join(","), "leg rows have the documented shape")
+equal(legRows[0].stopsText, "Surry Hills · Central Chalmers St", "leg rows expose the stop sequence")
+equal(legRows[2].stopsText, "Central · Gadigal · Martin Place · Barangaroo · Victoria Cross · Crows Nest · … +1", "long stop sequences are bounded")
+equal(Model.stopListText(["One", "Two", "Three"], 2), "One · Two · … +1", "stop list helper accepts strings and a custom bound")
+assert(Object.keys(legRows[0]).sort().join(",") === ["alertTitle", "arriveText", "departText", "disruption", "from", "headsign", "kind", "line", "minutes", "mode", "platform", "realtime", "stopsText", "to"].sort().join(","), "leg rows have the documented shape")
+const noStops = { legs: [Object.assign({}, multi[0].legs[0], { stops: [] })] }
+equal(Model.legRows(noStops)[0].stopsText, "Surry Hills · Central Chalmers St", "ride without a stop sequence falls back to endpoints")
 const withWalk = { legs: [multi[0].legs[0], Object.assign({}, multi[0].legs[0], { kind: "walk", mode: "walk", line: "", destination: "", platform: "", from: multi[0].legs[0].to, to: multi[0].legs[1].from, departMs: multi[0].legs[0].arriveMs, arriveMs: multi[0].legs[1].departMs, durationSec: 510, realtime: false, infos: [] }), multi[0].legs[1]] }
 equal(Model.legRows(withWalk).map(r => r.kind), ["ride", "walk", "ride"], "an explicit walking leg suppresses the change pseudo-row")
 assert(/^L[23] · 9′ → /.test(Model.pillText(Model.boardFromJourneys(multi, commute, commuteNow), commute, commuteNow)), "pill leads with the first leg and ends with the arrival")
@@ -95,6 +100,8 @@ const changeNotification = Model.notificationFor(commuteBoard, commute, multi[0]
 assert(changeNotification && / · change at Central$/.test(changeNotification.body), "multi-leg trip notification names the change stop")
 equal(Model.placeLabel(home), "From Home", "place without destination reads as an origin")
 equal(Model.placeLabel(tripPlace), "Home → Wynyard", "trip label shows the destination's short name")
+equal(Model.placeTooltip(commute), "Surry Hills Light Rail → Chatswood Station · 3 min walk", "place tooltip shows full stops and walk allocation")
+equal(Model.placeTooltip(Object.assign({}, home, { walkMinutes: 0 })), "Sydenham Station", "zero walk is omitted from the place tooltip")
 equal(Model.firstWord("Circular Quay Wharf, Sydney"), "Circular Quay", "short destination name")
 assert(!Model.hasDestination(home) && Model.hasDestination(tripPlace), "hasDestination")
 equal(Model.projectRow(board[0], home, now).arriveText, "", "plain departures have no arrival")
@@ -118,5 +125,9 @@ equal(Model.placeForSsid([home, { id: "w", ssid: "CCC" }], "CCC").id, "w", "plac
 assert(Model.placeForSsid([home], "") === null, "no SSID means no auto place")
 equal(Model.notificationTag("609M.1396/158:16"), "tfnsw-609M.1396_158_16", "notification tag is sanitized")
 equal(Model.escapeMarkup("<b>&"), "&lt;b&gt;&amp;", "markup escape")
+
+const sharedAlert = { title: "Lift 10 out of service", disruption: true }
+const repeated = { legs: [Object.assign({}, multi[0].legs[0], { infos: [sharedAlert] }), Object.assign({}, multi[0].legs[1], { infos: [sharedAlert] })] }
+equal(Model.legRows(repeated).filter(r => r.kind === "ride").map(r => r.alertTitle), ["Lift 10 out of service", ""], "an alert shared by consecutive legs is shown once")
 
 done("test_model")

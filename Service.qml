@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.4.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.5.0"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"

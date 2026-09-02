@@ -626,7 +626,8 @@ Item {
             options: root.service ? root.service.places.map(function(p) {
               return {
                 "value": p.id,
-                "label": Model.placeLabel(p)
+                "label": Model.placeLabel(p),
+                "tooltip": Model.placeTooltip(p)
               }
             }) : []
             value: root.selectedPlaceId
@@ -994,7 +995,7 @@ Item {
           spacing: Style.spacing.lg
 
           Caption {
-            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.3.0")
+            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.5.0")
           }
 
           Button {
@@ -1041,7 +1042,8 @@ Item {
           options: root.service ? root.service.effectivePlaces.map(function(p) {
             return {
               "value": p.id,
-              "label": Model.placeLabel(p)
+              "label": Model.placeLabel(p),
+              "tooltip": Model.placeTooltip(p)
             }
           }) : []
           value: root.service && root.service.activePlace ? root.service.activePlace.id : ""

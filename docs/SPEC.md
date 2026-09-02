@@ -311,3 +311,12 @@ the Omarchy theme: panel background and foreground from `Color`, mono bar,
   the row's right column ("Departs 11:40 PM"); (c) when `walkMinutes` is 0 the
   label is "departs" and the hero omits the walk; (d) the place chips'
   tooltip shows `Surry Hills Light Rail → Chatswood Station · 6 min walk`.
+
+## v0.5.1: bar shows the icon only
+The bar widget shows only the Transport mark by default; the countdown text
+is opt-in via a per-instance layout setting in `shell.json`
+(`{ "id": "io.github.vichong.tfnsw-departures", "showCountdown": true }`,
+read with `setting("showCountdown", false)`, mirroring Gorelo's `showCount`).
+The icon itself still carries the two quiet cues: `Color.urgent` tint when
+urgency is "now", and the warning glyph while a disruption alert is active.
+Tooltip keeps the full pill text. README documents the setting.

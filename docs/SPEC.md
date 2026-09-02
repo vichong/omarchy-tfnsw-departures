@@ -347,3 +347,13 @@ colour** of the next catchable service, width = `underlineFraction`
 Circular Quay". Hidden when leave-in is over 10 min or nothing is catchable.
 `Model.barState` also returns `line` and `destination` (headsign) for the
 label; `Service` exposes `nextLine` / `nextDestination`.
+
+## v0.5.2 addendum: colour accuracy and contrast
+Line colours are the TfNSW GTFS `route_color` values (verified 2026-09-03
+from the light rail and metro schedule feeds: L1 BE1622, L2 DD1E25,
+L3 781140, M 168388; trains from transportnsw.info line pages). GTFS gives
+`route_text_color` FFFFFF for every line, but white fails WCAG on the light
+lines (T1 2.1:1, T3 2.9:1, bus 2.4:1, ferry 2.7:1), so badge and countdown
+text pick white or near-black by contrast (`Api.lightTextOn`). The
+leave-window label is drawn in the theme foreground; only the track fill
+carries the line colour (L3 on the panel background is 1.6:1).

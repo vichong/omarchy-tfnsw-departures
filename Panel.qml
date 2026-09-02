@@ -61,7 +61,8 @@ Panel {
     if (heroBaseMeasure.advanceWidth <= heroMetaAvailableWidth)
       return baseText
 
-    return heroWalk || heroRoute
+    // The route is the point of the line; PanelHero elides it if it must.
+    return heroRoute
   }
   readonly property string refreshTooltip: {
     if (!ready || !service.lastPolledMs)
@@ -374,7 +375,7 @@ Panel {
               + (root.ready && root.service.nextLine ? " · " + root.service.nextLine : "")
               + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
             elide: Text.ElideRight
-            color: root.lineAccent
+            color: root.fg
             font.family: root.family
             font.pixelSize: Style.font.caption
             font.bold: true

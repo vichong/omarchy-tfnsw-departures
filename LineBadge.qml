@@ -33,7 +33,9 @@ Item {
     text: root.code
     horizontalAlignment: Text.AlignHCenter
     elide: Text.ElideRight
-    color: "white"
+    // Official badges are always white-on-colour; we trade that for legibility
+    // on the light lines (T1 orange, bus blue, ferry green).
+    color: Api.lightTextOn(Api.lineColor(root.line, root.mode)) ? "white" : "#1A1A1A"
     font.family: "JetBrains Mono"
     font.pixelSize: Math.max(8, root.size * 0.5)
     font.bold: true

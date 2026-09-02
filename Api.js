@@ -50,6 +50,30 @@ var LINE_COLORS = {
   F6: "#00AB51", F7: "#00B189", F8: "#55622B", F9: "#65B32E", F10: "#5AB031",
   B1: "#FFB81C"
 }
+// WCAG relative luminance of a "#RRGGBB" colour; used to pick a readable
+// text colour on top of a line colour (T1 orange needs dark text, L3 plum
+// needs light text).
+function luminance(hex) {
+  var h = String(hex || "").replace("#", "")
+  if (h.length !== 6) return 0
+  var out = [0.2126, 0.7152, 0.0722]
+  var sum = 0
+  for (var i = 0; i < 3; i++) {
+    var c = parseInt(h.substr(i * 2, 2), 16) / 255
+    c = c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4)
+    sum += out[i] * c
+  }
+  return sum
+}
+function contrastRatio(a, b) {
+  var la = luminance(a), lb = luminance(b)
+  return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
+}
+// true when light text reads better than dark text on this colour.
+function lightTextOn(hex) {
+  return contrastRatio("#FFFFFF", hex) >= contrastRatio("#000000", hex)
+}
+
 function lineColor(line, modeId) {
   var key = String(line || "").trim().toUpperCase()
   if (LINE_COLORS[key]) return LINE_COLORS[key]

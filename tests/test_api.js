@@ -91,4 +91,9 @@ assert(journeys[0].durationSec > 0 && journeys[0].departMs < journeys[0].arriveM
 const walkOnly = Api.parseJourneys(fixture("trip_address_to_wynyard.json"))
 equal([walkOnly[0].legs[0].kind, walkOnly[0].legs[0].distanceM, walkOnly[0].legs[0].durationSec], ["walk", 254, 228], "walking leg from an address")
 
+assert(Api.lightTextOn("#005AA3") && Api.lightTextOn("#781140") && Api.lightTextOn("#DD1E25"), "light text on T4, L3 and L2")
+assert(!Api.lightTextOn("#F99D1C") && !Api.lightTextOn("#00B5EF") && !Api.lightTextOn("#5AB031"), "dark text on T1, bus and ferry")
+assert(Math.abs(Api.contrastRatio("#FFFFFF", "#000000") - 21) < 0.01, "contrast ratio of black on white is 21")
+equal(Api.luminance("bogus"), 0, "bad colours have zero luminance")
+
 done("test_api")

@@ -38,6 +38,8 @@ CursorSurface {
   readonly property color muted: Qt.darker(fg, 1.45)
   readonly property string family: bar ? bar.fontFamily : Style.font.family
   readonly property color countdownColor: cancelled || missed ? Color.muted : Api.lineColor(line, mode)
+  readonly property color countdownFg: cancelled || missed ? Color.background
+    : (Api.lightTextOn(Api.lineColor(line, mode)) ? "#FFFFFF" : "#1A1A1A")
   readonly property string countdownText: cancelled ? "—" : missed ? "Missed" : leaveMs < 60 * 1000 ? "Now" : String(Math.min(99, Math.floor(leaveMs / 60000)))
   readonly property bool countdownHasUnit: !cancelled && !missed && leaveMs >= 60 * 1000
   readonly property string countdownLabel: walkMinutes > 0 ? "leave" : "departs"
@@ -100,7 +102,7 @@ CursorSurface {
             anchors.verticalCenter: parent.verticalCenter
             textFormat: Text.PlainText
             text: root.countdownText
-            color: Color.background
+            color: root.countdownFg
             font.family: root.family
             font.pixelSize: root.countdownText === "Missed" ? Style.font.bodySmall : Style.font.title
             font.bold: true
@@ -112,7 +114,7 @@ CursorSurface {
             visible: root.countdownHasUnit
             textFormat: Text.PlainText
             text: "min"
-            color: Color.background
+            color: root.countdownFg
             font.family: root.family
             font.pixelSize: Style.font.caption
           }
@@ -123,7 +125,7 @@ CursorSurface {
           visible: !root.cancelled && !root.missed
           textFormat: Text.PlainText
           text: root.countdownLabel
-          color: Color.background
+          color: root.countdownFg
           font.family: root.family
           font.pixelSize: Style.font.caption
         }

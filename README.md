@@ -6,11 +6,11 @@ to the stop. The popup shows departures, platforms, realtime delays,
 cancellations and disruption alerts; the Here view plans a trip back to your
 active place.
 
-| Departures | Settings | From here |
-|---|---|---|
-| `docs/screenshots/departures.png` | `docs/screenshots/settings.png` | `docs/screenshots/here.png` |
-
-Screenshots are placeholders for the v0.1 release.
+| Bar | Departures popup |
+|:---:|:---:|
+| ![Transport NSW leave-in countdown in the Omarchy bar](docs/screenshots/bar.png) | ![Live departure board popup](docs/screenshots/popup.png) |
+| **Settings** | **From here** |
+| ![Transport NSW plugin settings](docs/screenshots/settings.png) | ![Journey planner from the current location](docs/screenshots/here.png) |
 
 ## Install
 
@@ -93,7 +93,26 @@ Remove the key in Settings first if desired, then:
 omarchy plugin remove io.github.vichong.tfnsw-departures --yes
 ```
 
-This project is not affiliated with or endorsed by Transport for NSW. Transport
-data is sourced from **TfNSW Open Data** and used under the Creative Commons
-Attribution 4.0 International licence (CC BY 4.0); attribution: Transport for
-NSW.
+## Data and attribution
+
+Transport data is sourced from **TfNSW Open Data** and used under the Creative
+Commons Attribution 4.0 International licence (**CC BY 4.0**). Attribution:
+Transport for NSW.
+
+Not affiliated with Transport for NSW.
+
+## Notes for developers
+
+The Trip Planner API's `itdTime` fields are local Sydney time, despite other API
+timestamps using UTC-style representations. Do not reinterpret `itdTime` as UTC
+before constructing a local `Date`, or departures will move by the timezone
+offset.
+
+The checked-in response fixtures are:
+
+- `tests/fixtures/add_info_current.json`
+- `tests/fixtures/departure_mon_sydenham.json`
+- `tests/fixtures/stop_finder_address.json`
+- `tests/fixtures/stop_finder_sydenham.json`
+- `tests/fixtures/trip_address_to_wynyard.json`
+- `tests/fixtures/trip_sydenham_to_wynyard.json`

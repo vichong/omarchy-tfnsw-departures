@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.vichong.tfnsw-departures",
+  "name": "Transport NSW",
+  "version": "0.1.0",
+  "author": "Vic Hong",
+  "license": "MIT",
+  "description": "Next train, metro, bus, ferry or light rail from Transport NSW, in the Omarchy bar — so you know when to leave.",
+  "kinds": ["service", "bar-widget", "overlay"],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "Panel.qml",
+    "overlay": "Overlay.qml"
+  },
+  "barWidget": {
+    "displayName": "Transport NSW",
+    "description": "Leave-in countdown for your next service.",
+    "category": "Info",
+    "allowMultiple": false,
+    "defaultSection": "right"
+  }
+}

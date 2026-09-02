@@ -9,14 +9,14 @@ equal(Api.query({ a: 1, b: "x y", c: "", d: null }), "?a=1&b=x%20y", "query skip
 
 const sf = Api.stopFinderPath("Sydenham Station")
 assert(sf.indexOf("/v1/tp/stop_finder?") === 0 && sf.indexOf("name_sf=Sydenham%20Station") > 0 && sf.indexOf("TfNSWSF=true") > 0, "stop finder path")
-const dm = Api.departuresPath("204420", ["bus", "coach"], Date.UTC(2026, 8, 2, 12, 5))
+const dm = Api.departuresPath("204420", ["bus", "coach"])
 assert(dm.indexOf("name_dm=204420") > 0 && dm.indexOf("exclMOT_5=1") > 0 && dm.indexOf("exclMOT_7=1") > 0, "departures path excludes modes")
-assert(dm.indexOf("itdDate=20260902") > 0 && dm.indexOf("itdTime=1205") > 0, "departures path sends UTC date/time")
-assert(Api.departuresPath("204420", [], 0).indexOf("excludedMeans") === -1, "no exclusions when list is empty")
-const tp = Api.tripPath({ lat: -33.867509, lon: 151.207789 }, "200080", 3, 0)
+assert(dm.indexOf("itdDate") === -1 && dm.indexOf("itdTime") === -1, "no explicit time: the API reads itdTime as Sydney local, not UTC")
+assert(Api.departuresPath("204420", []).indexOf("excludedMeans") === -1, "no exclusions when list is empty")
+const tp = Api.tripPath({ lat: -33.867509, lon: 151.207789 }, "200080", 3)
 assert(tp.indexOf("type_origin=coord") > 0 && tp.indexOf("name_origin=151.207789%3A-33.867509%3AEPSG%3A4326") > 0, "coordinate origin")
 assert(tp.indexOf("type_destination=stop&name_destination=200080") > 0 && tp.indexOf("calcNumberOfTrips=3") > 0, "trip destination and count")
-assert(Api.tripPath("220510", "204420", 99, 0).indexOf("calcNumberOfTrips=" + Api.MAX_JOURNEYS) > 0, "journey count is capped")
+assert(Api.tripPath("220510", "204420", 99).indexOf("calcNumberOfTrips=" + Api.MAX_JOURNEYS) > 0, "journey count is capped")
 assert(Api.isStopId("204420") && !Api.isStopId("streetID:1:2") && !Api.isStopId(""), "stop id validation")
 
 // --- modes
@@ -38,6 +38,8 @@ const oversized = Api.parseResponse(200, "x".repeat(Api.MAX_RESPONSE_BYTES + 1))
 equal(oversized.kind, "protocol", "oversized body is rejected before parsing")
 const stopInvalid = Api.parseResponse(200, '{"systemMessages":[{"type":"error","module":"BROKER","code":-2000,"text":"stop invalid"}],"locations":[]}')
 assert(stopInvalid.ok && Api.parseLocations(stopInvalid.data).length === 0, "stop invalid is an empty result, not an error")
+const advisory = Api.parseResponse(200, '{"systemMessages":[{"type":"error","module":"BROKER","code":-8011,"text":""}],"locations":[{"id":"1","name":"x","type":"stop"}]}')
+assert(advisory.ok, "an advisory system error next to a real payload is not a failure")
 const otherError = Api.parseResponse(200, '{"systemMessages":[{"type":"error","code":-1,"text":"boom"}]}')
 equal([otherError.ok, otherError.kind, otherError.error], [false, "api", "boom"], "other system errors surface")
 

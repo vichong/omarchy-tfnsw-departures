@@ -76,7 +76,7 @@ function query(params) {
 }
 
 function commonParams() {
-  return { outputFormat: "rapidJSON", coordOutputFormat: "EPSG:4326", version: "10.2.1.42" }
+  return { outputFormat: "rapidJSON", coordOutputFormat: "EPSG:4326" }
 }
 
 // Global stop ids are digits only ("204420"); anything else is an address,
@@ -93,15 +93,16 @@ function stopFinderPath(text) {
 
 // Departure board for one stop. `excludeModes` lists mode ids to drop
 // server-side, which shrinks the payload and keeps buses off a station board.
-function departuresPath(stopId, excludeModes, whenMs) {
+// No itdDate/itdTime: the API reads them as Sydney local time (not UTC, as
+// the forum suggests) and this machine's clock may be in any zone, so "now"
+// is left to the server.
+function departuresPath(stopId, excludeModes) {
   var p = commonParams()
   p.mode = "direct"
   p.type_dm = "stop"
   p.name_dm = String(stopId)
   p.depArrMacro = "dep"
   p.TfNSWDM = "true"
-  var when = timeParams(whenMs)
-  p.itdDate = when.date; p.itdTime = when.time
   var excluded = Array.isArray(excludeModes) ? excludeModes : []
   if (excluded.length) {
     p.excludedMeans = "checkbox"
@@ -115,7 +116,7 @@ function departuresPath(stopId, excludeModes, whenMs) {
 
 // Journey planner: origin is a stop id or "lon:lat" coordinate string,
 // destination a stop id.
-function tripPath(origin, destination, count, whenMs) {
+function tripPath(origin, destination, count) {
   var p = commonParams()
   p.depArrMacro = "dep"
   var o = originSpec(origin)
@@ -123,8 +124,6 @@ function tripPath(origin, destination, count, whenMs) {
   p.type_destination = "stop"; p.name_destination = String(destination)
   p.calcNumberOfTrips = Math.max(1, Math.min(MAX_JOURNEYS, parseInt(count, 10) || 3))
   p.TfNSWTR = "true"
-  var when = timeParams(whenMs)
-  p.itdDate = when.date; p.itdTime = when.time
   return TP_PATH + "/trip" + query(p)
 }
 
@@ -133,17 +132,6 @@ function originSpec(origin) {
     return { type: "coord", name: Number(origin.lon).toFixed(6) + ":" + Number(origin.lat).toFixed(6) + ":EPSG:4326" }
   }
   return { type: "stop", name: String(origin) }
-}
-
-// The API reads itdDate/itdTime as UTC (undocumented; confirmed on the
-// TfNSW forum), so send UTC and let it convert.
-function timeParams(whenMs) {
-  var d = new Date(typeof whenMs === "number" && isFinite(whenMs) ? whenMs : Date.now())
-  function two(n) { return (n < 10 ? "0" : "") + n }
-  return {
-    date: String(d.getUTCFullYear()) + two(d.getUTCMonth() + 1) + two(d.getUTCDate()),
-    time: two(d.getUTCHours()) + two(d.getUTCMinutes())
-  }
 }
 
 // ---------------------------------------------------------------- parsing
@@ -167,10 +155,13 @@ function parseResponse(status, body) {
   }
   if (!data || typeof data !== "object" || Array.isArray(data)) return errorResult("protocol", "Unexpected response from Transport NSW.")
   var errors = systemErrors(data)
-  if (errors.length) return errorResult("api", errors[0])
+  if (errors.length && !hasPayload(data)) return errorResult("api", errors[0])
   return { ok: true, status: status, kind: "", error: "", data: data }
 }
 
+// EFA reports advisory conditions as "error" system messages next to a
+// perfectly good payload (e.g. code -8011 with empty text on stop_finder), so
+// a system error only fails the call when nothing usable came back.
 function systemErrors(data) {
   var out = []
   var messages = data && Array.isArray(data.systemMessages) ? data.systemMessages : []
@@ -182,6 +173,13 @@ function systemErrors(data) {
     out.push(String(m.text || ("Transport NSW error " + m.code)))
   }
   return out
+}
+
+function hasPayload(data) {
+  if (!data || typeof data !== "object") return false
+  var keys = ["locations", "stopEvents", "journeys"]
+  for (var i = 0; i < keys.length; i++) if (Array.isArray(data[keys[i]]) && data[keys[i]].length) return true
+  return false
 }
 
 function parseTime(value) {

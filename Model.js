@@ -150,11 +150,44 @@ function minutesText(ms) {
   return minutes + "′"
 }
 
-function clockText(ms) {
+// Times follow the bar clock. The clock widget's Qt format string lives in
+// shell.json ("ddd d MMM h:mm AP", "dddd HH:mm", …); "AP"/"ap" or a lone
+// "h" means 12-hour. Service reads shell.json and calls setTwelveHour.
+var twelveHour = false
+function setTwelveHour(value) { twelveHour = value === true }
+function clockFormatIsTwelveHour(format) {
+  var f = String(format || "")
+  if (/\bAP\b|\bap\b|\bA\b|\ba\b/.test(f)) return true
+  if (/HH|H/.test(f)) return false
+  return /(^|[^h])h(?!h)|hh/.test(f)
+}
+// Finds the clock widget's format anywhere in the bar layout of shell.json.
+function clockFormatFromShellConfig(text) {
+  var config = null
+  try { config = JSON.parse(String(text || "")) } catch (e) { return "" }
+  var layout = config && config.bar && config.bar.layout ? config.bar.layout : null
+  if (!layout || typeof layout !== "object") return ""
+  var sections = ["left", "center", "right"]
+  for (var s = 0; s < sections.length; s++) {
+    var list = Array.isArray(layout[sections[s]]) ? layout[sections[s]] : []
+    for (var i = 0; i < list.length; i++) {
+      var entry = list[i]
+      if (entry && entry.id === "omarchy.clock") return typeof entry.format === "string" ? entry.format : "dddd HH:mm"
+    }
+  }
+  return ""
+}
+function clockText(ms, forceTwelveHour) {
   if (!ms) return ""
   var d = new Date(ms)
   function two(n) { return (n < 10 ? "0" : "") + n }
-  return two(d.getHours()) + ":" + two(d.getMinutes())
+  var use12 = forceTwelveHour === undefined ? twelveHour : forceTwelveHour === true
+  if (!use12) return two(d.getHours()) + ":" + two(d.getMinutes())
+  var hours = d.getHours()
+  var suffix = hours >= 12 ? " PM" : " AM"
+  var h = hours % 12
+  if (h === 0) h = 12
+  return h + ":" + two(d.getMinutes()) + suffix
 }
 
 // Bar pill: "T4 · 6′" (leave in), or the reason there is nothing to show.

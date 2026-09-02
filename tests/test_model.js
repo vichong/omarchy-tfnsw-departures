@@ -78,6 +78,21 @@ equal(Model.firstWord("Circular Quay Wharf, Sydney"), "Circular Quay", "short de
 assert(!Model.hasDestination(home) && Model.hasDestination(tripPlace), "hasDestination")
 equal(Model.projectRow(board[0], home, now).arriveText, "", "plain departures have no arrival")
 
+// --- clock format follows the bar clock
+const evening = new Date(2026, 8, 2, 23, 5).getTime()
+const morning = new Date(2026, 8, 2, 0, 7).getTime()
+equal([Model.clockText(evening, false), Model.clockText(evening, true), Model.clockText(morning, true), Model.clockText(new Date(2026, 8, 2, 12, 0).getTime(), true)],
+  ["23:05", "11:05 PM", "12:07 AM", "12:00 PM"], "24h and 12h clock text")
+equal([Model.clockFormatIsTwelveHour("ddd d MMM h:mm AP"), Model.clockFormatIsTwelveHour("dddd HH:mm"), Model.clockFormatIsTwelveHour("h:mm ap"), Model.clockFormatIsTwelveHour("HH\n—\nmm"), Model.clockFormatIsTwelveHour("")],
+  [true, false, true, false, false], "12-hour detection from Qt format strings")
+equal(Model.clockFormatFromShellConfig(JSON.stringify({ bar: { layout: { center: [{ id: "omarchy.indicators" }, { id: "omarchy.clock", format: "ddd d MMM h:mm AP" }] } } })),
+  "ddd d MMM h:mm AP", "clock format found in shell.json")
+equal(Model.clockFormatFromShellConfig(JSON.stringify({ bar: { layout: { left: [{ id: "omarchy.clock" }] } } })), "dddd HH:mm", "clock without a format uses the widget default")
+equal(Model.clockFormatFromShellConfig("{nope"), "", "invalid shell.json yields no format")
+Model.setTwelveHour(true)
+assert(/PM|AM/.test(Model.buildRows(board, home, now)[0].timeText), "rows follow the 12-hour setting")
+Model.setTwelveHour(false)
+
 equal(Model.placeForSsid([home, { id: "w", ssid: "CCC" }], "CCC").id, "w", "place picked by SSID")
 assert(Model.placeForSsid([home], "") === null, "no SSID means no auto place")
 equal(Model.notificationTag("609M.1396/158:16"), "tfnsw-609M.1396_158_16", "notification tag is sanitized")

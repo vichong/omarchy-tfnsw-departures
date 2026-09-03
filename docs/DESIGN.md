@@ -75,7 +75,8 @@ Items 1–6 are specified as v0.6 in `docs/SPEC.md` (mockup: Claude Design
 6. Settings: connection card collapses when connected; places as a list
    with per-place editor; filters under a "Filter services" disclosure;
    demo mode and version at the bottom; empty filters show "All".
-7. Crowding icons (v2, GTFS-Realtime vehicle positions).
+7. "New trip" pane replacing "From here" (v0.7, approved): address → nearest stops → going to → board → use now / save as trip.
+8. Crowding icons (v2, GTFS-Realtime vehicle positions).
 
 ## Process
 

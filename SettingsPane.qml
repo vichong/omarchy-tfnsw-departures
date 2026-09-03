@@ -394,7 +394,7 @@ Flickable {
       Text {
         width: parent.width * 0.42
         textFormat: Text.PlainText
-        text: "Transport NSW for Omarchy v" + (page.host && page.host.version ? page.host.version : "0.6.2")
+        text: "Transport NSW for Omarchy v" + (page.host && page.host.version ? page.host.version : "0.7.0")
         color: page.muted
         font.family: page.family
         font.pixelSize: Style.space(9)

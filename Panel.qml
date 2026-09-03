@@ -110,7 +110,8 @@ Ui.Panel {
     function status(): string { return root.ready ? root.service.statusLine() : "service: UNREACHABLE" }
     function refresh(): void { if (root.ready) root.service.refresh() }
     function settings(): void { root.openOverlay("settings") }
-    function here(): void { root.openOverlay("here") }
+    function newtrip(): void { root.openOverlay("newtrip") }
+    function here(): void { root.openOverlay("newtrip") }
     function place(id: string): string { return root.ready && root.service.setActivePlace(id, true) ? id : "unknown place" }
     function next(): string { return root.ready ? root.service.pillText : "" }
   }
@@ -122,7 +123,7 @@ Ui.Panel {
     bar: root.bar
     labelVisible: false
     hasVisualContent: true
-    tooltipText: root.ready && root.service.activePlace ? root.service.activePlace.name + " · " + (root.service.pillText || "No departure") : "Transport NSW"
+    tooltipText: root.ready && root.service.activePlace ? root.service.activePlace.name + " · " + (root.service.pillText || "No departure") : "Transport NSW for Omarchy"
     fixedWidth: pill.implicitWidth + scaledHorizontalMargin * 2
     fixedHeight: vertical ? Style.bar.iconSlot : -1
     onPressed: function(mouseButton) {
@@ -182,7 +183,7 @@ Ui.Panel {
           id: mark
 
           x: 0
-          y: markSlot.glyphTop
+          y: markSlot.glyphTop - 1
           iconSize: Math.max(1, markSlot.glyphBox.height)
           color: root.barFg
           colorful: root.ready && root.service.colorful
@@ -276,7 +277,7 @@ Ui.Panel {
             Text {
               width: parent.width
               textFormat: Text.PlainText
-              text: root.ready && root.service.activePlace ? root.service.activePlace.name : "Transport NSW"
+              text: root.ready && root.service.activePlace ? root.service.activePlace.name : "Transport NSW for Omarchy"
               color: root.fg
               font.family: root.family
               font.pixelSize: Style.font.heading
@@ -291,7 +292,7 @@ Ui.Panel {
                 ? Model.routeLabel(root.service.activePlace) : ""
               readonly property var selectorParts: selectorLabel.split(" → ")
 
-              visible: root.ready && root.service.effectivePlaces.length > 1
+              visible: root.ready && root.service.activePlace !== null
               width: parent.width
               implicitHeight: visible ? selectorChip.implicitHeight : 0
               height: implicitHeight
@@ -309,9 +310,13 @@ Ui.Panel {
                 fontFamily: root.family
                 options: root.ready ? root.service.effectivePlaces.map(function(p) {
                   return { "value": p.id, "label": Model.routeLabel(p) }
-                }) : []
+                }).concat([{ "value": "newtrip", "label": "New trip…" }]) : []
                 value: root.ready && root.service.activePlace ? root.service.activePlace.id : ""
                 onChanged: function(value) {
+                  if (value === "newtrip") {
+                    root.openOverlay("newtrip")
+                    return
+                  }
                   root.service.setActivePlace(value, true)
                   root.cursorIndex = 0
                   root.expandedDepId = ""
@@ -427,8 +432,8 @@ Ui.Panel {
             }
 
             Ui.PanelActionButton {
-              iconText: "󰋊"
-              tooltipText: "Here"
+              iconText: "󰐕"
+              tooltipText: "New trip"
               foreground: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
               fontFamily: root.family
               fontSize: Style.space(17)
@@ -436,7 +441,7 @@ Ui.Panel {
               bordered: true
               radius: Style.space(4)
               borderSpec: Border.flat(Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.18), Style.space(1))
-              onClicked: root.openOverlay("here")
+              onClicked: root.openOverlay("newtrip")
             }
 
             Ui.PanelActionButton {

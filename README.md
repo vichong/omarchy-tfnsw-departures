@@ -4,8 +4,8 @@ A shell plugin that puts the next catchable Transport for NSW service or trip in
 the Omarchy bar. Everything counts down in **leave in** time: departure time
 minus your walk to the stop. The bar shows just the Transport mark; the popup
 shows the leave window closing. The popup shows departures, arrivals, travel time, platforms,
-realtime delays, cancellations and disruption alerts; the Here view plans a trip
-back to your active place.
+realtime delays, cancellations and disruption alerts. The New trip view starts
+with an address or stop, finds nearby stops, and plans to a saved or searched destination.
 
 The popup follows a station indicator-board layout: line-colour badges lead each
 destination, compact pills show realtime and change status, and expanded trips
@@ -17,7 +17,7 @@ with the countdown.
 | Bar | Departures popup |
 |:---:|:---:|
 | ![Transport NSW leave-in countdown in the Omarchy bar](docs/screenshots/bar.png) | ![Live departure board popup](docs/screenshots/popup.png) |
-| **Settings** | **From here** |
+| **Settings** | **New trip** |
 | ![Transport NSW plugin settings](docs/screenshots/settings.png) | ![Journey planner from the current location](docs/screenshots/here.png) |
 
 ## Install
@@ -137,9 +137,12 @@ omarchy-shell tfnsw next
 omarchy-shell tfnsw refresh
 omarchy-shell tfnsw place home
 omarchy-shell tfnsw open
+omarchy-shell tfnsw newtrip
 omarchy-shell tfnsw here
 omarchy-shell tfnsw settings
 ```
+
+`here` remains an alias for `newtrip` for existing scripts.
 
 ## Remove
 

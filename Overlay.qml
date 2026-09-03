@@ -16,7 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.2"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.0"
 
   property bool opened: false
   property string tab: "settings"
@@ -35,11 +35,18 @@ Item {
   property string destinationSearchText: ""
   property bool destinationSearchComplete: false
 
-  // Here-tab state.
-  property var hereResults: []
-  property string hereSearchText: ""
-  property var hereLocation: null
-  property var nearestStop: null
+  // New-trip state, revealed top-down as each choice becomes available.
+  property var newTripResults: []
+  property string newTripSearchText: ""
+  property var newTripLocation: null
+  property var nearbyStops: []
+  property var newTripOrigin: null
+  property var newTripDestination: null
+  property var newTripDestinationOptions: []
+  property bool otherDestinationOpen: false
+  property var otherDestinationResults: []
+  property string otherDestinationSearchText: ""
+  property string expandedJourneyId: ""
   property var lastJourneys: []
   property string placeName: ""
   property string placeStopId: ""
@@ -67,7 +74,7 @@ Item {
     try {
       var payload = payloadJson ? JSON.parse(payloadJson) : {
       }
-      tab = payload.tab === "here" ? "here" : "settings"
+      tab = payload.tab === "newtrip" || payload.tab === "here" ? "newtrip" : "settings"
     } catch (e) {
       tab = "settings"
     }
@@ -77,12 +84,12 @@ Item {
     if (service) {
       selectedPlaceId = service.activePlace ? service.activePlace.id : ""
       loadPlace(selectedPlaceId)
-      service.setHereOpen(tab === "here")
+      newTripDestinationOptions = Model.destinationOptions(service.effectivePlaces)
+      service.setNewTripOpen(tab === "newtrip")
     }
     Qt.callLater(function() {
       keyCatcher.forceActiveFocus()
-      // The Here tab exists to type into: hand the keyboard to its field.
-      if (root.tab === "here" && paneLoader.item && typeof paneLoader.item.focusField === "function")
+      if (root.tab === "newtrip" && paneLoader.item && typeof paneLoader.item.focusField === "function")
         paneLoader.item.focusField()
     })
   }
@@ -90,7 +97,7 @@ Item {
   function close() {
     opened = false
     if (service)
-      service.setHereOpen(false)
+      service.setNewTripOpen(false)
   }
 
   function dismiss() {
@@ -154,6 +161,31 @@ Item {
   function addPlaceDraft() {
     selectedPlaceId = ConfigStore.newPlaceId(service ? service.places : [])
     loadPlace("")
+  }
+
+  function prefillPlaceDraft(place) {
+    if (!service || !place)
+      return
+
+    selectedPlaceId = ConfigStore.newPlaceId(service.places)
+    loadPlace("")
+    placeName = place.name || "New trip"
+    placeStopId = String(place.stopId || "")
+    placeStopName = String(place.stopName || "")
+    placeDestStopId = String(place.destStopId || "")
+    placeDestStopName = String(place.destStopName || "")
+    placeLines = ""
+    placeDestination = ""
+    placeModes = []
+    placeWalk = Math.max(0, Math.round(Number(place.walkMinutes) || 0))
+    placeSsid = ""
+    selectedStop = {
+      "id": placeStopId,
+      "name": placeStopName,
+      "shortName": Model.displayStopName(placeStopName),
+      "isStop": true,
+      "modes": []
+    }
   }
 
   function cancelPlaceDraft() {
@@ -400,76 +432,177 @@ Item {
     })
   }
 
-  function searchHere(text) {
+  function searchNewTrip(text) {
     if (!service)
       return
 
     var query = String(text || "").trim()
-    hereSearchText = String(text || "")
+    newTripSearchText = String(text || "")
     var local = Model.matchStops(service.stops, query)
-    hereResults = local
-    nearestStop = firstSearchResult(local)
+    newTripResults = local
     if (query.length < 3) {
       service.searchStops("", function() {})
       return
     }
     service.searchStops(query, function(results) {
-      if (query !== String(root.hereSearchText || "").trim())
+      if (query !== String(root.newTripSearchText || "").trim())
         return
 
-      root.hereResults = root.mergedSearchResults(local, results, false, "")
-      root.nearestStop = null
-      for (var i = 0; i < root.hereResults.length; i++) if (root.hereResults[i].isStop) {
-        root.nearestStop = root.hereResults[i]
-        break
-      }
+      root.newTripResults = root.mergedSearchResults(local, results, false, "")
     })
   }
 
-  function pickHere(loc) {
+  function defaultNewTripDestination() {
+    if (!service || !service.activePlace)
+      return null
+
+    var place = service.activePlace
+    var wanted = place.destStopId || place.stopId
+    for (var i = 0; i < newTripDestinationOptions.length; i++)
+      if (String(newTripDestinationOptions[i].id) === String(wanted)) return newTripDestinationOptions[i]
+    return null
+  }
+
+  function pickNewTripLocation(loc) {
     if (service)
       service.searchStops("", function() {})
 
-    hereLocation = loc
-    hereSearchText = loc.name
-    hereResults = []
-    if (service)
-      service.planFrom(loc, function(journeys) {
-        root.lastJourneys = journeys
-      })
+    newTripLocation = loc
+    newTripSearchText = ""
+    newTripResults = []
+    nearbyStops = loc.isStop ? [] : Model.nearestStops(service.stops, loc.lat, loc.lon, 3, 1500)
+    newTripOrigin = loc.isStop ? loc : (nearbyStops.length ? nearbyStops[0] : null)
+    newTripDestinationOptions = Model.destinationOptions(service.effectivePlaces)
+    newTripDestination = defaultNewTripDestination()
+    otherDestinationOpen = false
+    otherDestinationResults = []
+    expandedJourneyId = ""
+    lastJourneys = []
+    planNewTrip()
   }
 
-  function saveHereAsPlace() {
-    if (!service || !nearestStop)
+  function clearNewTripLocation() {
+    newTripLocation = null
+    nearbyStops = []
+    newTripOrigin = null
+    newTripDestination = null
+    otherDestinationOpen = false
+    lastJourneys = []
+    expandedJourneyId = ""
+    if (service) {
+      service.journeyRows.clear()
+      service.journeyBoard = []
+    }
+    Qt.callLater(function() {
+      if (paneLoader.item && typeof paneLoader.item.focusField === "function") paneLoader.item.focusField()
+    })
+  }
+
+  function selectNearbyStop(stop) {
+    newTripOrigin = stop
+    planNewTrip()
+  }
+
+  function chooseNewTripDestination(value) {
+    if (value === "other") {
+      otherDestinationOpen = true
+      newTripDestination = null
+      lastJourneys = []
+      if (service) service.journeyRows.clear()
+      return
+    }
+    otherDestinationOpen = false
+    for (var i = 0; i < newTripDestinationOptions.length; i++) if (String(newTripDestinationOptions[i].id) === String(value)) {
+      newTripDestination = newTripDestinationOptions[i]
+      break
+    }
+    planNewTrip()
+  }
+
+  function searchOtherDestination(text) {
+    if (!service)
       return
 
-    var walk = 0
-    if (lastJourneys.length && lastJourneys[0].legs) {
-      for (var i = 0; i < lastJourneys[0].legs.length; i++) {
-        if (lastJourneys[0].legs[i].kind === "walk") {
-          walk = Math.max(0, Math.round(lastJourneys[0].legs[i].durationSec / 60))
-          break
-        }
-      }
-    }
-    var id = ConfigStore.newPlaceId(service.places)
-    var destination = service.activePlace && String(service.activePlace.stopId) !== String(nearestStop.id)
-      ? service.activePlace : null
-    service.addPlace({
-      "id": id,
-      "name": Model.displayStopName(nearestStop.name) || "New place",
-      "stopId": nearestStop.id,
-      "stopName": nearestStop.name,
-      "destStopId": destination ? destination.stopId : "",
-      "destStopName": destination ? destination.stopName : "",
-      "lines": [],
-      "destination": "",
-      "modes": nearestStop.modes || [],
-      "walkMinutes": walk,
-      "ssid": ""
+    var query = String(text || "").trim()
+    otherDestinationSearchText = String(text || "")
+    var local = Model.matchStops(service.stops, query).filter(function(x) {
+      return !root.newTripOrigin || String(x.id) !== String(root.newTripOrigin.id)
     })
-    selectedPlaceId = id
-    loadPlace(id)
+    otherDestinationResults = local
+    if (query.length < 3) {
+      service.searchStops("", function() {})
+      return
+    }
+    service.searchStops(query, function(results) {
+      if (query !== String(root.otherDestinationSearchText || "").trim())
+        return
+      root.otherDestinationResults = root.mergedSearchResults(local, results, true,
+        root.newTripOrigin ? root.newTripOrigin.id : "")
+    })
+  }
+
+  function pickOtherDestination(stop) {
+    if (service) service.searchStops("", function() {})
+    newTripDestination = stop
+    otherDestinationSearchText = ""
+    otherDestinationResults = []
+    otherDestinationOpen = false
+    planNewTrip()
+  }
+
+  function actualFirstStop(journeys) {
+    if (!service || !journeys.length || !journeys[0].legs)
+      return null
+    var name = ""
+    for (var i = 0; i < journeys[0].legs.length; i++) if (journeys[0].legs[i].kind === "ride") {
+      name = journeys[0].legs[i].from
+      break
+    }
+    var wanted = Model.boardStopName(name).toLowerCase()
+    for (var s = 0; s < service.stops.length; s++)
+      if (Model.boardStopName(service.stops[s].name).toLowerCase() === wanted)
+        return Model.nearestStops([service.stops[s]], service.stops[s].lat, service.stops[s].lon, 1, 1)[0]
+    return null
+  }
+
+  function planNewTrip() {
+    if (!service || !newTripLocation || !newTripOrigin || !newTripDestination)
+      return
+    expandedJourneyId = ""
+    service.planFrom(newTripLocation, newTripDestination, function(journeys) {
+      root.lastJourneys = journeys
+      var actual = root.actualFirstStop(journeys)
+      if (actual) {
+        root.newTripOrigin = actual
+        var present = false
+        for (var i = 0; i < root.nearbyStops.length; i++)
+          if (String(root.nearbyStops[i].id) === String(actual.id)) present = true
+        if (!present && !root.newTripLocation.isStop)
+          root.nearbyStops = [actual].concat(root.nearbyStops.slice(0, 2))
+      }
+    })
+  }
+
+  function newTripDraft() {
+    if (!service || !newTripLocation || !newTripOrigin || !newTripDestination)
+      return null
+    return Model.tempPlaceFrom(newTripLocation, newTripOrigin, newTripDestination, service.journeyWalkMinutes)
+  }
+
+  function useNewTripNow() {
+    var place = newTripDraft()
+    if (!place || !lastJourneys.length)
+      return
+    service.tempPlace = place
+    service.setActivePlace("temp", true)
+    dismiss()
+  }
+
+  function saveNewTrip() {
+    var place = newTripDraft()
+    if (!place || !lastJourneys.length)
+      return
+    prefillPlaceDraft(place)
     tab = "settings"
   }
 
@@ -488,7 +621,7 @@ Item {
 
   onTabChanged: {
     if (service && opened) {
-      service.setHereOpen(tab === "here")
+      service.setNewTripOpen(tab === "newtrip")
     }
   }
 
@@ -578,14 +711,28 @@ Item {
               colorful: true
             }
 
-            Text {
+            Column {
               anchors.verticalCenter: parent.verticalCenter
-              textFormat: Text.PlainText
-              text: root.tab === "here" ? "From here" : "Transport NSW settings"
-              color: root.foreground
-              font.family: root.family
-              font.pixelSize: Style.font.title
-              font.weight: Font.DemiBold
+              spacing: Style.space(3)
+
+              Text {
+                textFormat: Text.PlainText
+                text: root.tab === "newtrip" ? "New trip" : "Transport NSW for Omarchy"
+                color: root.foreground
+                font.family: root.family
+                font.pixelSize: Style.font.title
+                font.weight: Font.DemiBold
+              }
+
+              // Community plugin: say so where the brand name is largest.
+              Text {
+                visible: root.tab !== "newtrip"
+                textFormat: Text.PlainText
+                text: "Community plugin · not affiliated with Transport for NSW"
+                color: root.muted
+                font.family: root.family
+                font.pixelSize: Style.space(9)
+              }
             }
           }
 
@@ -603,8 +750,8 @@ Item {
               "value": "settings",
               "label": "Settings"
             }, {
-              "value": "here",
-              "label": "Here"
+              "value": "newtrip",
+              "label": "New trip"
             }]
             value: root.tab
             onChanged: function(value) {
@@ -659,7 +806,7 @@ Item {
         Loader {
           id: paneLoader
 
-          sourceComponent: root.tab === "here" ? herePane : settingsPane
+          sourceComponent: root.tab === "newtrip" ? newTripPane : settingsPane
 
           anchors {
             top: quotaCaption.visible ? quotaCaption.bottom : rule.bottom
@@ -685,78 +832,54 @@ Item {
   }
 
   Component {
-    id: herePane
+    id: newTripPane
 
     Flickable {
-      function focusField() { hereField.forceActiveFocus() }
+      function focusField() {
+        if (!root.newTripLocation) whereField.forceActiveFocus()
+      }
 
       clip: true
       contentWidth: width
-      contentHeight: hereColumn.height
+      contentHeight: newTripColumn.height
       boundsBehavior: Flickable.StopAtBounds
 
       Column {
-        id: hereColumn
+        id: newTripColumn
 
         width: parent.width
-        spacing: Style.spacing.xxl
-
-        Caption {
-          width: parent.width
-          text: "Plan to " + (root.service && root.service.activePlace ? root.service.activePlace.stopName : "your active place") + "."
-        }
-
-        Dropdown {
-          visible: root.service && root.service.effectivePlaces.length > 1
-          width: parent.width
-          label: "Plan to"
-          foreground: root.foreground
-          fontFamily: root.family
-          options: root.service ? root.service.effectivePlaces.map(function(p) {
-            return {
-              "value": p.id,
-              "label": Model.placeLabel(p),
-              "tooltip": Model.placeTooltip(p)
-            }
-          }) : []
-          value: root.service && root.service.activePlace ? root.service.activePlace.id : ""
-          onChanged: function(value) {
-            root.service.setActivePlace(value, true)
-          }
-        }
+        spacing: Style.space(14)
 
         Column {
           width: parent.width
-          spacing: Style.spacing.sm
+          spacing: Style.space(5)
 
           FieldLabel {
             text: "Where are you?"
           }
 
-          TextField {
-            id: hereField
+          NewTripField {
+            id: whereField
 
+            visible: root.newTripLocation === null
             width: parent.width
-            height: root.controlHeight
-            verticalAlignment: TextInput.AlignVCenter
-            text: root.hereSearchText
+            text: root.newTripSearchText
             placeholderText: "Address, landmark or stop…"
-            foreground: root.foreground
-            onTextEdited: root.searchHere(text)
+            onTextEdited: root.searchNewTrip(text)
             onAccepted: {
-              var first = root.firstSearchResult(root.hereResults)
+              var first = root.firstSearchResult(root.newTripResults)
               if (first)
-                root.pickHere(first)
+                root.pickNewTripLocation(first)
             }
           }
 
           Repeater {
-            model: root.hereResults
+            model: root.newTripLocation === null ? root.newTripResults : []
 
             delegate: Item {
               required property var modelData
 
-              width: hereColumn.width
+              width: newTripColumn.width
               implicitHeight: modelData.isDivider ? moreLabel.implicitHeight : resultButton.implicitHeight
 
               Text {
@@ -772,18 +895,250 @@ Item {
                 font.pixelSize: Style.font.caption
               }
 
-              Button {
+              NewTripButton {
                 id: resultButton
 
                 width: parent.width
                 visible: modelData.isDivider !== true
                 leftAlign: true
-                bordered: true
                 text: root.searchResultText(modelData)
-                foreground: root.foreground
-                fontFamily: root.family
-                onClicked: root.pickHere(modelData)
+                onClicked: root.pickNewTripLocation(modelData)
               }
+            }
+          }
+
+          NewTripButton {
+            visible: root.newTripLocation !== null
+            width: parent.width
+            leftAlign: true
+            selected: true
+            text: root.newTripLocation ? root.newTripLocation.name + "   ×" : ""
+            onClicked: root.clearNewTripLocation()
+          }
+        }
+
+        Column {
+          width: parent.width
+          visible: root.newTripLocation !== null && root.newTripLocation && !root.newTripLocation.isStop
+          spacing: Style.space(6)
+
+          FieldLabel {
+            text: "Nearest stops"
+          }
+
+          Flow {
+            width: parent.width
+            spacing: Style.space(6)
+
+            Repeater {
+              model: root.nearbyStops
+
+              delegate: NewTripButton {
+                required property var modelData
+
+                selected: root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
+                text: modelData.name + " · " + (selected && root.service && root.service.journeyRows.count > 0
+                  ? root.service.journeyWalkMinutes : modelData.walkMinutes) + " min walk"
+                onClicked: root.selectNearbyStop(modelData)
+              }
+            }
+          }
+
+          Caption {
+            visible: root.nearbyStops.length === 0
+            text: "No bundled rail, light rail or ferry stop within 1.5 km."
+          }
+        }
+
+        Column {
+          width: parent.width
+          visible: root.newTripOrigin !== null
+          spacing: Style.space(6)
+
+          FieldLabel {
+            text: "Going to"
+          }
+
+          Dropdown {
+            width: parent.width
+            showLabel: false
+            foreground: root.foreground
+            fontFamily: root.family
+            options: {
+              var out = root.newTripDestinationOptions.map(function(stop) {
+                return { "value": stop.id, "label": stop.label }
+              })
+              var found = false
+              for (var i = 0; i < out.length; i++) if (root.newTripDestination
+                  && String(out[i].value) === String(root.newTripDestination.id)) found = true
+              if (root.newTripDestination && !found)
+                out.push({ "value": root.newTripDestination.id, "label": root.newTripDestination.name + " · New trip" })
+              out.push({ "value": "other", "label": "Other stop…" })
+              return out
+            }
+            value: root.otherDestinationOpen ? "other" : (root.newTripDestination ? root.newTripDestination.id : "")
+            onChanged: function(value) { root.chooseNewTripDestination(value) }
+          }
+
+          NewTripField {
+            visible: root.otherDestinationOpen
+            width: parent.width
+            text: root.otherDestinationSearchText
+            placeholderText: "Search stations and stops…"
+            onTextEdited: root.searchOtherDestination(text)
+            onAccepted: {
+              var first = root.firstSearchResult(root.otherDestinationResults)
+              if (first) root.pickOtherDestination(first)
+            }
+          }
+
+          Repeater {
+            model: root.otherDestinationOpen ? root.otherDestinationResults : []
+
+            delegate: Item {
+              required property var modelData
+
+              width: newTripColumn.width
+              implicitHeight: modelData.isDivider ? otherMore.implicitHeight : otherResult.implicitHeight
+
+              Text {
+                id: otherMore
+
+                visible: modelData.isDivider === true
+                textFormat: Text.PlainText
+                text: "More"
+                color: root.muted
+                font.family: root.family
+                font.pixelSize: Style.font.caption
+              }
+
+              NewTripButton {
+                id: otherResult
+
+                width: parent.width
+                visible: modelData.isDivider !== true
+                leftAlign: true
+                text: root.searchResultText(modelData)
+                onClicked: root.pickOtherDestination(modelData)
+              }
+            }
+          }
+        }
+
+        Column {
+          id: newTripBoard
+
+          readonly property var firstRow: root.service && root.service.journeyRows.count > 0
+            ? root.service.journeyRows.get(0) : null
+
+          width: parent.width
+          visible: firstRow !== null
+          spacing: Style.space(0)
+
+          BorderSurface {
+            width: parent.width
+            implicitHeight: newTripLeaveCopy.implicitHeight + Style.space(25)
+            color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.03)
+            borderSpec: root.borderSpec
+            radius: Style.space(6)
+
+            Row {
+              id: newTripLeaveCopy
+
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.leftMargin: Style.space(12)
+              anchors.rightMargin: Style.space(12)
+              anchors.topMargin: Style.space(9)
+              spacing: Style.space(9)
+
+              Text {
+                textFormat: Text.PlainText
+                text: "󰖃"
+                color: root.foreground
+                font.family: root.family
+                font.pixelSize: Style.space(15)
+              }
+
+              Column {
+                width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
+                spacing: Style.space(2)
+
+                Text {
+                  textFormat: Text.PlainText
+                  text: Model.leaveHeading(newTripBoard.firstRow ? newTripBoard.firstRow.leaveMs : 0)
+                  color: root.foreground
+                  font.family: root.family
+                  font.pixelSize: Style.space(15)
+                  font.weight: Font.Bold
+                }
+
+                Text {
+                  textFormat: Text.PlainText
+                  text: root.service.journeyWalkMinutes + " min walk · "
+                    + (newTripBoard.firstRow ? newTripBoard.firstRow.line + " to " + newTripBoard.firstRow.headsign : "")
+                  color: root.muted
+                  font.family: root.family
+                  font.pixelSize: Style.font.caption
+                }
+              }
+            }
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              anchors.leftMargin: Style.space(12)
+              anchors.rightMargin: Style.space(12)
+              anchors.bottomMargin: Style.space(9)
+              height: Style.space(3)
+              radius: Style.space(2)
+              color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.12)
+
+              Rectangle {
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: Math.round(parent.width * Model.underlineFraction(newTripBoard.firstRow ? newTripBoard.firstRow.leaveMs : -1))
+                radius: parent.radius
+                color: Api.lineColor(newTripBoard.firstRow ? newTripBoard.firstRow.line : "",
+                  newTripBoard.firstRow ? newTripBoard.firstRow.mode : "other")
+              }
+            }
+          }
+
+          Repeater {
+            model: root.service ? root.service.journeyRows : null
+
+            delegate: DepartureRow {
+              width: newTripColumn.width
+              first: index === 0
+              expanded: root.expandedJourneyId === model.depId
+              depId: model.depId
+              legs: root.service ? root.service.journeyLegsFor(model.depId) : []
+              mode: model.mode
+              line: model.line
+              destination: model.destination
+              headsign: model.headsign
+              platform: model.platform
+              timeText: model.timeText
+              plannedText: model.plannedText
+              arriveText: model.arriveText
+              travelText: model.travelText
+              changesText: model.changesText
+              legsSummary: model.legsSummary
+              leaveText: model.leaveText
+              leaveMs: model.leaveMs
+              walkMinutes: root.service ? root.service.journeyWalkMinutes : 0
+              realtime: model.realtime
+              cancelled: model.cancelled
+              dominated: model.dominated
+              missed: model.missed
+              delayMin: model.delayMin
+              status: model.status
+              alertTitle: model.alertTitle
+              onExpandToggled: root.expandedJourneyId = root.expandedJourneyId === depId ? "" : depId
             }
           }
         }
@@ -795,77 +1150,105 @@ Item {
           color: Color.urgent
         }
 
-        Repeater {
-          model: root.service ? root.service.journeyRows : null
+        Row {
+          width: parent.width
+          visible: root.lastJourneys.length > 0
+          spacing: Style.space(8)
 
-          delegate: CursorSurface {
-            width: hereColumn.width
-            foreground: root.foreground
-            implicitHeight: journeyLayout.implicitHeight + Style.spacing.xl
-
-            Column {
-              id: journeyLayout
-
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.verticalCenter: parent.verticalCenter
-              anchors.margins: Style.spacing.lg
-              spacing: Style.spacing.xs
-
-              Row {
-                width: parent.width
-
-                ModeBadge {
-                  size: Style.font.icon
-                  mode: model.mode
-                  colorful: true
-                }
-
-                Text {
-                  anchors.verticalCenter: parent.verticalCenter
-                  textFormat: Text.PlainText
-                  text: "  Leave " + model.leaveText + " · " + model.departText + " → " + model.arriveText
-                  color: root.foreground
-                  font.family: root.family
-                  font.pixelSize: Style.font.body
-                  font.bold: true
-                }
-              }
-
-              Text {
-                width: parent.width
-                textFormat: Text.PlainText
-                text: model.summary
-                elide: Text.ElideRight
-                color: root.muted
-                font.family: root.family
-                font.pixelSize: Style.font.caption
-              }
-
-              Text {
-                textFormat: Text.PlainText
-                text: model.changes + (model.changes === 1 ? " change" : " changes") + (model.realtime ? " · realtime" : " · scheduled") + (model.alertTitle ? " · " + model.alertTitle : "")
-                color: model.alertTitle ? Color.urgent : root.muted
-                font.family: root.family
-                font.pixelSize: Style.font.caption
-              }
-            }
+          Item {
+            width: Math.max(0, parent.width - useNowButton.width - saveTripButton.width - parent.spacing * 2)
+            height: Style.space(1)
           }
-        }
 
-        Button {
-          visible: root.nearestStop !== null && root.lastJourneys.length > 0
-          bordered: true
-          text: "Save as place"
-          foreground: root.foreground
-          fontFamily: root.family
-          onClicked: root.saveHereAsPlace()
+          NewTripButton {
+            id: saveTripButton
+
+            text: "Save as trip"
+            onClicked: root.saveNewTrip()
+          }
+
+          NewTripButton {
+            id: useNowButton
+
+            primary: true
+            text: "Use now"
+            onClicked: root.useNewTripNow()
+          }
         }
       }
 
       ScrollBar.vertical: ScrollBar {
         policy: ScrollBar.AsNeeded
       }
+    }
+  }
+
+  component NewTripButton: BorderSurface {
+    id: newTripButton
+
+    property string text: ""
+    property bool selected: false
+    property bool primary: false
+    property bool leftAlign: false
+    signal clicked()
+
+    radius: Style.space(4)
+    implicitWidth: newTripButtonLabel.implicitWidth + Style.space(20)
+    implicitHeight: newTripButtonLabel.implicitHeight + Style.space(12)
+    color: primary ? Color.accent
+      : selected ? Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.14)
+      : newTripButtonHover.hovered ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.06)
+      : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0)
+    borderSpec: Border.flat(selected ? Color.accent
+      : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18), Style.space(1))
+
+    Text {
+      id: newTripButtonLabel
+
+      anchors.left: newTripButton.leftAlign ? parent.left : undefined
+      anchors.leftMargin: newTripButton.leftAlign ? Style.space(10) : 0
+      anchors.horizontalCenter: newTripButton.leftAlign ? undefined : parent.horizontalCenter
+      anchors.verticalCenter: parent.verticalCenter
+      width: Math.min(implicitWidth, Math.max(0, parent.width - Style.space(20)))
+      textFormat: Text.PlainText
+      text: newTripButton.text
+      color: newTripButton.primary ? Color.background : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.85)
+      font.family: root.family
+      font.pixelSize: Style.font.caption
+      font.weight: newTripButton.primary ? Font.DemiBold : Font.Medium
+      elide: Text.ElideRight
+    }
+
+    HoverHandler {
+      id: newTripButtonHover
+
+      cursorShape: Qt.PointingHandCursor
+    }
+
+    TapHandler {
+      onTapped: newTripButton.clicked()
+    }
+  }
+
+  component NewTripField: TextField {
+    id: newTripField
+
+    height: root.controlHeight
+    verticalAlignment: TextInput.AlignVCenter
+    foreground: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.85)
+    font.family: root.family
+    font.pixelSize: Style.font.bodySmall
+    font.weight: text === "" ? Font.Light : Font.Normal
+    placeholderTextColor: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.25)
+    leftPadding: Style.space(10)
+    rightPadding: Style.space(10)
+    topPadding: Style.space(0)
+    bottomPadding: Style.space(0)
+    background: BorderSurface {
+      color: Qt.darker(Color.background, 1.1)
+      borderSpec: Border.flat(newTripField.activeFocus ? Color.accent
+        : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.20), Style.space(1))
+      radius: Style.space(4)
     }
   }
 

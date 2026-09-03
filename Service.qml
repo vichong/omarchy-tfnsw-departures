@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.2"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.0"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -29,11 +29,14 @@ QtObject {
   property bool demoMode: false
   property var places: []
   property string activePlaceId: ""
+  property string savedActivePlaceId: ""
+  property var tempPlace: null
   property bool autoPlace: true
   property int pollSeconds: ConfigStore.POLL_DEFAULT
   property bool notify: true
   property bool colorful: false
-  readonly property var effectivePlaces: demoMode && places.length === 0 ? [Demo.defaultPlace()] : places
+  readonly property var savedEffectivePlaces: demoMode && places.length === 0 ? [Demo.defaultPlace()] : places
+  readonly property var effectivePlaces: tempPlace ? [tempPlace].concat(savedEffectivePlaces) : savedEffectivePlaces
   readonly property var activePlace: {
     var list = effectivePlaces
     for (var i = 0; i < list.length; i++) if (String(list[i].id) === activePlaceId) {
@@ -347,25 +350,28 @@ QtObject {
     }
   }
 
-  // Here journeys refresh only while the overlay tab is visible.
+  // New-trip journeys refresh only while the overlay tab is visible.
   property ListModel journeyRows
 
   journeyRows: ListModel {
   }
 
   property var journeyRequest: null
+  property var journeyBoard: []
+  property int journeyWalkMinutes: 0
   property string journeyError: ""
-  property var lastHereLocation: null
-  property bool hereOpen: false
-  property Timer hereTimer
+  property var lastNewTripLocation: null
+  property var lastNewTripDestination: null
+  property bool newTripOpen: false
+  property Timer newTripTimer
 
-  hereTimer: Timer {
+  newTripTimer: Timer {
     interval: 60000
     repeat: true
-    running: root.hereOpen && root.connected
+    running: root.newTripOpen && root.connected
     onTriggered: {
-      if (root.lastHereLocation) {
-        root.planFrom(root.lastHereLocation, null)
+      if (root.lastNewTripLocation && root.lastNewTripDestination) {
+        root.planFrom(root.lastNewTripLocation, root.lastNewTripDestination, null)
       }
     }
   }
@@ -459,7 +465,7 @@ QtObject {
     return {
       "demoMode": demoMode,
       "places": places.slice(),
-      "activePlaceId": activePlaceId,
+      "activePlaceId": activePlaceId === "temp" ? savedActivePlaceId : activePlaceId,
       "autoPlace": autoPlace,
       "pollSeconds": pollSeconds,
       "notify": notify,
@@ -476,6 +482,7 @@ QtObject {
 
   function applyConfig(text) {
     var parsed = ConfigStore.parse(text), c = parsed.config
+    var keepTempActive = activePlaceId === "temp" && tempPlace !== null
     var connectionChanged = !configLoaded || demoMode !== c.demoMode
     var boardChanged = JSON.stringify(places) !== JSON.stringify(c.places) || activePlaceId !== c.activePlaceId
     var previousStopId = activePlace ? activePlace.stopId : ""
@@ -487,7 +494,8 @@ QtObject {
       quotaBackoffTimer.stop()
     }
     places = c.places
-    activePlaceId = c.activePlaceId
+    savedActivePlaceId = c.activePlaceId
+    activePlaceId = keepTempActive ? "temp" : c.activePlaceId
     autoPlace = c.autoPlace
     pollSeconds = c.pollSeconds
     notify = c.notify
@@ -534,11 +542,31 @@ QtObject {
     for (var i = 0; i < effectivePlaces.length; i++) if (effectivePlaces[i].id === wanted) {
       found = true
     }
-    if (!found || wanted === activePlaceId)
+    if (!found)
       return false
 
     if (manual !== false)
       lastManualPlaceAt = Date.now()
+
+    if (wanted === "temp") {
+      if (!tempPlace)
+        return false
+
+      if (activePlaceId === "temp")
+        return true
+
+      activePlaceId = "temp"
+      departures = []
+      resetBoard()
+      if (connected)
+        poll()
+      return true
+    }
+
+    var discardedTemp = tempPlace !== null
+    tempPlace = null
+    if (wanted === activePlaceId && !discardedTemp)
+      return false
 
     saveConfig({
       "activePlaceId": wanted
@@ -910,18 +938,29 @@ QtObject {
     searchDebounce.restart()
   }
 
-  function planFrom(location, callback) {
-    if (!connected || !activePlace || !location || quotaBlocked()) {
+  function planFrom(location, destination, callback) {
+    if (!location || !destination || !Api.isStopId(destination.id)) {
       if (callback)
         callback([])
 
       return
     }
-    lastHereLocation = location
+    lastNewTripLocation = location
+    lastNewTripDestination = destination
     journeyError = ""
+    journeyBoard = []
+    journeyWalkMinutes = 0
     journeyRows.clear()
     if (journeyRequest && typeof journeyRequest.abort === "function")
       journeyRequest.abort()
+
+    journeyRequest = null
+    if (!connected || quotaBlocked()) {
+      if (callback)
+        callback([])
+
+      return
+    }
 
     var origin = location.isStop ? location.id : {
       "lat": location.lat,
@@ -938,7 +977,29 @@ QtObject {
         return
       }
       var list = result.data.slice(0, Api.MAX_JOURNEYS)
-      for (var i = 0; i < list.length; i++) journeyRows.append(Model.projectJourney(list[i], Date.now()))
+      if (list.length && list[0].legs && list[0].legs.length && list[0].legs[0].kind === "walk")
+        journeyWalkMinutes = Math.max(0, Math.round(Number(list[0].legs[0].durationSec || 0) / 60))
+      var firstRide = null
+      if (list.length && list[0].legs) for (var l = 0; l < list[0].legs.length; l++) if (list[0].legs[l].kind === "ride") {
+        firstRide = list[0].legs[l]
+        break
+      }
+      var boardPlace = {
+        "id": "newtrip",
+        "name": String(location.name || "New trip").split(",")[0],
+        "stopId": location.isStop ? String(location.id || "") : "",
+        "stopName": firstRide ? firstRide.from : String(location.name || ""),
+        "destStopId": String(destination.id),
+        "destStopName": String(destination.name || destination.shortName || ""),
+        "lines": [],
+        "destination": "",
+        "modes": [],
+        "walkMinutes": 0,
+        "ssid": ""
+      }
+      journeyBoard = Model.markDominated(Model.boardFromJourneys(list, boardPlace, Date.now()))
+      var projected = Model.buildRows(journeyBoard, boardPlace, Date.now())
+      for (var i = 0; i < projected.length && i < Model.MAX_ROWS; i++) journeyRows.append(projected[i])
       if (callback)
         callback(list)
     }
@@ -946,7 +1007,7 @@ QtObject {
     if (demoMode)
       demoBackend.plan(complete)
     else
-      journeyRequest = liveBackend.request(Api.tripPath(origin, activePlace.stopId, 4), function(response) {
+      journeyRequest = liveBackend.request(Api.tripPath(origin, destination.id, 4), function(response) {
         if (response.ok)
           response.data = Api.parseJourneys(response.data)
 
@@ -954,10 +1015,18 @@ QtObject {
       })
   }
 
-  function setHereOpen(value) {
-    hereOpen = value === true
-    if (hereOpen && lastHereLocation)
-      planFrom(lastHereLocation, null)
+  function journeyLegsFor(depId) {
+    var wanted = String(depId || "")
+    for (var i = 0; i < journeyBoard.length; i++) if (String(journeyBoard[i].id) === wanted)
+      return Model.legRows(journeyBoard[i])
+
+    return []
+  }
+
+  function setNewTripOpen(value) {
+    newTripOpen = value === true
+    if (newTripOpen && lastNewTripLocation && lastNewTripDestination)
+      planFrom(lastNewTripLocation, lastNewTripDestination, null)
   }
 
   function writeCache() {

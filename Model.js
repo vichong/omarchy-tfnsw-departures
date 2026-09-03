@@ -76,6 +76,100 @@ function matchStops(list, text, limit) {
   return out
 }
 
+// Nearby bundled stops for an address pick. Distance is the great-circle
+// distance so the result is deterministic without a map or routing service.
+function nearestStops(list, lat, lon, limit, maxMetres) {
+  if (!Array.isArray(list) || typeof lat !== "number" || typeof lon !== "number"
+      || !isFinite(lat) || !isFinite(lon)) return []
+  var maximum = isFinite(limit) ? Math.max(0, Math.floor(Number(limit))) : 3
+  var radius = isFinite(maxMetres) ? Math.max(0, Number(maxMetres)) : 1500
+  var earth = 6371000
+  var originLat = Number(lat) * Math.PI / 180
+  var originLon = Number(lon) * Math.PI / 180
+  var ranked = []
+  for (var i = 0; i < list.length; i++) {
+    var stop = list[i]
+    if (!stop || typeof stop !== "object" || typeof stop.id !== "string" || !Api.isStopId(stop.id)
+        || typeof stop.name !== "string" || typeof stop.lat !== "number" || typeof stop.lon !== "number"
+        || !isFinite(stop.lat) || !isFinite(stop.lon)) continue
+    var stopLat = Number(stop.lat) * Math.PI / 180
+    var stopLon = Number(stop.lon) * Math.PI / 180
+    var dLat = stopLat - originLat
+    var dLon = stopLon - originLon
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+      + Math.cos(originLat) * Math.cos(stopLat) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+    var metres = earth * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)))
+    if (metres > radius) continue
+    ranked.push({ stop: stop, metres: metres })
+  }
+  ranked.sort(function(a, b) {
+    return a.metres - b.metres || a.stop.name.localeCompare(b.stop.name) || a.stop.id.localeCompare(b.stop.id)
+  })
+  var out = []
+  for (var r = 0; r < ranked.length && out.length < maximum; r++) {
+    var item = ranked[r].stop
+    out.push({
+      id: item.id,
+      name: item.name,
+      shortName: displayStopName(item.name),
+      isStop: true,
+      modes: listCopy(item.modes),
+      type: "stop",
+      lat: Number(item.lat),
+      lon: Number(item.lon),
+      distanceMetres: Math.round(ranked[r].metres),
+      walkMinutes: Math.max(0, Math.round(ranked[r].metres / 80))
+    })
+  }
+  return out
+}
+
+// Saved origin and destination stops become a compact destination chooser.
+// The first place mentioning a stop supplies its contextual label.
+function destinationOptions(places) {
+  var list = Array.isArray(places) ? places : []
+  var seen = {}
+  var out = []
+  function add(id, name, place) {
+    var stopId = String(id || "")
+    var stopName = String(name || "").trim()
+    if (!Api.isStopId(stopId) || !stopName || seen[stopId]) return
+    seen[stopId] = true
+    out.push({
+      id: stopId,
+      name: stopName,
+      shortName: displayStopName(stopName),
+      isStop: true,
+      modes: [],
+      type: "stop",
+      label: stopName + " · " + String(place.name || "Trip")
+    })
+  }
+  for (var i = 0; i < list.length; i++) {
+    var place = list[i]
+    if (!place || typeof place !== "object") continue
+    add(place.stopId, place.stopName, place)
+    add(place.destStopId, place.destStopName, place)
+  }
+  return out
+}
+
+function tempPlaceFrom(location, firstStop, destStop, walkMinutes) {
+  if (!location || !firstStop || !destStop) return null
+  var name = String(location.name || location.shortName || "New trip").split(",")[0].trim() || "New trip"
+  return {
+    id: "temp",
+    name: name,
+    stopId: String(firstStop.id || ""),
+    stopName: String(firstStop.name || firstStop.shortName || ""),
+    destStopId: String(destStop.id || ""),
+    destStopName: String(destStop.name || destStop.shortName || ""),
+    walkMinutes: Math.max(0, Math.round(Number(walkMinutes) || 0)),
+    lines: [],
+    modes: []
+  }
+}
+
 function boardStopName(name) {
   return String(name || "")
     .replace(/\s+(Station|Wharf|Light Rail|Interchange)\b.*$/i, "")
@@ -298,6 +392,9 @@ function placeLabel(place) {
 // says which place it is. "Surry Hills → Chatswood" / "From Sydenham".
 function routeLabel(place) {
   if (!place) return ""
+  if (String(place.id || "") === "temp")
+    return "New trip · " + String(place.name || "New trip") + (hasDestination(place)
+      ? " → " + (boardStopName(place.destStopName) || "destination") : "")
   var from = boardStopName(place.stopName) || place.name
   if (!hasDestination(place)) return "From " + from
   return from + " → " + (boardStopName(place.destStopName) || "destination")
@@ -556,7 +653,7 @@ function notificationFor(board, place, nowMs, sent) {
   }
 }
 
-// Journey rows for "Here" mode: leave time = the walking leg's start.
+// Legacy compact journey projection retained for fixture and demo coverage.
 function projectJourney(journey, nowMs) {
   var legs = journey.legs || []
   var rides = []

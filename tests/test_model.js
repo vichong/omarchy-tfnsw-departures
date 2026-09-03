@@ -25,6 +25,18 @@ equal(Model.matchStops(searchableStops, "chat", 1)[0], {
   id: "1", name: "Chatswood Station", shortName: "Chatswood", isStop: true,
   modes: ["metro", "train"], type: "stop", lat: null, lon: null
 }, "local stop results match the picker result shape")
+
+const nearby = Model.nearestStops([
+  { id: "10", name: "Near Station", modes: ["train"], lat: -33.8680, lon: 151.2070 },
+  { id: "11", name: "Next Light Rail", modes: ["lightrail"], lat: -33.8700, lon: 151.2070 },
+  { id: "13", name: "Third Wharf", modes: ["ferry"], lat: -33.8720, lon: 151.2070 },
+  { id: "14", name: "Fourth Station", modes: ["train"], lat: -33.8740, lon: 151.2070 },
+  { id: "12", name: "Far Station", modes: ["train"], lat: -33.9000, lon: 151.2070 }
+], -33.8680, 151.2070, 3, 1500)
+equal(nearby.map(x => x.id), ["10", "11", "13"], "nearest stops are distance-ranked and limited")
+equal(nearby.map(x => x.walkMinutes), [0, 3, 6], "nearest stops estimate walking at 80 metres per minute")
+equal(Model.nearestStops([{ id: "12", name: "Far Station", modes: ["train"], lat: -33.9000, lon: 151.2070 }], -33.8680, 151.2070, 3, 1500), [], "nearest stops enforce the maximum radius")
+equal(Model.nearestStops(searchableStops, null, 151.2), [], "nearest stops require coordinates")
 equal([
   Model.displayStopName("Chatswood Station"),
   Model.displayStopName("Surry Hills Light Rail"),
@@ -141,6 +153,12 @@ assert(changeNotification && / · change at Central$/.test(changeNotification.bo
 equal(Model.placeLabel(home), "From Home", "place without destination reads as an origin")
 equal(Model.routeLabel(home), "From Sydenham", "route label names the stop, not the place")
 equal(Model.routeLabel(commute), "Surry Hills → Chatswood", "route label shows both stops short")
+const destinationChoices = Model.destinationOptions([home, tripPlace, commute])
+equal(destinationChoices.map(x => x.id), ["204420", "200080", "201029", "206710"], "destination stops derive from every saved endpoint and deduplicate")
+equal(destinationChoices[1].label, "Wynyard Station · Home", "destination choices include place context")
+const tempPlace = Model.tempPlaceFrom({ name: "123 George St, Sydney" }, { id: "201029", name: "Surry Hills Light Rail" }, { id: "206710", name: "Chatswood Station" }, 5.6)
+equal(tempPlace, { id: "temp", name: "123 George St", stopId: "201029", stopName: "Surry Hills Light Rail", destStopId: "206710", destStopName: "Chatswood Station", walkMinutes: 6, lines: [], modes: [] }, "temporary place has the unsaved trip shape")
+equal(Model.routeLabel(tempPlace), "New trip · 123 George St → Chatswood", "temporary place is identified in the popup selector")
 equal(Model.placeLabel(tripPlace), "Home → Wynyard", "trip label shows the destination's short name")
 equal(Model.placeTooltip(commute), "Surry Hills Light Rail → Chatswood Station · 3 min walk", "place tooltip shows full stops and walk allocation")
 equal(Model.placeTooltip(Object.assign({}, home, { walkMinutes: 0 })), "Sydenham Station", "zero walk is omitted from the place tooltip")

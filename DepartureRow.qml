@@ -409,6 +409,80 @@ CursorSurface {
 
       width: parent.width
 
+      Item {
+        width: parent.width
+        visible: root.legs && root.legs.length > 0
+        implicitHeight: visible ? Style.space(31) : 0
+        clip: true
+
+        Row {
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.verticalCenter: parent.verticalCenter
+          anchors.leftMargin: Style.space(11)
+          anchors.rightMargin: Style.space(11)
+          spacing: Style.space(8)
+
+          Repeater {
+            model: root.legs
+
+            delegate: Row {
+              required property var modelData
+
+              spacing: Style.space(5)
+
+              Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: modelData.kind === "change"
+                width: Style.space(5)
+                height: width
+                radius: width / 2
+                color: root.muted
+              }
+
+              Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: modelData.kind === "walk"
+                textFormat: Text.PlainText
+                text: "󰖃  " + modelData.minutes + " min"
+                color: root.muted
+                font.family: root.family
+                font.pixelSize: Style.font.caption
+              }
+
+              LineBadge {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: modelData.kind === "ride"
+                line: modelData.line
+                mode: modelData.mode
+                family: root.family
+                size: Style.space(17)
+                minimumWidth: Style.space(21)
+                fontSize: Style.space(9)
+              }
+
+              Text {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: modelData.kind === "ride"
+                textFormat: Text.PlainText
+                text: root.shortStopName(modelData.from) + " → " + root.shortStopName(modelData.to)
+                color: root.muted
+                font.family: root.family
+                font.pixelSize: Style.font.caption
+              }
+            }
+          }
+        }
+
+        Rectangle {
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          height: Style.space(1)
+          color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
+        }
+      }
+
       Repeater {
         model: root.expanded ? root.legs : []
 

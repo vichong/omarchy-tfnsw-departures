@@ -14,7 +14,7 @@ Ui.Panel {
   readonly property var service: bar && bar.shell ? bar.shell.serviceFor(moduleName) : null
   readonly property bool ready: service !== null
   readonly property bool connected: ready && service.phase === "connected"
-  readonly property color fg: bar ? bar.foreground : Color.foreground
+  readonly property color fg: Color.foreground
   readonly property color barFg: bar ? bar.barForeground : Color.foreground
   readonly property string family: bar ? bar.fontFamily : Style.font.family
   // Per-instance layout setting in shell.json; the bar is icon-only by default.
@@ -211,6 +211,8 @@ Ui.Panel {
     bar: root.bar
     open: root.opened
     focusTarget: keyCatcher
+    padding: Style.space(0)
+    borderSpec: Border.flat(Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.40), Style.space(1))
     contentWidth: panel.fittedContentWidth(Style.space(460))
     contentHeight: panel.fittedContentHeight(column.implicitHeight)
 
@@ -239,20 +241,23 @@ Ui.Panel {
         id: column
 
         anchors.fill: parent
-        spacing: Style.spacing.panelGap
+        spacing: Style.space(0)
 
         Item {
           id: hero
 
           width: parent.width
-          implicitHeight: Math.max(heroMark.height, heroLabels.implicitHeight, heroActions.implicitHeight)
+          implicitHeight: Style.space(14) + Math.max(Style.space(36), heroLabels.implicitHeight,
+            heroActions.implicitHeight) + Style.space(12)
 
           TransportMark {
             id: heroMark
 
             anchors.left: parent.left
-            anchors.verticalCenter: parent.verticalCenter
-            iconSize: Style.font.display
+            anchors.leftMargin: Style.space(14)
+            anchors.top: parent.top
+            anchors.topMargin: Style.space(14)
+            iconSize: Style.space(28)
             colorful: true
             dim: root.connected ? 1 : 0.5
           }
@@ -261,11 +266,12 @@ Ui.Panel {
             id: heroLabels
 
             anchors.left: heroMark.right
-            anchors.leftMargin: Style.space(14)
+            anchors.leftMargin: Style.space(11)
             anchors.right: heroActions.left
-            anchors.rightMargin: Style.space(12)
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.space(2)
+            anchors.rightMargin: Style.space(11)
+            anchors.top: parent.top
+            anchors.topMargin: Style.space(14)
+            spacing: Style.space(6)
 
             Text {
               width: parent.width
@@ -273,28 +279,32 @@ Ui.Panel {
               text: root.ready && root.service.activePlace ? root.service.activePlace.name : "Transport NSW"
               color: root.fg
               font.family: root.family
-              font.pixelSize: Style.font.title
-              font.bold: true
+              font.pixelSize: Style.font.heading
+              font.weight: Font.DemiBold
               elide: Text.ElideRight
             }
 
             Item {
               id: placeSelectorSlot
 
-              readonly property real captionScale: Style.font.caption / Style.font.body
+              readonly property string selectorLabel: root.ready && root.service.activePlace
+                ? Model.routeLabel(root.service.activePlace) : ""
+              readonly property var selectorParts: selectorLabel.split(" → ")
 
               visible: root.ready && root.service.effectivePlaces.length > 1
               width: parent.width
-              implicitHeight: visible ? Math.round(Style.space(30) * captionScale) : 0
+              implicitHeight: visible ? selectorChip.implicitHeight : 0
               height: implicitHeight
 
               Ui.Dropdown {
-                // A compact chip like the mockup, not a full-width form control.
-                width: Math.min(placeSelectorSlot.width, Style.space(250)) / placeSelectorSlot.captionScale
+                id: placeDropdown
+
+                // The kit control supplies the list popup and keyboard handling;
+                // its own face is hidden and the chip below is what shows.
+                opacity: 0
+                width: selectorChip.width
                 showLabel: false
-                rowHeight: Style.space(30)
-                scale: placeSelectorSlot.captionScale
-                transformOrigin: Item.TopLeft
+                rowHeight: selectorChip.height
                 foreground: root.fg
                 fontFamily: root.family
                 options: root.ready ? root.service.effectivePlaces.map(function(p) {
@@ -307,6 +317,86 @@ Ui.Panel {
                   root.expandedDepId = ""
                 }
               }
+
+              Rectangle {
+                id: selectorChip
+
+                implicitWidth: Math.min(placeSelectorSlot.width,
+                  selectorCopy.implicitWidth + Style.space(16) + Style.space(6) + Style.space(9))
+                implicitHeight: selectorCopy.implicitHeight + Style.space(8) + Style.space(2)
+                width: implicitWidth
+                height: implicitHeight
+                radius: Style.space(4)
+                color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.04)
+                border.width: Style.space(1)
+                border.color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.40)
+
+                Row {
+                  id: selectorCopy
+
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.verticalCenter: parent.verticalCenter
+                  anchors.leftMargin: Style.space(8)
+                  anchors.rightMargin: Style.space(8)
+                  spacing: Style.space(6)
+
+                  Text {
+                    width: Math.min(implicitWidth, Math.max(0, parent.width - selectorArrow.width
+                      - selectorTo.width - selectorChevron.width - parent.spacing * 3))
+                    textFormat: Text.PlainText
+                    text: placeSelectorSlot.selectorParts[0] || ""
+                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
+                    font.family: root.family
+                    font.pixelSize: Style.font.bodySmall
+                    elide: Text.ElideRight
+                  }
+
+                  Text {
+                    id: selectorArrow
+
+                    visible: placeSelectorSlot.selectorParts.length > 1
+                    textFormat: Text.PlainText
+                    text: "→"
+                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
+                    font.family: root.family
+                    font.pixelSize: Style.font.bodySmall
+                  }
+
+                  Text {
+                    id: selectorTo
+
+                    visible: selectorArrow.visible
+                    width: Math.min(implicitWidth, Math.max(0, parent.width - parent.children[0].width
+                      - selectorArrow.width - selectorChevron.width - parent.spacing * 3))
+                    textFormat: Text.PlainText
+                    text: placeSelectorSlot.selectorParts.length > 1 ? placeSelectorSlot.selectorParts[1] : ""
+                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
+                    font.family: root.family
+                    font.pixelSize: Style.font.bodySmall
+                    elide: Text.ElideRight
+                  }
+
+                  Text {
+                    id: selectorChevron
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Style.space(9)
+                    height: Style.space(6)
+                    textFormat: Text.PlainText
+                    text: "󰅀"
+                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
+                    font.family: root.family
+                    font.pixelSize: Style.space(9)
+                  }
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: placeDropdown.toggle()
+                }
+              }
             }
           }
 
@@ -314,14 +404,21 @@ Ui.Panel {
             id: heroActions
 
             anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.spacing.xs
+            anchors.rightMargin: Style.space(14)
+            anchors.top: parent.top
+            anchors.topMargin: Style.space(14)
+            spacing: Style.space(4)
 
             Ui.PanelActionButton {
               iconText: "󰑐"
               tooltipText: "Refresh"
-              foreground: Qt.darker(root.fg, 1.4)
+              foreground: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
               fontFamily: root.family
+              fontSize: Style.space(17)
+              size: Style.space(24)
+              bordered: true
+              radius: Style.space(4)
+              borderSpec: Border.flat(Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.18), Style.space(1))
               onClicked: {
                 if (root.ready) {
                   root.service.refresh()
@@ -332,16 +429,26 @@ Ui.Panel {
             Ui.PanelActionButton {
               iconText: "󰋊"
               tooltipText: "Here"
-              foreground: Qt.darker(root.fg, 1.4)
+              foreground: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
               fontFamily: root.family
+              fontSize: Style.space(17)
+              size: Style.space(24)
+              bordered: true
+              radius: Style.space(4)
+              borderSpec: Border.flat(Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.18), Style.space(1))
               onClicked: root.openOverlay("here")
             }
 
             Ui.PanelActionButton {
               iconText: "󰒓"
               tooltipText: "Settings"
-              foreground: Qt.darker(root.fg, 1.4)
+              foreground: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
               fontFamily: root.family
+              fontSize: Style.space(17)
+              size: Style.space(24)
+              bordered: true
+              radius: Style.space(4)
+              borderSpec: Border.flat(Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.18), Style.space(1))
               onClicked: root.openOverlay("settings")
             }
           }
@@ -357,27 +464,34 @@ Ui.Panel {
 
           width: parent.width
           visible: active
-          implicitHeight: active ? leaveCopy.implicitHeight + Style.spacing.xs + windowTrack.height : 0
+          implicitHeight: active ? leaveCopy.implicitHeight + Style.space(9) + windowTrack.height + Style.space(13) : 0
           height: implicitHeight
 
           Row {
             id: leaveCopy
             anchors.left: parent.left
             anchors.right: parent.right
-            spacing: Style.spacing.lg
+            anchors.leftMargin: Style.space(14)
+            anchors.rightMargin: Style.space(14)
+            spacing: Style.space(10)
 
-            Text {
-              anchors.verticalCenter: parent.verticalCenter
-              textFormat: Text.PlainText
-              text: "󰖃"
-              color: Qt.darker(root.fg, 1.35)
-              font.family: root.family
-              font.pixelSize: Style.font.icon
+            Item {
+              width: Style.space(15)
+              height: Style.space(20)
+
+              Text {
+                anchors.centerIn: parent
+                textFormat: Text.PlainText
+                text: "󰖃"
+                color: root.fg
+                font.family: root.family
+                font.pixelSize: Style.space(15)
+              }
             }
 
             Column {
               width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
-              spacing: Style.spacing.xxs
+              spacing: Style.space(3)
 
               Text {
                 width: parent.width
@@ -386,8 +500,10 @@ Ui.Panel {
                 elide: Text.ElideRight
                 color: root.fg
                 font.family: root.family
-                font.pixelSize: Style.font.body
-                font.bold: true
+                font.pixelSize: Style.space(15)
+                font.weight: Font.Bold
+                lineHeightMode: Text.ProportionalHeight
+                lineHeight: 1.1
               }
 
               Text {
@@ -398,9 +514,10 @@ Ui.Panel {
                   + (root.ready && root.service.nextLine ? root.service.nextLine : "")
                   + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
                 elide: Text.ElideRight
-                color: Qt.darker(root.fg, 1.4)
+                color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
                 font.family: root.family
                 font.pixelSize: Style.font.caption
+                font.weight: Font.Normal
               }
             }
           }
@@ -410,10 +527,13 @@ Ui.Panel {
 
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.top: leaveCopy.bottom
+            anchors.topMargin: Style.space(9)
+            anchors.leftMargin: Style.space(14)
+            anchors.rightMargin: Style.space(14)
             height: Style.space(3)
-            radius: height / 2
-            color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.15)
+            radius: Style.space(2)
+            color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
 
             Rectangle {
               anchors.left: parent.left
@@ -426,11 +546,6 @@ Ui.Panel {
           }
         }
 
-        Ui.PanelSeparator {
-          width: parent.width
-          foreground: root.fg
-        }
-
         Column {
           width: parent.width
           visible: root.ready && root.service.alerts.length > 0
@@ -438,9 +553,26 @@ Ui.Panel {
           // The board's alert band: tinted strip, status dot, chevron.
           Rectangle {
             width: parent.width
-            implicitHeight: alertSummary.implicitHeight + Style.spacing.rowPaddingX
-            radius: Style.space(4)
-            color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.06)
+            implicitHeight: alertSummary.implicitHeight + Style.space(18)
+            color: root.hasDisruption
+              ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.05)
+              : Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.05)
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              height: Style.space(1)
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
+            }
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              height: Style.space(1)
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
+            }
 
             MouseArea {
               anchors.fill: parent
@@ -452,7 +584,7 @@ Ui.Panel {
               id: alertDot
 
               anchors.left: parent.left
-              anchors.leftMargin: Style.spacing.lg
+              anchors.leftMargin: Style.space(14)
               anchors.verticalCenter: parent.verticalCenter
               width: Style.space(6)
               height: width
@@ -466,29 +598,30 @@ Ui.Panel {
               anchors.left: alertDot.right
               anchors.right: alertChevron.left
               anchors.verticalCenter: parent.verticalCenter
-              anchors.leftMargin: Style.spacing.sm
-              anchors.rightMargin: Style.spacing.sm
+              anchors.leftMargin: Style.space(8)
+              anchors.rightMargin: Style.space(8)
               textFormat: Text.PlainText
               text: root.ready && root.service.alerts.length === 1
                 ? root.service.alerts[0].title
                 : (root.ready ? root.service.alerts.length : 0) + " alerts"
               elide: Text.ElideRight
-              color: root.fg
+              color: root.hasDisruption ? Color.urgent : Color.accent
               font.family: root.family
-              font.pixelSize: Style.font.caption
+              font.pixelSize: Style.font.bodySmall
+              font.weight: Font.Medium
             }
 
             Text {
               id: alertChevron
 
               anchors.right: parent.right
-              anchors.rightMargin: Style.spacing.lg
+              anchors.rightMargin: Style.space(14)
               anchors.verticalCenter: parent.verticalCenter
               textFormat: Text.PlainText
               text: root.alertsExpanded ? "󰅃" : "󰅀"
-              color: Qt.darker(root.fg, 1.35)
+              color: root.hasDisruption ? Color.urgent : Color.accent
               font.family: root.family
-              font.pixelSize: Style.font.iconSmall
+              font.pixelSize: Style.space(9)
             }
           }
 
@@ -500,7 +633,7 @@ Ui.Panel {
 
               width: column.width
               foreground: root.fg
-              implicitHeight: alertText.implicitHeight + Style.spacing.rowPaddingX
+              implicitHeight: alertText.implicitHeight + Style.space(18)
 
               MouseArea {
                 anchors.fill: parent
@@ -514,14 +647,15 @@ Ui.Panel {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
-                anchors.leftMargin: Style.spacing.xl
-                anchors.rightMargin: Style.spacing.xl
+                anchors.leftMargin: Style.space(14)
+                anchors.rightMargin: Style.space(14)
                 textFormat: Text.PlainText
                 text: "󰀦  " + modelData.title
                 wrapMode: Text.WordWrap
-                color: modelData.disruption ? Color.urgent : Qt.darker(root.fg, 1.35)
+                color: modelData.disruption ? Color.urgent : Color.accent
                 font.family: root.family
-                font.pixelSize: Style.font.caption
+                font.pixelSize: Style.font.bodySmall
+                font.weight: Font.Medium
               }
             }
           }
@@ -530,7 +664,11 @@ Ui.Panel {
         Column {
           width: parent.width
           visible: !root.ready || !root.service.configured
-          spacing: Style.spacing.lg
+          leftPadding: Style.space(14)
+          rightPadding: Style.space(14)
+          topPadding: Style.space(10)
+          bottomPadding: Style.space(10)
+          spacing: Style.space(8)
 
           Text {
             textFormat: Text.PlainText
@@ -552,7 +690,11 @@ Ui.Panel {
         Column {
           width: parent.width
           visible: root.ready && root.service.configured && !root.service.activePlace
-          spacing: Style.spacing.lg
+          leftPadding: Style.space(14)
+          rightPadding: Style.space(14)
+          topPadding: Style.space(10)
+          bottomPadding: Style.space(10)
+          spacing: Style.space(8)
 
           Text {
             textFormat: Text.PlainText
@@ -581,9 +723,13 @@ Ui.Panel {
             return "No " + lines + " services in the next 3 hours"
           }
           wrapMode: Text.WordWrap
-          color: Qt.darker(root.fg, 1.4)
+          color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
           font.family: root.family
           font.pixelSize: Style.font.body
+          leftPadding: Style.space(14)
+          rightPadding: Style.space(14)
+          topPadding: Style.space(10)
+          bottomPadding: Style.space(10)
         }
 
         Repeater {
@@ -594,6 +740,7 @@ Ui.Panel {
           delegate: DepartureRow {
             width: column.width
             bar: root.bar
+            first: index === 0
             selected: root.cursorActive && index === root.cursorIndex
             expanded: root.expandedDepId === model.depId
             depId: model.depId
@@ -623,34 +770,51 @@ Ui.Panel {
           }
         }
 
-        Ui.PanelSeparator {
+        Rectangle {
           width: parent.width
-          foreground: root.fg
-        }
+          implicitHeight: footerRow.implicitHeight + Style.space(16)
+          color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.03)
 
-        Row {
-          width: parent.width
-
-          Text {
-            width: parent.width / 2
-            textFormat: Text.PlainText
-            text: root.ready ? Model.relativeTimeText(root.service.lastPolledMs, root.service.nowMs)
-              + " · " + root.boardStatus : "updated never · scheduled"
-            color: Qt.darker(root.fg, 1.4)
-            font.family: root.family
-            font.pixelSize: Style.font.caption
-            elide: Text.ElideRight
+          Rectangle {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.top: parent.top
+            height: Style.space(1)
+            color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
           }
 
-          Text {
-            width: parent.width / 2
-            textFormat: Text.PlainText
-            text: root.ready ? Model.dateTimeText(root.service.nowMs) : ""
-            horizontalAlignment: Text.AlignRight
-            color: Qt.darker(root.fg, 1.4)
-            font.family: root.family
-            font.pixelSize: Style.font.caption
-            elide: Text.ElideLeft
+          Row {
+            id: footerRow
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: Style.space(14)
+            anchors.rightMargin: Style.space(14)
+
+            Text {
+              width: parent.width / 2
+              textFormat: Text.PlainText
+              text: root.ready ? Model.relativeTimeText(root.service.lastPolledMs, root.service.nowMs)
+                + " · " + root.boardStatus : "updated never · scheduled"
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
+              font.family: root.family
+              font.pixelSize: Style.space(9)
+              font.weight: Font.Normal
+              elide: Text.ElideRight
+            }
+
+            Text {
+              width: parent.width / 2
+              textFormat: Text.PlainText
+              text: root.ready ? Model.dateTimeText(root.service.nowMs) : ""
+              horizontalAlignment: Text.AlignRight
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
+              font.family: root.family
+              font.pixelSize: Style.space(9)
+              font.weight: Font.Normal
+              elide: Text.ElideLeft
+            }
           }
         }
       }

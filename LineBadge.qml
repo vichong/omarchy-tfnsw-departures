@@ -9,7 +9,10 @@ Item {
 
   property string line: ""
   property string mode: "train"
-  property real size: Style.space(26)
+  property string family: Style.font.family
+  property real size: Style.space(19)
+  property real minimumWidth: Style.space(24)
+  property real fontSize: Style.font.bodySmall
   readonly property string code: String(line || Api.modeById(mode).letter)
   readonly property color lightThemeToken: tokenLuminance(Color.foreground) >= tokenLuminance(Color.background) ? Color.foreground : Color.background
   readonly property color darkThemeToken: tokenLuminance(Color.foreground) < tokenLuminance(Color.background) ? Color.foreground : Color.background
@@ -18,7 +21,7 @@ Item {
     return value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
   }
 
-  width: Math.min(Style.space(64), Math.max(size * 1.5, label.implicitWidth + Style.space(10)))
+  width: Math.min(Style.space(64), Math.max(minimumWidth, label.implicitWidth + Style.space(8)))
   height: size
   implicitWidth: width
   implicitHeight: height
@@ -26,7 +29,7 @@ Item {
 
   Rectangle {
     anchors.fill: parent
-    radius: root.size * 0.22
+    radius: Style.space(4)
     color: Api.lineColor(root.line, root.mode)
   }
 
@@ -34,7 +37,7 @@ Item {
     id: label
 
     anchors.centerIn: parent
-    width: parent.width - Style.space(6)
+    width: parent.width - Style.space(8)
     textFormat: Text.PlainText
     text: root.code
     horizontalAlignment: Text.AlignHCenter
@@ -42,8 +45,8 @@ Item {
     // Official badges are always white-on-colour; we trade that for legibility
     // on the light lines (T1 orange, bus blue, ferry green).
     color: Api.lightTextOn(Api.lineColor(root.line, root.mode)) ? root.lightThemeToken : root.darkThemeToken
-    font.family: "JetBrains Mono"
-    font.pixelSize: Math.max(8, root.size * 0.6)
-    font.bold: true
+    font.family: root.family
+    font.pixelSize: root.fontSize
+    font.weight: Font.Bold
   }
 }

@@ -16,7 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.1"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.2"
 
   property bool opened: false
   property string tab: "settings"
@@ -54,12 +54,12 @@ Item {
   property bool placeFilterOpen: false
   // The kit's controls have different natural heights. Measure one bordered
   // button once so fields, dropdowns and adjacent buttons line up.
-  readonly property int controlHeight: controlReference.implicitHeight
-  readonly property string family: Style.font.menuFamily
-  readonly property color background: Color.menu.background
-  readonly property color foreground: Color.menu.text
-  readonly property color muted: Color.muted
-  readonly property var borderSpec: Border.surfaceSpec("menu", "border", Color.menu.border, Math.max(1, Style.space(2)))
+  readonly property int controlHeight: Style.space(30)
+  readonly property string family: Style.font.family
+  readonly property color background: Color.background
+  readonly property color foreground: Color.foreground
+  readonly property color muted: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.55)
+  readonly property var borderSpec: Border.flat(Qt.rgba(foreground.r, foreground.g, foreground.b, 0.40), Style.space(1))
 
   function open(payloadJson) {
     opened = true
@@ -530,12 +530,13 @@ Item {
       id: card
 
       anchors.centerIn: parent
-      width: Math.min(Style.space(720), parent.width - Style.gapsOut * 2)
+      width: Math.min(Style.space(600), parent.width - Style.gapsOut * 2)
       height: Math.min(Style.space(760), parent.height - Style.gapsOut * 2)
-      radius: Style.cornerRadius
+      radius: Style.space(8)
+      clip: true
       color: root.background
       borderSpec: root.borderSpec
-      padding: Style.spacing.panelPadding
+      padding: Style.space(0)
 
       MouseArea {
         anchors.fill: parent
@@ -555,7 +556,7 @@ Item {
         Item {
           id: header
 
-          implicitHeight: Math.max(titleRow.implicitHeight, tabs.implicitHeight)
+          implicitHeight: Style.space(58)
           height: implicitHeight
 
           anchors {
@@ -568,11 +569,12 @@ Item {
             id: titleRow
 
             anchors.left: parent.left
+            anchors.leftMargin: Style.space(18)
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Style.spacing.lg
+            spacing: Style.space(11)
 
             TransportMark {
-              iconSize: Style.font.display
+              iconSize: Style.space(28)
               colorful: true
             }
 
@@ -583,7 +585,7 @@ Item {
               color: root.foreground
               font.family: root.family
               font.pixelSize: Style.font.title
-              font.weight: Font.Medium
+              font.weight: Font.DemiBold
             }
           }
 
@@ -591,11 +593,12 @@ Item {
             id: tabs
 
             anchors.right: closeButton.left
-            anchors.rightMargin: Style.spacing.sm
+            anchors.rightMargin: Style.space(8)
             anchors.verticalCenter: parent.verticalCenter
             foreground: root.foreground
             fontFamily: root.family
             fontSize: Style.font.caption
+            spacing: Style.space(4)
             options: [{
               "value": "settings",
               "label": "Settings"
@@ -613,11 +616,17 @@ Item {
             id: closeButton
 
             anchors.right: parent.right
+            anchors.rightMargin: Style.space(18)
             anchors.verticalCenter: parent.verticalCenter
             iconText: "󰅖"
             tooltipText: "Close"
             foreground: root.muted
             fontFamily: root.family
+            fontSize: Style.space(17)
+            size: Style.space(24)
+            bordered: true
+            radius: Style.space(4)
+            borderSpec: Border.flat(Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18), Style.space(1))
             onClicked: root.dismiss()
           }
         }
@@ -629,8 +638,8 @@ Item {
             top: header.bottom
             left: parent.left
             right: parent.right
-            topMargin: Style.space(12)
           }
+          foreground: root.foreground
         }
 
         Caption {
@@ -639,6 +648,8 @@ Item {
           anchors.top: rule.bottom
           anchors.left: parent.left
           anchors.right: parent.right
+          anchors.leftMargin: Style.space(18)
+          anchors.rightMargin: Style.space(18)
           anchors.topMargin: Style.space(10)
           visible: root.service && root.service.quotaBackoffUntil > 0
           text: root.quotaCaptionText()
@@ -655,7 +666,10 @@ Item {
             bottom: parent.bottom
             left: parent.left
             right: parent.right
-            topMargin: Style.space(14)
+            leftMargin: Style.space(18)
+            rightMargin: Style.space(18)
+            topMargin: Style.space(16)
+            bottomMargin: Style.space(18)
           }
         }
       }

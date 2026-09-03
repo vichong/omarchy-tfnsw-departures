@@ -9,6 +9,7 @@ CursorSurface {
   id: root
 
   property QtObject bar: null
+  property bool first: false
   property bool selected: false
   property bool expanded: false
   property string depId: ""
@@ -36,18 +37,20 @@ CursorSurface {
   property string alertTitle: ""
   signal expandToggled()
 
-  readonly property color fg: bar ? bar.foreground : Color.foreground
-  readonly property color muted: Qt.darker(fg, 1.45)
+  readonly property color fg: Color.foreground
+  readonly property color muted: Qt.rgba(fg.r, fg.g, fg.b, 0.55)
   readonly property string family: bar ? bar.fontFamily : Style.font.family
   readonly property bool subdued: cancelled || missed || dominated
   readonly property color lineColor: Api.lineColor(line, mode)
   readonly property color lightThemeToken: tokenLuminance(Color.foreground) >= tokenLuminance(Color.background) ? Color.foreground : Color.background
   readonly property color darkThemeToken: tokenLuminance(Color.foreground) < tokenLuminance(Color.background) ? Color.foreground : Color.background
-  readonly property color countdownFg: Api.lightTextOn(Api.lineColor(line, mode)) ? lightThemeToken : darkThemeToken
-  readonly property string countdownText: cancelled || missed ? "—" : leaveMs < 60 * 1000 ? "NOW" : String(Math.min(99, Math.floor(leaveMs / 60000)))
+  readonly property color countdownFg: Api.lightTextOn(lineColor) ? lightThemeToken : darkThemeToken
+  readonly property int countdownMinutes: Math.max(0, Math.min(99, Math.floor(Math.max(0, leaveMs) / 60000)))
+  readonly property string countdownText: missed ? "—" : cancelled ? String(countdownMinutes) : leaveMs < 60 * 1000 ? "NOW" : String(countdownMinutes)
   readonly property bool countdownHasUnit: !cancelled && !missed && leaveMs >= 60 * 1000
   readonly property string countdownLabel: cancelled ? "CANC" : missed ? "MISSED" : "LEAVE"
   readonly property bool expandable: legs && legs.length > 0
+  readonly property int collapsedHeight: Style.space(46) + Style.space(20)
 
   function shortStopName(name) {
     return String(name || "")
@@ -75,23 +78,27 @@ CursorSurface {
 
   foreground: fg
   current: selected || expanded
-  // Collapsed rows are as tall as the rounded countdown block plus gutters
-  // (the mockup's 48-unit square), not a slab that fills the row.
-  readonly property int blockSize: Style.space(48)
-  implicitHeight: expanded
-    ? Math.max(blockSize + Style.spacing.sm * 2, legsColumn.implicitHeight + Style.spacing.lg * 2)
-    : blockSize + Style.spacing.sm * 2
+  currentFill: Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, expanded ? 0.05 : 0.03)
+  borderSpec: Border.none()
+  opacity: subdued ? 0.44 : 1
+  implicitHeight: collapsedHeight + (expanded ? board.implicitHeight + Style.space(12) : 0)
 
-  // Hairline divider between rows, like the board mockup.
+  Rectangle {
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: parent.top
+    height: Style.space(1)
+    visible: !root.first || root.expanded
+    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
+  }
+
   Rectangle {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.bottom: parent.bottom
-    anchors.leftMargin: Style.spacing.lg
-    anchors.rightMargin: Style.spacing.lg
-    height: Style.spacing.hairline
+    height: Style.space(1)
+    visible: root.expanded
     color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.12)
-    visible: !root.expanded
   }
 
   MouseArea {
@@ -109,105 +116,114 @@ CursorSurface {
     fontFamily: root.family
   }
 
-  Row {
-    id: content
+  Item {
+    id: collapsed
 
-    anchors.fill: parent
-    anchors.leftMargin: Style.spacing.sm
-    opacity: root.subdued ? 0.5 : 1
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: parent.top
+    height: root.collapsedHeight
 
-    Rectangle {
-      id: countdown
+    Row {
+      anchors.fill: parent
+      anchors.leftMargin: Style.space(12)
+      anchors.rightMargin: Style.space(12)
+      anchors.topMargin: Style.space(10)
+      anchors.bottomMargin: Style.space(10)
+      spacing: Style.space(9)
 
-      anchors.verticalCenter: parent.verticalCenter
-      width: root.blockSize
-      height: root.blockSize
-      radius: Style.space(4)
-      color: root.cancelled || root.missed
-        ? Qt.rgba(root.muted.r, root.muted.g, root.muted.b, 0.1) : root.lineColor
-      border.width: root.cancelled || root.missed ? Style.space(1) : 0
-      border.color: root.muted
+      Rectangle {
+        id: countdown
 
-      Column {
-        anchors.centerIn: parent
-        width: parent.width - Style.space(4)
-        spacing: Style.space(1)
-
-        Row {
-          anchors.horizontalCenter: parent.horizontalCenter
-          spacing: Style.spacing.xxs
-
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            textFormat: Text.PlainText
-            text: root.countdownText
-            color: root.cancelled || root.missed ? root.muted : root.countdownFg
-            font.family: root.family
-            font.pixelSize: root.countdownText === "NOW" ? Style.font.body : Style.font.display
-            font.bold: true
-          }
-
-          Text {
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Style.space(2)
-            visible: root.countdownHasUnit
-            textFormat: Text.PlainText
-            text: "min"
-            color: root.countdownFg
-            font.family: root.family
-            font.pixelSize: Style.font.caption
-          }
-        }
-
-        Text {
-          anchors.horizontalCenter: parent.horizontalCenter
-          textFormat: Text.PlainText
-          text: root.countdownLabel
-          color: root.cancelled || root.missed ? root.muted : root.countdownFg
-          font.family: root.family
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
-      }
-    }
-
-    Item {
-      width: Math.max(0, content.width - countdown.width)
-      height: parent.height
-
-      Item {
-        id: collapsed
-
-        anchors.fill: parent
-        anchors.margins: Style.spacing.lg
-        visible: !root.expanded
+        width: Style.space(52)
+        height: Style.space(46)
+        radius: Style.space(6)
+        color: root.cancelled || root.missed ? Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0) : root.lineColor
+        border.width: root.cancelled || root.missed ? Style.space(1) : 0
+        border.color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.30)
 
         Column {
-          id: routeDetails
+          anchors.centerIn: parent
+          width: parent.width - Style.space(10)
+          spacing: Style.space(3)
 
+          Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Style.space(3)
+
+            Text {
+              anchors.baseline: unitText.visible ? unitText.baseline : undefined
+              textFormat: Text.PlainText
+              text: root.countdownText
+              color: root.cancelled ? Color.urgent : root.missed ? root.muted : root.countdownFg
+              font.family: root.family
+              font.pixelSize: root.missed ? Style.font.subtitle
+                : root.cancelled ? Style.font.body
+                : root.countdownText === "NOW" ? Style.font.heading : Style.space(20)
+              font.weight: root.cancelled ? Font.Medium : Font.Bold
+              font.strikeout: root.cancelled
+            }
+
+            Text {
+              id: unitText
+
+              anchors.baseline: parent.children[0].baseline
+              visible: root.countdownHasUnit
+              textFormat: Text.PlainText
+              text: "min"
+              color: root.countdownFg
+              font.family: root.family
+              font.pixelSize: Style.space(9)
+              font.weight: Font.Medium
+            }
+          }
+
+          Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            textFormat: Text.PlainText
+            text: root.countdownLabel
+            color: root.cancelled ? Color.urgent : root.missed ? root.muted
+              : Qt.rgba(root.countdownFg.r, root.countdownFg.g, root.countdownFg.b, 0.85)
+            font.family: root.family
+            font.pixelSize: Style.space(8)
+            font.weight: Font.Medium
+            font.letterSpacing: Style.space(8) * 0.16
+          }
+        }
+      }
+
+      Item {
+        id: middle
+
+        width: Math.max(0, parent.width - countdown.width - departureClock.width - parent.spacing * 2)
+        height: parent.height
+
+        Column {
           anchors.left: parent.left
-          anchors.right: departureClock.left
-          anchors.rightMargin: Style.spacing.md
+          anchors.right: parent.right
           anchors.top: parent.top
-          spacing: Style.spacing.sm
+          anchors.topMargin: Style.space(2)
+          spacing: Style.space(6)
 
           Item {
             width: parent.width
-            height: Math.max(Style.space(26), boardPills.implicitHeight)
+            height: Style.space(19)
 
             Row {
-              id: routeIdentity
+              id: identity
 
               anchors.left: parent.left
               anchors.right: boardPills.left
-              anchors.rightMargin: boardPills.visible ? Style.spacing.sm : 0
-              anchors.verticalCenter: parent.verticalCenter
-              spacing: Style.spacing.sm
+              anchors.rightMargin: boardPills.visible ? Style.space(6) : 0
+              height: parent.height
+              spacing: Style.space(6)
 
               Text {
                 anchors.verticalCenter: parent.verticalCenter
+                width: Style.space(17)
                 textFormat: Text.PlainText
                 text: Model.glyphFor(root.mode)
+                horizontalAlignment: Text.AlignHCenter
                 color: root.muted
                 font.family: root.family
                 font.pixelSize: Style.space(17)
@@ -219,37 +235,37 @@ CursorSurface {
                 anchors.verticalCenter: parent.verticalCenter
                 line: root.line
                 mode: root.mode
-                size: Style.space(18)
+                family: root.family
+                size: Style.space(19)
               }
 
               Row {
-                width: Math.max(0, parent.width - parent.children[0].width - collapsedBadge.width - parent.spacing * 2)
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: Style.spacing.sm
+                width: Math.max(0, parent.width - Style.space(17) - collapsedBadge.width - parent.spacing * 2)
+                height: parent.height
+                spacing: Style.space(6)
 
                 Text {
-                  // The destination is the primary; it takes what it needs and the
-                  // headsign gets the rest (or hides when that is too little).
-                  width: Math.min(implicitWidth, parent.width)
                   anchors.verticalCenter: parent.verticalCenter
+                  width: implicitWidth
                   textFormat: Text.PlainText
                   text: root.destination
                   color: root.fg
                   font.family: root.family
-                  font.pixelSize: Style.font.body
-                  font.bold: true
-                  elide: Text.ElideRight
+                  font.pixelSize: Style.font.subtitle
+                  font.weight: Font.Bold
                 }
 
                 Text {
-                  visible: root.headsign !== "" && root.headsign !== root.destination && width >= Style.space(48)
-                  width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
                   anchors.verticalCenter: parent.verticalCenter
+                  visible: root.headsign !== "" && root.headsign !== root.destination
+                  width: Math.max(Style.space(70), parent.width - parent.children[0].width - parent.spacing)
                   textFormat: Text.PlainText
                   text: root.headsign
                   color: root.muted
                   font.family: root.family
-                  font.pixelSize: Style.font.caption
+                  font.pixelSize: Style.font.bodySmall
+                  font.weight: Font.Normal
                   elide: Text.ElideRight
                 }
               }
@@ -260,7 +276,7 @@ CursorSurface {
 
               anchors.right: parent.right
               anchors.verticalCenter: parent.verticalCenter
-              spacing: Style.spacing.xs
+              spacing: Style.space(3)
 
               Repeater {
                 model: root.cancelled ? ["cancelled"]
@@ -270,12 +286,19 @@ CursorSurface {
                 delegate: Rectangle {
                   required property string modelData
 
+                  readonly property bool urgentPill: modelData === "cancelled"
+                  readonly property bool laterPill: modelData === "later arrival"
+
                   width: pillText.implicitWidth + Style.space(10)
                   height: pillText.implicitHeight + Style.space(4)
-                  radius: height / 2
-                  color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0)
+                  radius: Style.space(3)
+                  color: urgentPill
+                    ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.12)
+                    : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, laterPill ? 0.06 : 0.08)
                   border.width: Style.space(1)
-                  border.color: modelData === "cancelled" ? Color.urgent : root.muted
+                  border.color: urgentPill
+                    ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.32)
+                    : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, laterPill ? 0.14 : 0.18)
 
                   Text {
                     id: pillText
@@ -283,22 +306,24 @@ CursorSurface {
                     anchors.centerIn: parent
                     textFormat: Text.PlainText
                     text: modelData
-                    color: modelData === "cancelled" ? Color.urgent : root.muted
+                    color: urgentPill ? Color.urgent : laterPill ? root.muted
+                      : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
                     font.family: root.family
-                    font.pixelSize: Style.font.caption
+                    font.pixelSize: Style.space(9)
+                    font.weight: Font.Medium
                   }
                 }
               }
 
-              PanelActionButton {
-                // Only on hover or keyboard focus: the row itself is the target.
-                visible: root.expandable && (mouse.containsMouse || root.selected)
-                iconText: "󰅀"
-                tooltipText: "Journey details"
-                foreground: root.muted
-                fontFamily: root.family
-                fontSize: Style.font.iconSmall
-                onClicked: root.expandToggled()
+              Text {
+                visible: root.expanded
+                width: Style.space(9)
+                height: Style.space(6)
+                textFormat: Text.PlainText
+                text: "󰅃"
+                color: Color.accent
+                font.family: root.family
+                font.pixelSize: Style.space(9)
               }
             }
           }
@@ -313,224 +338,300 @@ CursorSurface {
             color: root.muted
             font.family: root.family
             font.pixelSize: Style.font.caption
-          }
-        }
-
-        Column {
-          id: departureClock
-
-          anchors.right: parent.right
-          anchors.top: parent.top
-          width: Style.space(88)
-          spacing: Style.spacing.xxs
-
-          Text {
-            anchors.right: parent.right
-            textFormat: Text.PlainText
-            text: "DEPARTS"
-            color: root.muted
-            font.family: root.family
-            font.pixelSize: Style.font.caption
-          }
-
-          Row {
-            anchors.right: parent.right
-            spacing: Style.spacing.xs
-
-            Text {
-              textFormat: Text.PlainText
-              text: root.clockMain(root.timeText)
-              color: root.fg
-              font.family: root.family
-              font.pixelSize: Style.font.body
-              font.bold: true
-            }
-
-            Text {
-              anchors.baseline: parent.children[0].baseline
-              visible: text !== ""
-              textFormat: Text.PlainText
-              text: root.clockPeriod(root.timeText)
-              color: root.muted
-              font.family: root.family
-              font.pixelSize: Style.font.caption
-            }
+            font.weight: Font.Normal
           }
         }
       }
 
-      Item {
-        id: expansion
+      Column {
+        id: departureClock
 
-        anchors.fill: parent
-        anchors.margins: Style.spacing.lg
-        visible: root.expanded
+        width: Style.space(60)
+        topPadding: Style.space(3)
+        spacing: Style.space(6)
 
-        Column {
-          id: legsColumn
+        Text {
+          anchors.right: parent.right
+          textFormat: Text.PlainText
+          text: "DEPARTS"
+          color: root.muted
+          font.family: root.family
+          font.pixelSize: Style.space(8)
+          font.weight: Font.Medium
+          font.letterSpacing: Style.space(8) * 0.14
+        }
 
-          anchors.left: parent.left
-          anchors.right: expandedChevron.left
-          anchors.rightMargin: Style.spacing.sm
-          spacing: Style.spacing.md
+        Row {
+          anchors.right: parent.right
+          spacing: Style.space(3)
 
-          Repeater {
-            model: root.expanded ? root.legs : []
+          Text {
+            textFormat: Text.PlainText
+            text: root.clockMain(root.timeText)
+            color: root.fg
+            font.family: root.family
+            font.pixelSize: Style.font.subtitle
+            font.weight: Font.DemiBold
+          }
 
-            delegate: Column {
-              required property var modelData
+          Text {
+            anchors.baseline: parent.children[0].baseline
+            visible: text !== ""
+            textFormat: Text.PlainText
+            text: root.clockPeriod(root.timeText)
+            color: root.muted
+            font.family: root.family
+            font.pixelSize: Style.font.caption
+            font.weight: Font.Normal
+          }
+        }
+      }
+    }
+  }
 
-              width: legsColumn.width
-              spacing: Style.spacing.xxs
+  BorderSurface {
+    id: board
 
-              Item {
+    anchors.left: parent.left
+    anchors.right: parent.right
+    anchors.top: collapsed.bottom
+    anchors.leftMargin: Style.space(14)
+    anchors.rightMargin: Style.space(14)
+    visible: root.expanded
+    implicitHeight: boardColumn.implicitHeight
+    radius: Style.space(6)
+    clip: true
+    color: Qt.rgba(Color.background.r, Color.background.g, Color.background.b, 0.28)
+    borderSpec: Border.flat(Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.14), Style.space(1))
+
+    Column {
+      id: boardColumn
+
+      width: parent.width
+
+      Repeater {
+        model: root.expanded ? root.legs : []
+
+        delegate: Column {
+          required property var modelData
+
+          width: boardColumn.width
+
+          Item {
+            id: rideBoard
+
+            visible: modelData.kind === "ride"
+            width: parent.width
+            implicitHeight: visible ? Math.max(rideDetails.implicitHeight, rideFacts.implicitHeight) + Style.space(19) : 0
+            height: implicitHeight
+
+            Column {
+              id: rideDetails
+
+              anchors.left: parent.left
+              anchors.right: rideFacts.left
+              anchors.top: parent.top
+              anchors.leftMargin: Style.space(11)
+              anchors.rightMargin: Style.space(9)
+              anchors.topMargin: Style.space(10)
+              spacing: Style.space(4)
+
+              Row {
                 width: parent.width
-                height: modelData.kind === "ride" ? rideBoard.implicitHeight : simpleLeg.implicitHeight
+                spacing: Style.space(9)
 
-                Row {
-                  id: simpleLeg
+                LineBadge {
+                  id: legBadge
 
-                  visible: modelData.kind !== "ride"
-                  width: parent.width
-
-                  Text {
-                    width: parent.width * 0.68
-                    textFormat: Text.PlainText
-                    text: modelData.kind === "change"
-                      ? "○ change · " + modelData.minutes + " min at " + root.shortStopName(modelData.from)
-                      : "walk " + modelData.minutes + " min"
-                    color: root.muted
-                    font.family: root.family
-                    font.pixelSize: Style.font.caption
-                    elide: Text.ElideRight
-                  }
-
-                  Text {
-                    width: parent.width * 0.32
-                    visible: modelData.kind === "walk"
-                    textFormat: Text.PlainText
-                    text: "arrive " + modelData.arriveText
-                    horizontalAlignment: Text.AlignRight
-                    color: root.muted
-                    font.family: root.family
-                    font.pixelSize: Style.font.caption
-                  }
+                  anchors.verticalCenter: parent.verticalCenter
+                  line: modelData.line
+                  mode: modelData.mode
+                  family: root.family
+                  size: Style.space(19)
                 }
 
-                Item {
-                  id: rideBoard
-
-                  visible: modelData.kind === "ride"
-                  width: parent.width
-                  implicitHeight: Math.max(rideDetails.implicitHeight, rideFacts.implicitHeight)
-
-                  Column {
-                    id: rideDetails
-
-                    anchors.left: parent.left
-                    anchors.right: rideFacts.left
-                    anchors.rightMargin: Style.spacing.md
-                    spacing: Style.spacing.xxs
-
-                    Row {
-                      width: parent.width
-                      spacing: Style.spacing.sm
-
-                      LineBadge {
-                        id: legBadge
-
-                        anchors.verticalCenter: parent.verticalCenter
-                        line: modelData.line
-                        mode: modelData.mode
-                        size: Style.space(18)
-                      }
-
-                      Text {
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Math.max(0, parent.width - legBadge.width - parent.spacing)
-                        textFormat: Text.PlainText
-                        text: modelData.headsign
-                        elide: Text.ElideRight
-                        color: root.fg
-                        font.family: root.family
-                        font.pixelSize: Style.font.body
-                        font.bold: true
-                      }
-                    }
-
-                    Text {
-                      width: parent.width
-                      textFormat: Text.PlainText
-                      text: modelData.stopsText
-                      wrapMode: Text.WordWrap
-                      maximumLineCount: 2
-                      elide: Text.ElideRight
-                      color: root.muted
-                      font.family: root.family
-                      font.pixelSize: Style.font.caption
-                    }
-                  }
-
-                  Column {
-                    id: rideFacts
-
-                    anchors.right: parent.right
-                    anchors.top: parent.top
-                    width: Style.space(88)
-                    spacing: Style.spacing.xxs
-
-                    Text {
-                      anchors.right: parent.right
-                      visible: modelData.platform !== ""
-                      textFormat: Text.PlainText
-                      text: "PLATFORM"
-                      color: root.muted
-                      font.family: root.family
-                      font.pixelSize: Style.font.caption
-                    }
-
-                    Text {
-                      anchors.right: parent.right
-                      visible: modelData.platform !== ""
-                      textFormat: Text.PlainText
-                      text: modelData.platform
-                      color: root.fg
-                      font.family: root.family
-                      font.pixelSize: Style.font.body
-                      font.bold: true
-                    }
-                  }
+                Text {
+                  anchors.verticalCenter: parent.verticalCenter
+                  width: Math.max(0, parent.width - legBadge.width - parent.spacing)
+                  textFormat: Text.PlainText
+                  text: modelData.headsign
+                  elide: Text.ElideRight
+                  color: root.fg
+                  font.family: root.family
+                  font.pixelSize: Style.font.bodySmall
+                  font.weight: Font.DemiBold
                 }
               }
 
               Text {
                 width: parent.width
-                leftPadding: modelData.kind === "ride" ? Style.space(24) + Style.spacing.sm : 0
-                visible: modelData.alertTitle !== ""
                 textFormat: Text.PlainText
-                text: modelData.alertTitle
+                text: modelData.stopsText
                 wrapMode: Text.WordWrap
-                maximumLineCount: 3
+                maximumLineCount: 2
                 elide: Text.ElideRight
                 color: root.muted
                 font.family: root.family
                 font.pixelSize: Style.font.caption
+                font.weight: Font.Normal
+                lineHeightMode: Text.ProportionalHeight
+                lineHeight: 1.5
+              }
+
+              Text {
+                width: parent.width
+                visible: modelData.alertTitle !== ""
+                textFormat: Text.PlainText
+                text: modelData.alertTitle
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
+                elide: Text.ElideRight
+                color: Color.urgent
+                font.family: root.family
+                font.pixelSize: Style.font.caption
+              }
+            }
+
+            Column {
+              id: rideFacts
+
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.rightMargin: Style.space(11)
+              anchors.topMargin: Style.space(10)
+              width: Style.space(60)
+              spacing: Style.space(5)
+
+              Text {
+                anchors.right: parent.right
+                visible: modelData.platform !== ""
+                textFormat: Text.PlainText
+                text: "PLATFORM"
+                color: root.muted
+                font.family: root.family
+                font.pixelSize: Style.space(8)
+                font.weight: Font.Medium
+                font.letterSpacing: Style.space(8) * 0.16
+              }
+
+              Text {
+                anchors.right: parent.right
+                visible: modelData.platform !== ""
+                textFormat: Text.PlainText
+                text: modelData.platform
+                color: root.fg
+                font.family: root.family
+                font.pixelSize: Style.font.body
+                font.weight: Font.DemiBold
               }
             }
           }
-        }
 
-        PanelActionButton {
-          id: expandedChevron
+          Item {
+            visible: modelData.kind === "change"
+            width: parent.width
+            implicitHeight: visible ? changeText.implicitHeight + Style.space(14) : 0
+            height: implicitHeight
 
-          anchors.right: parent.right
-          anchors.top: parent.top
-          iconText: "󰅃"
-          tooltipText: "Collapse"
-          foreground: root.muted
-          fontFamily: root.family
-          fontSize: Style.font.iconSmall
-          onClicked: root.expandToggled()
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              height: Style.space(1)
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
+            }
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              height: Style.space(1)
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
+            }
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.leftMargin: Style.space(11)
+              anchors.verticalCenter: parent.verticalCenter
+              width: Style.space(5)
+              height: Style.space(5)
+              radius: width / 2
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0)
+              border.width: Style.space(1)
+              border.color: root.muted
+            }
+
+            Text {
+              id: changeText
+
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.leftMargin: Style.space(25)
+              anchors.rightMargin: Style.space(11)
+              anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
+              text: "change · " + modelData.minutes + " min at " + root.shortStopName(modelData.from)
+              color: root.muted
+              font.family: root.family
+              font.pixelSize: Style.font.caption
+              font.weight: Font.Normal
+              elide: Text.ElideRight
+            }
+          }
+
+          Item {
+            visible: modelData.kind === "walk"
+            width: parent.width
+            implicitHeight: visible ? walkText.implicitHeight + Style.space(14) : 0
+            height: implicitHeight
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              height: Style.space(1)
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
+            }
+
+            Text {
+              anchors.left: parent.left
+              anchors.leftMargin: Style.space(11)
+              anchors.verticalCenter: parent.verticalCenter
+              width: Style.space(10)
+              height: Style.space(13)
+              textFormat: Text.PlainText
+              text: "󰖃"
+              color: root.muted
+              font.family: root.family
+              font.pixelSize: Style.space(10)
+            }
+
+            Text {
+              id: walkText
+
+              anchors.left: parent.left
+              anchors.leftMargin: Style.space(30)
+              anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
+              text: "walk " + modelData.minutes + " min"
+              color: root.muted
+              font.family: root.family
+              font.pixelSize: Style.font.caption
+              font.weight: Font.Normal
+            }
+
+            Text {
+              anchors.right: parent.right
+              anchors.rightMargin: Style.space(11)
+              anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
+              text: "arrive " + modelData.arriveText
+              color: root.muted
+              font.family: root.family
+              font.pixelSize: Style.font.caption
+              font.weight: Font.Normal
+            }
+          }
         }
       }
     }

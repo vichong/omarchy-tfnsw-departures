@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# Developer tool (not used at runtime): rebuild data/stops.json from the TfNSW
+# GTFS schedule feeds. Needs the API key in the keyring, curl, unzip, python3.
+# Stations, metro stations, wharves and light rail stops only — bus stops are
+# resolved live through stop_finder.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+key=$(secret-tool lookup service tfnsw-departures account apikey)
+tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
+for f in sydneytrains metro lightrail/innerwest lightrail/cbdandsoutheast lightrail/newcastle ferries/sydneyferries; do
+  n=${f//\//-}
+  curl -sS --proto =https --max-filesize 200000000 -H "Authorization: apikey $key" \
+    -o "$tmp/$n.zip" "https://api.transport.nsw.gov.au/v1/gtfs/schedule/$f"
+  unzip -o -q "$tmp/$n.zip" stops.txt -d "$tmp/$n"
+done
+python3 - "$tmp" <<'PY'
+import csv, json, re, sys, os
+root = sys.argv[1]
+by_id = {}
+def rows(d):
+    with open(os.path.join(root, d, 'stops.txt'), encoding='utf-8-sig') as f:
+        return list(csv.DictReader(f))
+def add(sid, name, mode, lat, lon):
+    e = by_id.setdefault(sid, {'id': sid, 'names': [], 'modes': [], 'lat': round(float(lat), 5), 'lon': round(float(lon), 5)})
+    if name not in e['names']: e['names'].append(name)
+    if mode not in e['modes']: e['modes'].append(mode)
+for d, mode in [('sydneytrains', 'train'), ('metro', 'metro'), ('ferries-sydneyferries', 'ferry'), ('lightrail-newcastle', 'lightrail')]:
+    for r in rows(d):
+        if r.get('location_type') == '1': add(r['stop_id'], r['stop_name'].strip(), mode, r['stop_lat'], r['stop_lon'])
+for d in ['lightrail-innerwest', 'lightrail-cbdandsoutheast']:
+    for r in rows(d):
+        name = re.sub(r'\s+Light Rail.*$', '', r['stop_name']).strip() + ' Light Rail'
+        sid = r.get('parent_station') or r['stop_id']
+        add(sid, name, 'lightrail', r['stop_lat'], r['stop_lon'])
+def pick(names):
+    for suffix in (' Station', ' Interchange', ' Wharf', ' Light Rail'):
+        for n in names:
+            if n.endswith(suffix): return n
+    return sorted(names, key=len)[0]
+out = []
+for e in by_id.values():
+    out.append({'id': e['id'], 'name': pick(e['names']), 'modes': sorted(e['modes']), 'lat': e['lat'], 'lon': e['lon']})
+out.sort(key=lambda x: x['name'])
+with open('data/stops.json', 'w') as f:
+    json.dump(out, f, separators=(',', ':'))
+    f.write('\n')
+print(len(out), 'stops written to data/stops.json')
+PY

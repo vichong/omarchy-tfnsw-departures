@@ -447,3 +447,26 @@ Decisions made in review are marked **(decision)**.
 mark; cancelled never dominates or is dominated; plain departures
 untouched), `leaveHeading`, `nextCatchable` skipping dominated, footer
 relative time text. Bump manifest to 0.6.0.
+
+## v0.6.1: type-ahead stop search (bundled station list)
+Problem: `stop_finder` is a whole-word match ("chat" → Thai restaurants, no
+station until "Chatswood"), and the place pickers only searched on Enter.
+- `data/stops.json` (≈460 entries, 43 KB; rebuilt by the developer-only
+  `scripts/build-stops` from the GTFS schedule feeds): every train station,
+  metro station, Sydney Ferries wharf and light rail stop with its Trip
+  Planner stop id, `modes`, lat/lon. Loaded once by the Service through a
+  `FileView` (bounded: reject files over 512 KiB, non-arrays, entries
+  without a numeric-string `id` and non-empty `name`).
+- `Model.matchStops(list, text, limit)`: case-insensitive; ranks
+  name-starts-with first, then any-word-starts-with, then contains; ties by
+  name; at most `limit` (8). Strips a trailing " Station"/" Light Rail"/
+  " Wharf N" for display in the picker but keeps the full name in config.
+- Pickers ("Leaving from", "Going to", Here): search on **every text edit**.
+  From 1 character the local matches appear instantly in the results list
+  (mode pictograms next to each). In parallel, from 3 characters, the
+  existing debounced `searchStops` runs and its results (addresses, POIs,
+  bus stops; deduped against local ids) are appended under a "More" divider
+  once they arrive. Enter picks the first result. Picking fills the field
+  with the full stop name and clears the results.
+- The Here tab uses the same list for stops; addresses still go live.
+- Tests: ranking, limit, empty/short queries, malformed list rejected.

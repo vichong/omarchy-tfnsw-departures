@@ -47,6 +47,19 @@ Item {
   property string originFallbackStop: ""
   // Destination chips: the planner's own end stop by default; a click overrides it.
   property bool destinationOverride: false
+  // Mode filter for the nearby-stop chips at both ends ("" = all), like the
+  // Modes control in the place editor.
+  property string nearbyModeFilter: ""
+  readonly property var nearbyModeOptions: [{ "id": "", "label": "All" }, { "id": "train", "label": "Train" }, { "id": "metro", "label": "Metro" }, { "id": "lightrail", "label": "Light rail" }, { "id": "bus", "label": "Bus" }, { "id": "ferry", "label": "Ferry" }]
+  function filteredNearby(list) {
+    if (!nearbyModeFilter) return list
+    var out = []
+    for (var i = 0; i < list.length; i++) {
+      var modes = list[i].modes && isFinite(list[i].modes.length) ? list[i].modes : []
+      for (var m = 0; m < modes.length; m++) if (String(modes[m]) === nearbyModeFilter) { out.push(list[i]); break }
+    }
+    return out
+  }
   property var newTripOrigin: null
   property var newTripDestination: null
   property var newTripDestinationStops: []
@@ -1224,8 +1237,34 @@ Item {
           visible: root.newTripLocation !== null && root.newTripLocation && !root.newTripLocation.isStop
           spacing: Style.space(6)
 
-          FieldLabel {
-            text: "Nearest stops"
+          Row {
+            width: parent.width
+            spacing: Style.space(8)
+
+            FieldLabel {
+              anchors.verticalCenter: parent.verticalCenter
+              text: "Nearest stops"
+            }
+
+            // Same mode filter as the place editor's Modes control; applies to
+            // both ends' chips.
+            Row {
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(4)
+
+              Repeater {
+                model: root.nearbyModeOptions
+
+                delegate: NewTripButton {
+                  required property var modelData
+
+                  chip: true
+                  selected: root.nearbyModeFilter === modelData.id
+                  text: modelData.label
+                  onClicked: root.nearbyModeFilter = modelData.id
+                }
+              }
+            }
           }
 
           Flow {
@@ -1233,7 +1272,7 @@ Item {
             spacing: Style.space(6)
 
             Repeater {
-              readonly property var featured: Model.featureNearby(root.nearbyStops, root.newTripOrigin ? root.newTripOrigin.id : "", 15)
+              readonly property var featured: Model.featureNearby(root.filteredNearby(root.nearbyStops), root.newTripOrigin ? root.newTripOrigin.id : "", 15)
               model: root.nearbyExpanded ? featured.slice(0, 8)
                 : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
 
@@ -1242,7 +1281,7 @@ Item {
 
                 chip: true
                 selected: !modelData.isMore && root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
-                text: modelData.isMore ? "More…" : root.chipGlyph(modelData) + modelData.name + " · " + modelData.walkMinutes + " min walk"
+                text: modelData.isMore ? "More…" : root.chipGlyph(modelData) + Model.boardStopName(modelData.name) + " · " + modelData.walkMinutes + " min walk"
                 onClicked: {
                   if (modelData.isMore) root.nearbyExpanded = true
                   else root.selectNearbyStop(modelData)
@@ -1355,7 +1394,7 @@ Item {
               spacing: Style.space(6)
 
               Repeater {
-                readonly property var featured: Model.featureNearby(root.newTripDestinationStops, root.newTripDestinationStop ? root.newTripDestinationStop.id : "", 15)
+                readonly property var featured: Model.featureNearby(root.filteredNearby(root.newTripDestinationStops), root.newTripDestinationStop ? root.newTripDestinationStop.id : "", 15)
                 model: root.destinationNearbyExpanded ? featured.slice(0, 8)
                   : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
 
@@ -1366,7 +1405,7 @@ Item {
                   selected: !modelData.isMore && root.newTripDestinationStop
                     && String(root.newTripDestinationStop.id) === String(modelData.id)
                   text: modelData.isMore ? "More…"
-                    : root.chipGlyph(modelData) + modelData.name + " · " + modelData.walkMinutes + " min walk"
+                    : root.chipGlyph(modelData) + Model.boardStopName(modelData.name) + " · " + modelData.walkMinutes + " min walk"
                   onClicked: {
                     if (modelData.isMore) root.destinationNearbyExpanded = true
                     else root.selectDestinationStop(modelData)

@@ -63,6 +63,9 @@ large countdown number.
 
 ## Backlog (design, in priority order)
 
+Items 1–6 are specified as v0.6 in `docs/SPEC.md` (mockup: Claude Design
+"Transport NSW Departures UI", 2026-09-03).
+
 1. Leave-window label grammar + walk pictogram with allocated minutes.
 2. Dominated-trip greying (`Model`: mark entries whose arrival is not
    earlier than a later departure's).

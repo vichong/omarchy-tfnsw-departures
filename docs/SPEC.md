@@ -357,3 +357,93 @@ lines (T1 2.1:1, T3 2.9:1, bus 2.4:1, ferry 2.7:1), so badge and countdown
 text pick white or near-black by contrast (`Api.lightTextOn`). The
 leave-window label is drawn in the theme foreground; only the track fill
 carries the line colour (L3 on the panel background is 1.6:1).
+
+## v0.6: the Claude Design revision (popup + settings)
+Source of truth for the look: the Claude Design mockup "Transport NSW
+Departures UI" (revision 2 + Vic's tweaks, 2026-09-03) and `docs/DESIGN.md`
+priorities. Same dimensions as today (popup 460 wide; overlay as now).
+Decisions made in review are marked **(decision)**.
+
+### Popup
+- **Hero**: TransportMark (colourful) · place **name** (title) · under the
+  name a **place selector**: the Ui kit `Dropdown` (caption font, `showLabel:
+  false`) whose text is `Model.placeLabel(place)` ("Sydenham → Wynyard") and
+  whose options are `effectivePlaces`; selecting calls
+  `service.setActivePlace(id, true)`. Hidden when there is one place. The
+  chips `ButtonGroup` is removed. ←/→ keys still switch place. Trailing
+  controls unchanged (refresh, Here, settings). No route/walk meta line in
+  the hero any more.
+- **Leave window** (directly under the hero, above alerts): walking
+  pictogram (Nerd "󰖃" or the Ui kit glyph) at the left; heading in
+  `Style.font.body` bold: "Leave in 3 min" / "Leave now" / "Leave in 1 min"
+  (`Model.leaveHeading(leaveMs)`: <60 s → "Leave now", else "Leave in N
+  min"); caption under it: "6 min walk · T4 to Bondi Junction" (walk omitted
+  when 0; "· line to destination" from `nextLine`/`nextDestination`); track
+  as today (3 units, foreground 15%, fill in `nextLineColor`). Visible
+  whenever there is a next catchable service; the fill is 0 beyond 10 min.
+  No caption on the right. Heading colour = foreground, never red.
+- **Alerts** line unchanged (dot + "2 alerts" + chevron).
+- **Row** (two lines tall, countdown block 44 units wide with inner padding,
+  clock column fixed 88 units, top-aligned):
+  - line 1: mode pictogram (17 units, muted) · LineBadge · **primary
+    destination** bold (for trips the place's `destStopName` short form;
+    for plain departures the headsign) · headsign muted (trips only; elide
+    first) · pills · crowding dots (v2, hidden) · chevron (expanded only).
+  - pills **(decision)**: `RT` muted-outline chip when realtime (no green
+    fill); `1 change`/`2 changes` only when there are changes; no "direct",
+    no "scheduled" pill. Dominated rows show **only** `later arrival`; cancelled
+    rows show only `cancelled` (the single permitted use of `Color.urgent`,
+    on the pill text/border).
+  - line 2 caption: `Platform 6 · On time · 28 min → 8:58 AM` (or `Stand C`,
+    `2 min late`). Right column: `DEPARTS` caption over the clock, AM/PM in
+    muted.
+  - **Countdown block**: line colour; big number + "min" + "LEAVE" caption;
+    "NOW" when < 60 s; **(decision)** missed → "—" over "MISSED", cancelled →
+    "—" over "CANC" (no minute count), both blocks muted with a 1-unit border.
+  - **Dominated** (new): `Model.markDominated(board)` sets `dominated: true`
+    on any entry whose `arriveMs` is ≥ the `arriveMs` of a later-departing,
+    non-cancelled entry (trips only; plain departures never dominate).
+    Dominated rows render like missed (50% opacity), keep their countdown,
+    and get the `later arrival` pill. Notifications and the leave window
+    still use the first catchable *non-dominated* entry (`nextCatchable`
+    skips dominated).
+- **Expanded board**: as v0.5 but per-leg rows get the mockup's look:
+  badge + headsign bold, stop list, `PLATFORM` label over number at the
+  right; change row "○ change · 7 min at Central"; final walk row "walk 4 min"
+  with "arrive 9:13 AM" right-aligned.
+- **Footer** (new, caption, muted): left "updated 12s ago · realtime"
+  (`lastPolledMs` relative, refreshed by the 15 s tick; "scheduled" when
+  the first row is not realtime); right the date "Thu 3 Sep · 8:29 AM"
+  following the bar clock format. Replaces the refresh tooltip's timestamp.
+- Six collapsed rows + one expanded must fit within ~900 units.
+
+### Settings overlay
+- Header: TransportMark (colourful) + "Transport NSW settings" + close. The
+  Settings/Here tab buttons stay in the header row (mockup omitted them).
+- **Connection card**: when connected it collapses to one row: green dot ·
+  "Connected" · "key in keyring" muted · `Remove` button right. When not
+  connected: key field + Connect + Get a key + the three-step help. Demo
+  status shows "Demo connected".
+- **Places**: section header "PLACES" with `Add place` right. Each place is a
+  card: name bold + summary caption ("Sydenham → Wynyard · 6 min walk · T4,
+  T8" / "All services") + chevron; exactly one expanded at a time. Expanded
+  editor: Name | Walk minutes (NumberField); Leaving from | Going to
+  (optional); Wi-Fi SSID + `Use current`; **Filter services** disclosure
+  (collapsed by default, summary "2 lines · all modes" or "All services")
+  containing Lines as removable chips + "add a line…" field, Destination
+  contains (placeholder "All"), Modes as a toggle row with `All` first;
+  then `Delete place` (urgent text, left) and `Cancel` / `Save place`
+  (accent) right. Placeholders are italic muted and never look like values.
+- Auto-switch, poll interval, notifications, colourful toggle: keep, as a
+  compact "Behaviour" group between Places and Demo mode.
+- **Demo mode** card, then the **footer row** exactly like Gorelo:
+  caption "Transport NSW for Omarchy v0.6.0" left, muted link
+  "github.com/vichong/omarchy-tfnsw-departures" right-aligned, underline on
+  hover, opens the URL via the bounded opener.
+- No theme/light-dark control anywhere.
+
+### Tests
+`markDominated` (later-but-earlier-arrival marks the earlier one; ties
+mark; cancelled never dominates or is dominated; plain departures
+untouched), `leaveHeading`, `nextCatchable` skipping dominated, footer
+relative time text. Bump manifest to 0.6.0.

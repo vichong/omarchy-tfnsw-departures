@@ -16,7 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.8.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.8.1"
 
   property bool opened: false
   property string tab: "settings"

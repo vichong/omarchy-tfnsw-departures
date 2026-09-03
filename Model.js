@@ -6,7 +6,7 @@
 
 var BRAND_ICON = "󰔬"            // md-train, notification fallback glyph
 var MODE_GLYPHS = {
-  train: "󰔬", metro: "󰉩", lightrail: "󰔪", bus: "󰃧", coach: "󰃧", ferry: "󰈓", schoolbus: "󰃧", walk: "󰖃", other: "󰴼"
+  train: "󰔬", metro: "󰚬", lightrail: "󰣄", bus: "󰃧", coach: "󰃧", ferry: "󰈓", schoolbus: "󰃧", walk: "󰖃", other: "󰴼"
 }
 var MAX_ROWS = 8
 // Departures you can no longer make are hidden once they are this far past
@@ -140,6 +140,31 @@ function boardFromJourneys(journeys, place, nowMs) {
   return boardFor(entries, place, nowMs)
 }
 
+// TripView keeps a slower option visible but greys it when a service leaving
+// later reaches the destination no later. Cancellations do not participate in
+// the comparison and plain departures have no arrival, so remain untouched.
+function markDominated(board) {
+  var list = Array.isArray(board) ? board : []
+  for (var i = 0; i < list.length; i++) {
+    var entry = list[i]
+    if (!entry || !entry.arriveMs || entry.cancelled) {
+      if (entry && entry.arriveMs) entry.dominated = false
+      continue
+    }
+    entry.dominated = false
+    var depart = Api.effectiveMs(entry)
+    for (var j = 0; j < list.length; j++) {
+      var later = list[j]
+      if (!later || later.cancelled || !later.arriveMs) continue
+      if (Api.effectiveMs(later) > depart && later.arriveMs <= entry.arriveMs) {
+        entry.dominated = true
+        break
+      }
+    }
+  }
+  return list
+}
+
 // Project parsed trip legs for the expandable departure row. When the API
 // omits a walking leg between two rides, make the transfer time explicit.
 function legRows(entry) {
@@ -204,11 +229,20 @@ function legRows(entry) {
 
 function hasDestination(place) { return !!(place && place.destStopId) }
 
-// "From Home" / "Home → Wynyard": what the switcher chips say.
+// "From Home" / "Home → Wynyard": what the place selector says.
 function placeLabel(place) {
   if (!place) return ""
   if (!hasDestination(place)) return "From " + place.name
   return place.name + " → " + firstWord(place.destStopName || "destination")
+}
+
+// Selector text under the place name: the route, since the title already
+// says which place it is. "Surry Hills → Chatswood" / "From Sydenham".
+function routeLabel(place) {
+  if (!place) return ""
+  var from = boardStopName(place.stopName) || place.name
+  if (!hasDestination(place)) return "From " + from
+  return from + " → " + (boardStopName(place.destStopName) || "destination")
 }
 
 function placeTooltip(place) {
@@ -234,10 +268,30 @@ function travelText(sec) {
 
 function nextCatchable(board, place, nowMs) {
   for (var i = 0; i < board.length; i++) {
-    if (board[i].cancelled) continue
+    if (board[i].cancelled || board[i].dominated) continue
     if (leaveInMs(board[i], place, nowMs) >= 0) return board[i]
   }
   return null
+}
+
+function leaveHeading(leaveMs) {
+  if (!isFinite(leaveMs) || leaveMs < 60 * 1000) return "Leave now"
+  return "Leave in " + Math.floor(leaveMs / 60000) + " min"
+}
+
+function relativeTimeText(lastMs, nowMs) {
+  if (!isFinite(lastMs) || Number(lastMs) <= 0) return "updated never"
+  var elapsed = Math.max(0, Number(nowMs) - Number(lastMs))
+  if (elapsed < 60 * 1000) return "updated " + Math.floor(elapsed / 1000) + "s ago"
+  if (elapsed < 60 * 60 * 1000) return "updated " + Math.floor(elapsed / 60000) + "m ago"
+  return "updated " + Math.floor(elapsed / 3600000) + "h ago"
+}
+
+function dateTimeText(ms) {
+  var d = new Date(ms)
+  var days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+  return days[d.getDay()] + " " + d.getDate() + " " + months[d.getMonth()] + " · " + clockText(ms)
 }
 
 function minutesText(ms) {
@@ -315,7 +369,7 @@ function barState(board, place, nowMs) {
     leaveMs: leave,
     lineColor: Api.lineColor(next.line, next.mode),
     line: String(next.line || ""),
-    destination: String(next.headsign || next.destination || ""),
+    destination: hasDestination(place) ? boardStopName(place.destStopName) : String(next.headsign || next.destination || ""),
     fraction: underlineFraction(leave),
     caption: barCaption(leave)
   }
@@ -350,7 +404,8 @@ function projectRow(dep, place, nowMs) {
   var delay = delaySec(dep)
   var delayMin = Math.round(delay / 60)
   var status = dep.cancelled ? "Cancelled"
-    : (!dep.realtime ? "Scheduled" : (Math.abs(delayMin) < 1 ? "On time" : (delayMin > 0 ? "+" + delayMin + " min" : delayMin + " min")))
+    : (!dep.realtime ? "Scheduled" : (Math.abs(delayMin) < 1 ? "On time" : (delayMin > 0 ? delayMin + " min late" : Math.abs(delayMin) + " min early")))
+  var trip = !!dep.arriveMs
   return {
     depId: String(dep.id),
     tripId: String(dep.tripId || ""),
@@ -358,7 +413,7 @@ function projectRow(dep, place, nowMs) {
     lineName: dep.lineName,
     mode: dep.mode,
     glyph: glyphFor(dep.mode),
-    destination: dep.destination,
+    destination: trip && place && place.destStopName ? boardStopName(place.destStopName) : dep.destination,
     headsign: dep.headsign || dep.destination,
     platform: dep.platform,
     timeText: clockText(Api.effectiveMs(dep)),
@@ -368,6 +423,7 @@ function projectRow(dep, place, nowMs) {
     departsInText: minutesText(Api.effectiveMs(dep) - nowMs),
     realtime: dep.realtime,
     cancelled: dep.cancelled,
+    dominated: dep.dominated === true,
     delayMin: delayMin,
     status: status,
     missed: !dep.cancelled && leave < 0,
@@ -375,7 +431,7 @@ function projectRow(dep, place, nowMs) {
     alertTitle: dep.infos.length ? dep.infos[0].title : "",
     arriveText: dep.arriveMs ? clockText(dep.arriveMs) : "",
     travelText: dep.arriveMs ? travelText(dep.travelSec) : "",
-    changesText: !dep.arriveMs ? "" : (dep.changes === 0 ? "direct" : dep.changes + (dep.changes === 1 ? " change" : " changes")),
+    changesText: !dep.arriveMs || dep.changes === 0 ? "" : dep.changes + (dep.changes === 1 ? " change" : " changes"),
     legsSummary: dep.legsSummary || ""
   }
 }

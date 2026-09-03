@@ -11,6 +11,12 @@ Item {
   property string mode: "train"
   property real size: Style.space(26)
   readonly property string code: String(line || Api.modeById(mode).letter)
+  readonly property color lightThemeToken: tokenLuminance(Color.foreground) >= tokenLuminance(Color.background) ? Color.foreground : Color.background
+  readonly property color darkThemeToken: tokenLuminance(Color.foreground) < tokenLuminance(Color.background) ? Color.foreground : Color.background
+
+  function tokenLuminance(value) {
+    return value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
+  }
 
   width: Math.min(Style.space(64), Math.max(size, label.implicitWidth + Style.space(10)))
   height: size
@@ -35,7 +41,7 @@ Item {
     elide: Text.ElideRight
     // Official badges are always white-on-colour; we trade that for legibility
     // on the light lines (T1 orange, bus blue, ferry green).
-    color: Api.lightTextOn(Api.lineColor(root.line, root.mode)) ? "white" : "#1A1A1A"
+    color: Api.lightTextOn(Api.lineColor(root.line, root.mode)) ? root.lightThemeToken : root.darkThemeToken
     font.family: "JetBrains Mono"
     font.pixelSize: Math.max(8, root.size * 0.5)
     font.bold: true

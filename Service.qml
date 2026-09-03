@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.5.2"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.0"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -191,6 +191,7 @@ QtObject {
   property string barCaption: ""
   property string lastPolledAt: ""
   property double lastPolledMs: 0
+  property double nowMs: Date.now()
   property bool stale: false
   property bool polling: false
   property bool pollRequested: false
@@ -720,6 +721,15 @@ QtObject {
       retryConnection()
   }
 
+  function openUrl(url) {
+    var safe = Api.httpsOnly(Api.clip(url, 2048))
+    if (!safe)
+      return false
+
+    Quickshell.execDetached(["gio", "open", safe])
+    return true
+  }
+
   function resetBoard() {
     departures = []
     board = []
@@ -736,13 +746,14 @@ QtObject {
   }
 
   function project(now) {
+    nowMs = now
     var place = activePlace
     if (!place) {
       resetBoard()
       return
     }
     board = Model.hasDestination(place)
-      ? Model.boardFromJourneys(departures, place, now)
+      ? Model.markDominated(Model.boardFromJourneys(departures, place, now))
       : Model.boardFor(departures, place, now)
     var projected = Model.buildRows(board, place, now)
     rows.clear()

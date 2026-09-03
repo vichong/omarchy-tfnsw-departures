@@ -16,6 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.0"
 
   property bool opened: false
   property string tab: "settings"
@@ -49,6 +50,7 @@ Item {
   property var placeModes: []
   property int placeWalk: 0
   property string placeSsid: ""
+  property bool placeFilterOpen: false
   // The kit's controls have different natural heights. Measure one bordered
   // button once so fields, dropdowns and adjacent buttons line up.
   readonly property int controlHeight: controlReference.implicitHeight
@@ -104,6 +106,7 @@ Item {
   }
 
   function loadPlace(id) {
+    placeFilterOpen = false
     var p = placeById(id)
     placeSearchText = ""
     placeSearchComplete = false
@@ -149,6 +152,78 @@ Item {
     loadPlace("")
   }
 
+  function cancelPlaceDraft() {
+    selectedPlaceId = ""
+    loadPlace("")
+  }
+
+  function placeCards() {
+    var list = service ? service.places.slice() : []
+    if (selectedPlaceId && !placeById(selectedPlaceId))
+      list.push({ "id": selectedPlaceId, "name": "New place", "stopName": "", "destStopName": "", "lines": [], "modes": [], "walkMinutes": 0 })
+    return list
+  }
+
+  function lineDrafts() {
+    return placeLines.split(",").map(function(line) {
+      return Model.normalizeLine(line)
+    }).filter(function(line, index, lines) {
+      return line !== "" && lines.indexOf(line) === index
+    })
+  }
+
+  function addLineDraft(line) {
+    var value = Model.normalizeLine(line)
+    if (!value)
+      return
+
+    var lines = lineDrafts()
+    if (lines.indexOf(value) === -1)
+      lines.push(value)
+    placeLines = lines.join(", ")
+  }
+
+  function removeLineDraft(line) {
+    placeLines = lineDrafts().filter(function(value) {
+      return value !== line
+    }).join(", ")
+  }
+
+  function toggleModeDraft(mode) {
+    var modes = placeModes.slice()
+    var index = modes.indexOf(mode)
+    if (index === -1)
+      modes.push(mode)
+    else
+      modes.splice(index, 1)
+    placeModes = modes
+  }
+
+  function filterSummary(lines, modes, destination) {
+    var lineCount = lines && lines.length ? lines.length : 0
+    var modeCount = modes && modes.length ? modes.length : 0
+    var destinationSet = String(destination || "").trim() !== ""
+    if (!lineCount && !modeCount && !destinationSet)
+      return "All services"
+
+    var lineText = lineCount ? lineCount + (lineCount === 1 ? " line" : " lines") : "all lines"
+    var modeText = modeCount ? modeCount + (modeCount === 1 ? " mode" : " modes") : "all modes"
+    return lineText + " · " + modeText
+  }
+
+  function placeSummary(place) {
+    if (!place)
+      return "All services"
+
+    var parts = []
+    var from = Model.boardStopName(place.stopName)
+    if (from) parts.push(from + (place.destStopName ? " → " + Model.boardStopName(place.destStopName) : ""))
+    if (place.walkMinutes > 0) parts.push(place.walkMinutes + " min walk")
+    var filter = filterSummary(place.lines || [], place.modes || [], place.destination)
+    parts.push(place.lines && place.lines.length ? place.lines.join(", ") : filter)
+    return parts.join(" · ")
+  }
+
   function savePlaceDraft() {
     if (!service || !Api.isStopId(placeStopId))
       return
@@ -179,6 +254,7 @@ Item {
       "places": list,
       "activePlaceId": item.id
     })
+    loadPlace(item.id)
   }
 
   function removePlace() {
@@ -311,8 +387,8 @@ Item {
 
   function openUrl(url) {
     var safe = Api.httpsOnly(url)
-    if (safe)
-      Quickshell.execDetached(["gio", "open", safe])
+    if (safe && service && typeof service.openUrl === "function")
+      service.openUrl(safe)
   }
 
   function quotaCaptionText() {
@@ -339,7 +415,7 @@ Item {
 
   PanelWindow {
     visible: root.opened
-    color: "transparent"
+    color: Qt.rgba(root.background.r, root.background.g, root.background.b, 0)
     WlrLayershell.namespace: "tfnsw-departures-overlay"
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
@@ -426,7 +502,8 @@ Item {
           ButtonGroup {
             id: tabs
 
-            anchors.right: parent.right
+            anchors.right: closeButton.left
+            anchors.rightMargin: Style.spacing.sm
             anchors.verticalCenter: parent.verticalCenter
             foreground: root.foreground
             fontFamily: root.family
@@ -442,6 +519,18 @@ Item {
             onChanged: function(value) {
               root.tab = value
             }
+          }
+
+          PanelActionButton {
+            id: closeButton
+
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            iconText: "󰅖"
+            tooltipText: "Close"
+            foreground: root.muted
+            fontFamily: root.family
+            onClicked: root.dismiss()
           }
         }
 
@@ -486,530 +575,8 @@ Item {
   Component {
     id: settingsPane
 
-    Flickable {
-      clip: true
-      contentWidth: width
-      contentHeight: settingsColumn.height
-      boundsBehavior: Flickable.StopAtBounds
-
-      Column {
-        id: settingsColumn
-
-        width: parent.width
-        spacing: Style.spacing.xxl
-
-        Column {
-          width: parent.width
-          spacing: Style.spacing.lg
-
-          SectionTitle {
-            text: "Connection"
-          }
-
-          TextField {
-            width: parent.width
-            height: root.controlHeight
-            verticalAlignment: TextInput.AlignVCenter
-            password: true
-            text: root.keyDraft
-            placeholderText: "Transport NSW API key"
-            foreground: root.foreground
-            onTextChanged: root.keyDraft = text
-          }
-
-          Row {
-            spacing: Style.spacing.lg
-
-            Button {
-              bordered: true
-              text: root.service && root.service.phase === "connecting" ? "Connecting…" : "Connect"
-              foreground: root.foreground
-              fontFamily: root.family
-              onClicked: {
-                if (root.service && root.service.applyConnection(root.keyDraft)) {
-                  root.keyDraft = ""
-                }
-              }
-            }
-
-            Button {
-              bordered: true
-              text: "Remove key"
-              visible: root.service && root.service.hasKey && !root.service.demoMode
-              foreground: root.foreground
-              fontFamily: root.family
-              onClicked: root.service.removeConnection()
-            }
-
-            Button {
-              bordered: true
-              text: "Get a key"
-              foreground: root.foreground
-              fontFamily: root.family
-              onClicked: root.openUrl(Api.REGISTER_URL)
-            }
-          }
-
-          Caption {
-            width: parent.width
-            text: root.service ? (root.service.demoMode ? "Demo connected" : root.service.phase === "connected" ? "Connected" : root.service.lastError || "No key connected") : "Service unavailable"
-            color: root.service && root.service.phase === "error" ? Color.urgent : root.muted
-          }
-
-          Caption {
-            width: parent.width
-            text: "Get a key:\n1. Register for TfNSW Open Data and open Applications.\n2. Add an application, choose the Bronze plan (60,000 calls/day), and tick Trip Planner APIs.\n3. Copy the API key and paste it above.\n\nThe key is stored only in the system keyring."
-          }
-
-          Toggle {
-            width: parent.width
-            label: "Demo mode"
-            description: "A live-looking Sydenham board with no keyring or network calls."
-            checked: root.service ? root.service.demoMode : false
-            foreground: root.foreground
-            fontFamily: root.family
-            onClicked: {
-              if (root.service) {
-                root.service.setDemoMode(!root.service.demoMode)
-              }
-            }
-          }
-        }
-
-        PanelSeparator {
-          width: parent.width
-        }
-
-        Column {
-          width: parent.width
-          spacing: Style.spacing.lg
-
-          Row {
-            width: parent.width
-
-            SectionTitle {
-              text: "Places"
-            }
-
-            Item {
-              width: Math.max(0, parent.width - parent.children[0].width - addButton.width - removeButton.width - Style.spacing.lg * 2)
-              height: 1
-            }
-
-            Button {
-              id: addButton
-
-              bordered: true
-              text: "Add place"
-              foreground: root.foreground
-              fontFamily: root.family
-              onClicked: root.addPlaceDraft()
-            }
-
-            Button {
-              id: removeButton
-
-              bordered: true
-              text: "Remove"
-              visible: root.placeById(root.selectedPlaceId) !== null
-              foreground: root.foreground
-              fontFamily: root.family
-              onClicked: root.removePlace()
-            }
-          }
-
-          ButtonGroup {
-            visible: root.service && root.service.places.length
-            foreground: root.foreground
-            fontFamily: root.family
-            fontSize: Style.font.caption
-            options: root.service ? root.service.places.map(function(p) {
-              return {
-                "value": p.id,
-                "label": Model.placeLabel(p),
-                "tooltip": Model.placeTooltip(p)
-              }
-            }) : []
-            value: root.selectedPlaceId
-            onChanged: function(value) {
-              root.selectedPlaceId = value
-              root.loadPlace(value)
-            }
-          }
-
-          Caption {
-            width: parent.width
-            visible: root.service && !root.service.places.length && !root.selectedPlaceId
-            text: "Add your first station or stop."
-          }
-
-          Column {
-            width: parent.width
-            spacing: Style.spacing.sm
-
-            FieldLabel {
-              text: "Name"
-            }
-
-            TextField {
-              width: parent.width
-              height: root.controlHeight
-              verticalAlignment: TextInput.AlignVCenter
-              text: root.placeName
-              placeholderText: "Home"
-              foreground: root.foreground
-              onTextChanged: root.placeName = text
-            }
-          }
-
-          Column {
-            width: parent.width
-            spacing: Style.spacing.sm
-
-            FieldLabel {
-              text: "Leaving from"
-            }
-
-            TextField {
-              width: parent.width
-              height: root.controlHeight
-              verticalAlignment: TextInput.AlignVCenter
-              text: root.placeStopName
-              placeholderText: "Search stations and stops…"
-              foreground: root.foreground
-              onTextEdited: root.searchPlaceStops(text)
-            }
-
-            Repeater {
-              model: root.stopResults
-
-              delegate: Button {
-                required property var modelData
-
-                width: settingsColumn.width
-                leftAlign: true
-                bordered: true
-                text: modelData.shortName + " · " + modelData.modes.join(", ")
-                foreground: root.foreground
-                fontFamily: root.family
-                onClicked: root.pickStop(modelData)
-              }
-            }
-
-            Caption {
-              width: parent.width
-              visible: root.placeSearchText.length >= 2
-                && root.placeSearchComplete && root.stopResults.length === 0
-              text: "No stations or stops match."
-            }
-          }
-
-          Column {
-            width: parent.width
-            spacing: Style.spacing.sm
-
-            FieldLabel {
-              text: "Going to (optional)"
-            }
-
-            Row {
-              width: parent.width
-              spacing: Style.spacing.sm
-
-              TextField {
-                id: destinationField
-
-                width: Math.max(0, parent.width - clearDestinationButton.width - parent.spacing)
-                height: root.controlHeight
-                verticalAlignment: TextInput.AlignVCenter
-                text: root.placeDestStopName
-                placeholderText: "Search stations and stops…"
-                foreground: root.foreground
-                onTextEdited: root.searchDestinationStops(text)
-
-                Connections {
-                  target: root
-                  function onPlaceDestStopNameChanged() {
-                    if (destinationField.text !== root.placeDestStopName)
-                      destinationField.text = root.placeDestStopName
-                  }
-                }
-              }
-
-              Button {
-                id: clearDestinationButton
-
-                bordered: true
-                text: "Clear"
-                opacity: root.placeDestStopId ? 1 : 0.45
-                foreground: root.foreground
-                fontFamily: root.family
-                onClicked: root.clearDestination()
-              }
-            }
-
-            Repeater {
-              model: root.destinationResults
-
-              delegate: Button {
-                required property var modelData
-
-                width: settingsColumn.width
-                leftAlign: true
-                bordered: true
-                text: modelData.shortName + " · " + modelData.modes.join(", ")
-                foreground: root.foreground
-                fontFamily: root.family
-                onClicked: root.pickDestination(modelData)
-              }
-            }
-
-            Caption {
-              width: parent.width
-              visible: root.destinationSearchText.length >= 2
-                && root.destinationSearchComplete && root.destinationResults.length === 0
-              text: "No other stations or stops match."
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.spacing.xl
-
-            Column {
-              width: (parent.width - parent.spacing) / 2
-              spacing: Style.spacing.sm
-
-              FieldLabel {
-                text: "Lines (comma separated)"
-              }
-
-              TextField {
-                id: linesField
-
-                width: parent.width
-                height: root.controlHeight
-                verticalAlignment: TextInput.AlignVCenter
-                text: root.placeLines
-                placeholderText: "T4, T8"
-                foreground: root.foreground
-                onTextEdited: root.placeLines = text
-
-                // Typing breaks a TextField's `text:` binding. Mirror the
-                // selected draft so switching places restores its saved lines.
-                Connections {
-                  target: root
-                  function onPlaceLinesChanged() {
-                    if (linesField.text !== root.placeLines)
-                      linesField.text = root.placeLines
-                  }
-                }
-              }
-            }
-
-            Column {
-              width: (parent.width - parent.spacing) / 2
-              spacing: Style.spacing.sm
-
-              FieldLabel {
-                text: "Destination contains"
-              }
-
-              TextField {
-                width: parent.width
-                height: root.controlHeight
-                verticalAlignment: TextInput.AlignVCenter
-                text: root.placeDestination
-                placeholderText: "City"
-                foreground: root.foreground
-                onTextChanged: root.placeDestination = text
-              }
-            }
-          }
-
-          MultiSelect {
-            width: parent.width
-            label: "Modes"
-            values: root.placeModes
-            options: Api.MODES.map(function(m) {
-              return {
-                "value": m.id,
-                "label": m.label
-              }
-            })
-            foreground: root.foreground
-            fontFamily: root.family
-            onChanged: function(values) {
-              root.placeModes = values
-            }
-          }
-
-          Row {
-            width: parent.width
-            spacing: Style.spacing.xl
-
-            NumberField {
-              label: "Walk minutes"
-              value: root.placeWalk
-              from: 0
-              to: 60
-              foreground: root.foreground
-              fontFamily: root.family
-              onModified: function(value) {
-                root.placeWalk = value
-              }
-            }
-
-            Column {
-              width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
-              spacing: Style.spacing.sm
-
-              FieldLabel {
-                text: "Wi-Fi SSID"
-              }
-
-              Row {
-                width: parent.width
-                spacing: Style.spacing.sm
-
-                TextField {
-                  width: Math.max(0, parent.width - useCurrent.width - parent.spacing)
-                  height: root.controlHeight
-                  verticalAlignment: TextInput.AlignVCenter
-                  text: root.placeSsid
-                  placeholderText: "Optional"
-                  foreground: root.foreground
-                  onTextChanged: root.placeSsid = text
-                }
-
-                Button {
-                  id: useCurrent
-
-                  bordered: true
-                  text: "Use current"
-                  foreground: root.foreground
-                  fontFamily: root.family
-                  onClicked: {
-                    if (root.service) {
-                      root.placeSsid = root.service.lastSsid
-                    }
-                  }
-                }
-              }
-            }
-          }
-
-          Toggle {
-            width: parent.width
-            label: "Auto-switch by Wi-Fi"
-            description: "Choose a matching place after 30 minutes without a manual selection."
-            checked: root.service ? root.service.autoPlace : true
-            foreground: root.foreground
-            fontFamily: root.family
-            onClicked: {
-              if (root.service) {
-                root.service.saveConfig({
-                "autoPlace": !root.service.autoPlace
-              })
-              }
-            }
-          }
-
-          Button {
-            bordered: true
-            text: "Save place"
-            opacity: Api.isStopId(root.placeStopId) ? 1 : 0.45
-            foreground: root.foreground
-            fontFamily: root.family
-            onClicked: {
-              if (Api.isStopId(root.placeStopId)) {
-                root.savePlaceDraft()
-              }
-            }
-          }
-        }
-
-        PanelSeparator {
-          width: parent.width
-        }
-
-        Column {
-          width: parent.width
-          spacing: Style.spacing.lg
-
-          SectionTitle {
-            text: "Board"
-          }
-
-          NumberField {
-            label: "Poll seconds"
-            value: root.service ? root.service.pollSeconds : 60
-            from: 30
-            to: 600
-            foreground: root.foreground
-            fontFamily: root.family
-            onModified: function(value) {
-              if (root.service)
-                root.service.saveConfig({
-                "pollSeconds": value
-              })
-            }
-          }
-
-          Toggle {
-            width: parent.width
-            label: "Leave-now notifications"
-            checked: root.service ? root.service.notify : true
-            foreground: root.foreground
-            fontFamily: root.family
-            onClicked: {
-              if (root.service) {
-                root.service.saveConfig({
-                "notify": !root.service.notify
-              })
-              }
-            }
-          }
-
-          Toggle {
-            width: parent.width
-            label: "Colourful bar badge"
-            checked: root.service ? root.service.colorful : false
-            foreground: root.foreground
-            fontFamily: root.family
-            onClicked: {
-              if (root.service) {
-                root.service.saveConfig({
-                "colorful": !root.service.colorful
-              })
-              }
-            }
-          }
-        }
-
-        PanelSeparator {
-          width: parent.width
-        }
-
-        Row {
-          spacing: Style.spacing.lg
-
-          Caption {
-            text: "Transport NSW v" + (root.manifest && root.manifest.version ? root.manifest.version : "0.5.2")
-          }
-
-          Button {
-            text: "Project repository"
-            foreground: root.foreground
-            fontFamily: root.family
-            onClicked: root.openUrl("https://github.com/vichong/omarchy-tfnsw-departures")
-          }
-        }
-      }
-
-      ScrollBar.vertical: ScrollBar {
-        policy: ScrollBar.AsNeeded
-      }
+    SettingsPane {
+      host: root
     }
   }
 

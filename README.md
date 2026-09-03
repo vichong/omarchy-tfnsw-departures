@@ -10,8 +10,9 @@ back to your active place.
 The popup follows a station indicator-board layout: line-colour badges lead each
 destination, compact pills show realtime and change status, and expanded trips
 become mini boards with per-leg platforms, clocks and bounded stop sequences.
-The hero and place tooltips also show the allocated walk time, so the line-colour
-countdown clearly means when to leave rather than when the service departs.
+The hero's place selector keeps the active route immediately available, while
+the leave-window strip shows the allocated walk and next line without competing
+with the countdown.
 
 | Bar | Departures popup |
 |:---:|:---:|
@@ -54,9 +55,10 @@ key and makes no network calls.
 
 Add a place and search for its origin stop. Leave **Going to** empty for a live
 departure board, or choose a destination stop to turn the place into a trip.
-Place chips make the distinction explicit: `From Home` is a departure board,
-while `Home → Wynyard` is a planned trip. Trip rows show departure → arrival in
-the right column, with travel time and changes underneath.
+The place selector makes the distinction explicit: `From Home` is a departure
+board, while `Home → Wynyard` is a planned trip. Trip rows lead with your saved
+destination, keep the vehicle headsign secondary, and show arrival and travel
+time in the caption.
 
 ### Trips with changes
 
@@ -66,7 +68,8 @@ expanded at a time. Per-leg platforms, realtime status and disruption alerts
 remain attached to the service they affect.
 
 You can optionally filter lines, destination text and modes, then set the walking
-time. An empty line/mode filter shows everything.
+time. Each place is edited in its own card, with service filters behind a compact
+disclosure; empty line, destination and mode filters display as **All**.
 The bar mark can remain monochrome with the rest of Omarchy or use the TfNSW
 gradient. Leave-now notifications and polling (30–600 seconds) are configurable.
 
@@ -106,7 +109,8 @@ The bar shows only the Transport mark, flat and static like the stock widgets,
 plus a warning glyph while a disruption alert is active. Hover for the full
 countdown, arrival time and place. Open the popup and the **leave window**
 under the hero shows how much of your ten-minute window is gone, as a track in
-the next service's line colour with "Leave in 4′ · L2 to Circular Quay".
+the next service's line colour with “Leave in 4 min” above “6 min walk · L2 to
+Circular Quay”.
 
 To show the countdown text in the bar instead, set it on the widget entry in
 `~/.config/omarchy/shell.json`:

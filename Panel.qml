@@ -1,14 +1,14 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import qs.Ui
+import qs.Ui as Ui
 import qs.Commons
 import "Api.js" as Api
 import "Model.js" as Model
 
 // Bar button plus the departures popup. The service owns transport state,
 // this component owns the popup cursor and the shell IPC target.
-Panel {
+Ui.Panel {
   id: root
 
   readonly property var service: bar && bar.shell ? bar.shell.serviceFor(moduleName) : null
@@ -34,71 +34,8 @@ Panel {
     }
     return false
   }
-  readonly property string heroRoute: {
-    if (!ready)
-      return "Service unavailable"
-
-    var place = service.activePlace
-    if (!place)
-      return ""
-
-    var route = shortStopName(place.stopName)
-    if (Model.hasDestination(place))
-      route += " → " + shortStopName(place.destStopName)
-
-    return route
-  }
-  readonly property string heroStatus: ready && service.rows.count
-    ? (service.rows.get(0).realtime ? "realtime" : "scheduled") : ""
-  readonly property string heroWalk: ready && service.activePlace && service.activePlace.walkMinutes > 0
-    ? service.activePlace.walkMinutes + " min walk" : ""
-  readonly property real heroMetaAvailableWidth: Style.space(460) - Style.space(48) - Style.space(132)
-  readonly property string heroMeta: {
-    var baseText = heroRoute + (heroWalk ? " · " + heroWalk : "")
-    var longText = baseText + (heroStatus ? " · " + heroStatus : "")
-    if (heroMetaMeasure.advanceWidth <= heroMetaAvailableWidth)
-      return longText
-    if (heroBaseMeasure.advanceWidth <= heroMetaAvailableWidth)
-      return baseText
-
-    // The route is the point of the line; PanelHero elides it if it must.
-    return heroRoute
-  }
-  readonly property string refreshTooltip: {
-    if (!ready || !service.lastPolledMs)
-      return "Refresh"
-
-    return "Refresh · updated " + Model.clockText(service.lastPolledMs)
-  }
-
-  TextMetrics {
-    id: heroMetaMeasure
-
-    font.family: root.family
-    font.pixelSize: Style.font.caption
-    font.bold: true
-    font.letterSpacing: 1.2
-    text: (root.heroRoute + (root.heroWalk ? " · " + root.heroWalk : "")
-      + (root.heroStatus ? " · " + root.heroStatus : "")).toUpperCase()
-  }
-
-  TextMetrics {
-    id: heroBaseMeasure
-
-    font.family: root.family
-    font.pixelSize: Style.font.caption
-    font.bold: true
-    font.letterSpacing: 1.2
-    text: (root.heroRoute + (root.heroWalk ? " · " + root.heroWalk : "")).toUpperCase()
-  }
-
-  function twoDigits(n) {
-    return (n < 10 ? "0" : "") + n
-  }
-
-  function shortStopName(name) {
-    return String(name || "").replace(/\s+(Station|Wharf|Light Rail|Interchange)\b.*$/i, "").trim()
-  }
+  readonly property string boardStatus: ready && service.rows.count
+    ? (service.rows.get(0).realtime ? "realtime" : "scheduled") : "scheduled"
 
   function moveCursor(delta) {
     if (rowCount)
@@ -178,7 +115,7 @@ Panel {
     function next(): string { return root.ready ? root.service.pillText : "" }
   }
 
-  WidgetButton {
+  Ui.WidgetButton {
     id: button
 
     anchors.fill: parent
@@ -266,7 +203,7 @@ Panel {
     }
   }
 
-  KeyboardPanel {
+  Ui.KeyboardPanel {
     id: panel
 
     anchorItem: button
@@ -277,7 +214,7 @@ Panel {
     contentWidth: panel.fittedContentWidth(Style.space(460))
     contentHeight: panel.fittedContentHeight(column.implicitHeight)
 
-    PanelKeyCatcher {
+    Ui.PanelKeyCatcher {
       id: keyCatcher
 
       anchors.fill: parent
@@ -304,50 +241,108 @@ Panel {
         anchors.fill: parent
         spacing: Style.spacing.panelGap
 
-        PanelHero {
-          width: parent.width
-          title: root.ready && root.service.activePlace ? root.service.activePlace.name : "Transport NSW"
-          meta: root.heroMeta
-          foreground: root.fg
-          fontFamily: root.family
-          iconOpacity: root.connected ? 1 : 0.5
+        Item {
+          id: hero
 
-          iconComponent: TransportMark {
+          width: parent.width
+          implicitHeight: Math.max(heroMark.height, heroLabels.implicitHeight, heroActions.implicitHeight)
+
+          TransportMark {
+            id: heroMark
+
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
             iconSize: Style.font.display
             colorful: true
+            dim: root.connected ? 1 : 0.5
           }
 
-          trailingControl: Component {
-            Row {
-              spacing: Style.spacing.xs
+          Column {
+            id: heroLabels
 
-              PanelActionButton {
-                iconText: "󰑐"
-                tooltipText: root.refreshTooltip
-                foreground: Qt.darker(root.fg, 1.4)
+            anchors.left: heroMark.right
+            anchors.leftMargin: Style.space(14)
+            anchors.right: heroActions.left
+            anchors.rightMargin: Style.space(12)
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.space(2)
+
+            Text {
+              width: parent.width
+              textFormat: Text.PlainText
+              text: root.ready && root.service.activePlace ? root.service.activePlace.name : "Transport NSW"
+              color: root.fg
+              font.family: root.family
+              font.pixelSize: Style.font.title
+              font.bold: true
+              elide: Text.ElideRight
+            }
+
+            Item {
+              id: placeSelectorSlot
+
+              readonly property real captionScale: Style.font.caption / Style.font.body
+
+              visible: root.ready && root.service.effectivePlaces.length > 1
+              width: parent.width
+              implicitHeight: visible ? Math.round(Style.spacing.controlHeight * captionScale) : 0
+              height: implicitHeight
+
+              Ui.Dropdown {
+                // A compact chip like the mockup, not a full-width form control.
+                width: Math.min(placeSelectorSlot.width, Style.space(250)) / placeSelectorSlot.captionScale
+                showLabel: false
+                rowHeight: Style.spacing.controlHeight
+                scale: placeSelectorSlot.captionScale
+                transformOrigin: Item.TopLeft
+                foreground: root.fg
                 fontFamily: root.family
-                onClicked: {
-                  if (root.ready) {
-                    root.service.refresh()
-                  }
+                options: root.ready ? root.service.effectivePlaces.map(function(p) {
+                  return { "value": p.id, "label": Model.routeLabel(p) }
+                }) : []
+                value: root.ready && root.service.activePlace ? root.service.activePlace.id : ""
+                onChanged: function(value) {
+                  root.service.setActivePlace(value, true)
+                  root.cursorIndex = 0
+                  root.expandedDepId = ""
                 }
               }
+            }
+          }
 
-              PanelActionButton {
-                iconText: "󰋊"
-                tooltipText: "Here"
-                foreground: Qt.darker(root.fg, 1.4)
-                fontFamily: root.family
-                onClicked: root.openOverlay("here")
-              }
+          Row {
+            id: heroActions
 
-              PanelActionButton {
-                iconText: "󰒓"
-                tooltipText: "Settings"
-                foreground: Qt.darker(root.fg, 1.4)
-                fontFamily: root.family
-                onClicked: root.openOverlay("settings")
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Style.spacing.xs
+
+            Ui.PanelActionButton {
+              iconText: "󰑐"
+              tooltipText: "Refresh"
+              foreground: Qt.darker(root.fg, 1.4)
+              fontFamily: root.family
+              onClicked: {
+                if (root.ready) {
+                  root.service.refresh()
+                }
               }
+            }
+
+            Ui.PanelActionButton {
+              iconText: "󰋊"
+              tooltipText: "Here"
+              foreground: Qt.darker(root.fg, 1.4)
+              fontFamily: root.family
+              onClicked: root.openOverlay("here")
+            }
+
+            Ui.PanelActionButton {
+              iconText: "󰒓"
+              tooltipText: "Settings"
+              foreground: Qt.darker(root.fg, 1.4)
+              fontFamily: root.family
+              onClicked: root.openOverlay("settings")
             }
           }
         }
@@ -358,27 +353,56 @@ Panel {
         Item {
           id: leaveWindow
 
-          readonly property bool active: root.connected && root.service.nextLeaveMs >= 0 && root.service.underlineFraction > 0
+          readonly property bool active: root.connected && root.service.nextLeaveMs >= 0
 
           width: parent.width
           visible: active
-          implicitHeight: active ? windowLabel.implicitHeight + Style.spacing.xs + windowTrack.height : 0
+          implicitHeight: active ? leaveCopy.implicitHeight + Style.spacing.xs + windowTrack.height : 0
           height: implicitHeight
 
-          Text {
-            id: windowLabel
-
+          Row {
+            id: leaveCopy
             anchors.left: parent.left
             anchors.right: parent.right
-            textFormat: Text.PlainText
-            text: "Leave in " + Model.minutesText(root.ready ? root.service.nextLeaveMs : 0)
-              + (root.ready && root.service.nextLine ? " · " + root.service.nextLine : "")
-              + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
-            elide: Text.ElideRight
-            color: root.fg
-            font.family: root.family
-            font.pixelSize: Style.font.caption
-            font.bold: true
+            spacing: Style.spacing.lg
+
+            Text {
+              anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
+              text: "󰖃"
+              color: Qt.darker(root.fg, 1.35)
+              font.family: root.family
+              font.pixelSize: Style.font.icon
+            }
+
+            Column {
+              width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
+              spacing: Style.spacing.xxs
+
+              Text {
+                width: parent.width
+                textFormat: Text.PlainText
+                text: Model.leaveHeading(root.ready ? root.service.nextLeaveMs : 0)
+                elide: Text.ElideRight
+                color: root.fg
+                font.family: root.family
+                font.pixelSize: Style.font.body
+                font.bold: true
+              }
+
+              Text {
+                width: parent.width
+                textFormat: Text.PlainText
+                text: (root.ready && root.service.activePlace && root.service.activePlace.walkMinutes > 0
+                  ? root.service.activePlace.walkMinutes + " min walk · " : "")
+                  + (root.ready && root.service.nextLine ? root.service.nextLine : "")
+                  + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
+                elide: Text.ElideRight
+                color: Qt.darker(root.fg, 1.4)
+                font.family: root.family
+                font.pixelSize: Style.font.caption
+              }
+            }
           }
 
           Rectangle {
@@ -402,35 +426,16 @@ Panel {
           }
         }
 
-        PanelSeparator {
+        Ui.PanelSeparator {
           width: parent.width
           foreground: root.fg
-        }
-
-        ButtonGroup {
-          visible: root.ready && root.service.effectivePlaces.length > 1
-          focusable: false
-          foreground: root.fg
-          fontFamily: root.family
-          fontSize: Style.font.caption
-          options: root.ready ? root.service.effectivePlaces.map(function(p) {
-            return {
-              "value": p.id,
-              "label": Model.placeLabel(p),
-              "tooltip": Model.placeTooltip(p)
-            }
-          }) : []
-          value: root.ready && root.service.activePlace ? root.service.activePlace.id : ""
-          onChanged: function(value) {
-            root.service.setActivePlace(value, true)
-          }
         }
 
         Column {
           width: parent.width
           visible: root.ready && root.service.alerts.length > 0
 
-          CursorSurface {
+          Ui.CursorSurface {
             width: parent.width
             foreground: root.fg
             implicitHeight: alertSummary.implicitHeight + Style.spacing.rowPaddingX
@@ -463,7 +468,7 @@ Panel {
           Repeater {
             model: root.alertsExpanded && root.ready ? root.service.alerts : []
 
-            delegate: CursorSurface {
+            delegate: Ui.CursorSurface {
               required property var modelData
 
               width: column.width
@@ -508,7 +513,7 @@ Panel {
             font.pixelSize: Style.font.body
           }
 
-          Button {
+          Ui.Button {
             bordered: true
             text: "Open settings"
             foreground: root.fg
@@ -530,7 +535,7 @@ Panel {
             font.pixelSize: Style.font.body
           }
 
-          Button {
+          Ui.Button {
             bordered: true
             text: "Open settings"
             foreground: root.fg
@@ -582,11 +587,43 @@ Panel {
             walkMinutes: root.ready && root.service.activePlace ? root.service.activePlace.walkMinutes : 0
             realtime: model.realtime
             cancelled: model.cancelled
+            dominated: model.dominated
             missed: model.missed
             delayMin: model.delayMin
             status: model.status
             alertTitle: model.alertTitle
             onExpandToggled: root.toggleExpanded(depId)
+          }
+        }
+
+        Ui.PanelSeparator {
+          width: parent.width
+          foreground: root.fg
+        }
+
+        Row {
+          width: parent.width
+
+          Text {
+            width: parent.width / 2
+            textFormat: Text.PlainText
+            text: root.ready ? Model.relativeTimeText(root.service.lastPolledMs, root.service.nowMs)
+              + " · " + root.boardStatus : "updated never · scheduled"
+            color: Qt.darker(root.fg, 1.4)
+            font.family: root.family
+            font.pixelSize: Style.font.caption
+            elide: Text.ElideRight
+          }
+
+          Text {
+            width: parent.width / 2
+            textFormat: Text.PlainText
+            text: root.ready ? Model.dateTimeText(root.service.nowMs) : ""
+            horizontalAlignment: Text.AlignRight
+            color: Qt.darker(root.fg, 1.4)
+            font.family: root.family
+            font.pixelSize: Style.font.caption
+            elide: Text.ElideLeft
           }
         }
       }

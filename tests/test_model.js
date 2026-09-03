@@ -27,16 +27,20 @@ equal(Model.minutesText(30 * 1000), "now", "under a minute is now")
 equal(Model.minutesText(6 * 60 * 1000 + 5000), "6′", "minutes text")
 equal(Model.minutesText(-5000), "now", "negative is now")
 equal(Model.minutesText(200 * 60 * 1000), "99+′", "capped")
+equal([Model.leaveHeading(59000), Model.leaveHeading(60000), Model.leaveHeading(3 * 60000 + 59000)],
+  ["Leave now", "Leave in 1 min", "Leave in 3 min"], "leave heading grammar")
+equal([Model.relativeTimeText(now - 12000, now), Model.relativeTimeText(now - 2 * 60000, now), Model.relativeTimeText(0, now)],
+  ["updated 12s ago", "updated 2m ago", "updated never"], "footer relative time text")
 
 const rows = Model.buildRows(board, home, now)
 equal(rows.length, board.length, "one row per board entry")
 assert(rows[0].line === "T4" && rows[0].timeText.match(/^[0-9]{2}:[0-9]{2}$/) && rows[0].glyph !== "", "row projection")
-assert(rows.every(r => ["On time", "Scheduled", "Cancelled"].indexOf(r.status) !== -1 || /min$/.test(r.status)), "row status vocabulary")
+assert(rows.every(r => ["On time", "Scheduled", "Cancelled"].indexOf(r.status) !== -1 || /min (late|early)$/.test(r.status)), "row status vocabulary")
 
 const cancelled = { id: "x", line: "T4", destination: "City", mode: "train", plannedMs: now + 600000, estimatedMs: 0, realtime: false, cancelled: true, infos: [] }
 const late = { id: "y", line: "T4", destination: "City", mode: "train", plannedMs: now + 600000, estimatedMs: now + 840000, realtime: true, cancelled: false, infos: [] }
 const projected = Model.buildRows([cancelled, late], home, now)
-equal([projected[0].status, projected[0].leaveText, projected[1].status, projected[1].delayMin], ["Cancelled", "—", "+4 min", 4], "cancelled and delayed rows")
+equal([projected[0].status, projected[0].leaveText, projected[1].status, projected[1].delayMin], ["Cancelled", "—", "4 min late", 4], "cancelled and delayed rows")
 assert(Model.nextCatchable([cancelled, late], home, now) === late, "cancelled services are skipped for the pill")
 
 const urgencyNow = Model.urgency([{ id: "a", line: "T4", destination: "City", mode: "train", plannedMs: now + 6 * 60000, estimatedMs: 0, realtime: false, cancelled: false, infos: [] }], home, now)
@@ -79,7 +83,8 @@ equal(tripBoard.length, 1, "one journey becomes one board entry")
 equal([tripBoard[0].line, tripBoard[0].mode, tripBoard[0].changes, tripBoard[0].platform, tripBoard[0].stopName], ["T4", "train", 0, "3", "Sydenham Station"], "journey entry takes the first ride's identity")
 assert(tripBoard[0].arriveMs === journeys[0].arriveMs && tripBoard[0].travelSec > 0, "journey entry carries arrival and travel time")
 const tripRows = Model.buildRows(tripBoard, tripPlace, tripNow)
-assert(/^[0-9]{2}:[0-9]{2}$/.test(tripRows[0].arriveText) && /min$/.test(tripRows[0].travelText) && tripRows[0].changesText === "direct", "trip rows show arrival, travel time and changes")
+assert(/^[0-9]{2}:[0-9]{2}$/.test(tripRows[0].arriveText) && /min$/.test(tripRows[0].travelText) && tripRows[0].changesText === "", "direct trip rows omit a changes pill")
+equal([tripRows[0].destination, tripRows[0].headsign], ["Wynyard", journeys[0].legs[0].destination], "trip rows lead with the place destination and keep the vehicle headsign")
 assert(/^T4 · 4′ → [0-9]{2}:[0-9]{2}$/.test(Model.pillText(tripBoard, tripPlace, tripNow)), "pill shows the arrival for trips: " + Model.pillText(tripBoard, tripPlace, tripNow))
 assert(Model.boardFromJourneys(journeys, Object.assign({}, tripPlace, { lines: ["T8"] }), tripNow).length === 0, "line filter applies to the first ride")
 const tripNotification = Model.notificationFor(tripBoard, tripPlace, journeys[0].departMs - 6 * 60000, {})
@@ -109,12 +114,34 @@ assert(/^L[23] · 9′ → /.test(Model.pillText(Model.boardFromJourneys(multi, 
 const changeNotification = Model.notificationFor(commuteBoard, commute, multi[0].departMs - 4 * 60000, {})
 assert(changeNotification && / · change at Central$/.test(changeNotification.body), "multi-leg trip notification names the change stop")
 equal(Model.placeLabel(home), "From Home", "place without destination reads as an origin")
+equal(Model.routeLabel(home), "From Sydenham", "route label names the stop, not the place")
+equal(Model.routeLabel(commute), "Surry Hills → Chatswood", "route label shows both stops short")
 equal(Model.placeLabel(tripPlace), "Home → Wynyard", "trip label shows the destination's short name")
 equal(Model.placeTooltip(commute), "Surry Hills Light Rail → Chatswood Station · 3 min walk", "place tooltip shows full stops and walk allocation")
 equal(Model.placeTooltip(Object.assign({}, home, { walkMinutes: 0 })), "Sydenham Station", "zero walk is omitted from the place tooltip")
 equal(Model.firstWord("Circular Quay Wharf, Sydney"), "Circular Quay", "short destination name")
 assert(!Model.hasDestination(home) && Model.hasDestination(tripPlace), "hasDestination")
 equal(Model.projectRow(board[0], home, now).arriveText, "", "plain departures have no arrival")
+
+// --- dominated trips
+const dominanceBoard = [
+  { id: "slow", plannedMs: now + 10 * 60000, estimatedMs: 0, arriveMs: now + 40 * 60000, cancelled: false },
+  { id: "fast", plannedMs: now + 12 * 60000, estimatedMs: 0, arriveMs: now + 35 * 60000, cancelled: false },
+  { id: "tie", plannedMs: now + 14 * 60000, estimatedMs: 0, arriveMs: now + 35 * 60000, cancelled: false },
+  { id: "cancelled", plannedMs: now + 16 * 60000, estimatedMs: 0, arriveMs: now + 30 * 60000, cancelled: true }
+]
+Model.markDominated(dominanceBoard)
+equal(dominanceBoard.map(d => d.dominated), [true, true, false, false], "later earlier arrivals and ties dominate earlier trips")
+assert(Model.nextCatchable(dominanceBoard, { walkMinutes: 0 }, now) === dominanceBoard[2], "next catchable skips dominated trips")
+const cancelledFirst = [
+  { id: "normal", plannedMs: now + 8 * 60000, estimatedMs: 0, arriveMs: now + 50 * 60000, cancelled: false },
+  { id: "cancelled-later", plannedMs: now + 9 * 60000, estimatedMs: 0, arriveMs: now + 30 * 60000, cancelled: true }
+]
+Model.markDominated(cancelledFirst)
+equal(cancelledFirst.map(d => d.dominated), [false, false], "cancelled trips are neither dominated nor dominators")
+const plainBoard = [{ id: "plain", plannedMs: now + 5 * 60000, cancelled: false }]
+Model.markDominated(plainBoard)
+assert(!("dominated" in plainBoard[0]), "plain departures are untouched by dominance marking")
 
 // --- clock format follows the bar clock
 const evening = new Date(2026, 8, 2, 23, 5).getTime()

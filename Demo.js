@@ -37,8 +37,8 @@ function locations(query) {
 }
 function journeys(now) {
   var at = typeof now === "number" ? now : Date.now(), m = 60000
-  function ride(line, mode, platform, destination, depart, arrive, from, to, realtime) {
-    return { kind: "ride", line: line, mode: mode, from: from || "Sydenham Station",
+  function ride(line, mode, platform, destination, depart, arrive, from, to, realtime, tripId) {
+    return { kind: "ride", tripId: String(tripId || ""), line: line, mode: mode, from: from || "Sydenham Station",
       to: to || "Wynyard Station", platform: platform, destination: destination,
       departMs: depart, arriveMs: arrive, durationSec: Math.round((arrive - depart) / 1000),
       distanceM: 0, realtime: realtime !== false, infos: [], stops: [] }
@@ -46,12 +46,12 @@ function journeys(now) {
   function direct(id, line, mode, platform, destination, departMin, arriveMin, realtime) {
     return { id: id, departMs: at + departMin*m, arriveMs: at + arriveMin*m,
       durationSec: (arriveMin - departMin)*60,
-      legs: [ride(line, mode, platform, destination, at + departMin*m, at + arriveMin*m, "", "", realtime)] }
+      legs: [ride(line, mode, platform, destination, at + departMin*m, at + arriveMin*m, "", "", realtime, id)] }
   }
   var first = { id: "demo-journey-t4", departMs: at + 6*m, arriveMs: at + 34*m, durationSec: 28*60,
     legs: [
       { kind: "walk", line: "", mode: "walk", from: "Current location", to: "Sydenham Station", platform: "", destination: "", departMs: at + 6*m, arriveMs: at + 12*m, durationSec: 6*60, distanceM: 450, realtime: false, infos: [], stops: [] },
-      ride("T4", "train", "6", "Bondi Junction", at + 13*m, at + 34*m)
+      ride("T4", "train", "6", "Bondi Junction", at + 13*m, at + 34*m, "", "", true, "demo-journey-t4")
     ] }
   var change = { id: "demo-journey-change", departMs: at + 29*m, arriveMs: at + 57*m, durationSec: 28*60,
     legs: [

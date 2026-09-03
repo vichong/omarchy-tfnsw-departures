@@ -66,6 +66,13 @@ QtObject {
     callback(success(Demo.journeys(Date.now())))
   }
 
+  function occupancyMap() {
+    return {
+      "demo-journey-t4": "few",
+      "demo-journey-m1": "standing"
+    }
+  }
+
   function supersede() {
     generation++
   }

@@ -312,7 +312,7 @@ function boardFromJourneys(journeys, place, nowMs) {
     var realtime = rides.every(function(ride) { return ride.realtime })
     entries.push({
       id: first.line + "@" + journey.departMs + "→" + journey.arriveMs,
-      tripId: "",
+      tripId: String(first.tripId || ""),
       line: first.line,
       lineName: first.line,
       destination: first.destination,
@@ -362,7 +362,7 @@ function markDominated(board) {
 
 // Project parsed trip legs for the expandable departure row. When the API
 // omits a walking leg between two rides, make the transfer time explicit.
-function legRows(entry) {
+function legRows(entry, occupancy) {
   var shownAlerts = {}
   var legs = entry && Array.isArray(entry.legs) ? entry.legs : []
   var rows = []
@@ -375,6 +375,8 @@ function legRows(entry) {
       if (gapMs >= 60 * 1000) rows.push({
         kind: "change",
         mode: "",
+        tripId: "",
+        crowding: "",
         line: "",
         headsign: "",
         from: leg.from || legs[i - 1].to || "",
@@ -405,6 +407,8 @@ function legRows(entry) {
     rows.push({
       kind: leg.kind,
       mode: leg.kind === "walk" ? "walk" : (leg.mode || "other"),
+      tripId: leg.kind === "ride" ? String(leg.tripId || "") : "",
+      crowding: leg.kind === "ride" && occupancy ? String(occupancy[String(leg.tripId || "")] || "") : "",
       line: leg.kind === "walk" ? "" : String(leg.line || ""),
       headsign: leg.kind === "walk" ? "" : String(leg.destination || ""),
       from: String(leg.from || ""),
@@ -603,7 +607,7 @@ function urgency(board, place, nowMs) {
   return "calm"
 }
 
-function projectRow(dep, place, nowMs) {
+function projectRow(dep, place, nowMs, occupancy) {
   var leave = leaveInMs(dep, place, nowMs)
   var delay = delaySec(dep)
   var delayMin = Math.round(delay / 60)
@@ -613,6 +617,7 @@ function projectRow(dep, place, nowMs) {
   return {
     depId: String(dep.id),
     tripId: String(dep.tripId || ""),
+    crowding: dep.arriveMs && occupancy ? String(occupancy[String(dep.tripId || "")] || "") : "",
     line: dep.line,
     lineName: dep.lineName,
     mode: dep.mode,
@@ -641,9 +646,9 @@ function projectRow(dep, place, nowMs) {
   }
 }
 
-function buildRows(board, place, nowMs) {
+function buildRows(board, place, nowMs, occupancy) {
   var rows = []
-  for (var i = 0; i < board.length; i++) rows.push(projectRow(board[i], place, nowMs))
+  for (var i = 0; i < board.length; i++) rows.push(projectRow(board[i], place, nowMs, occupancy))
   return rows
 }
 

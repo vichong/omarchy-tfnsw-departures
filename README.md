@@ -16,6 +16,11 @@ The hero's place selector keeps the active route immediately available, while
 the leave-window strip shows the allocated walk and next line without competing
 with the countdown.
 
+Crowding is shown as three people icons on planned trips when live vehicle data
+is available. Bus and Metro coverage is reliable, train coverage is sparse,
+and light rail has no crowding feed. Departure-only boards do not show crowding
+because their identifiers cannot be joined to the vehicle-position feeds.
+
 | Bar | Departures popup |
 |:---:|:---:|
 | ![Transport NSW leave-in countdown in the Omarchy bar](docs/screenshots/bar.png) | ![Live departure board popup](docs/screenshots/popup.png) |

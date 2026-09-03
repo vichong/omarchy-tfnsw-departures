@@ -5,6 +5,7 @@ import "Api.js" as Api
 import "Model.js" as Model
 import "ConfigStore.js" as ConfigStore
 import "Demo.js" as Demo
+import "Crowding.js" as Crowding
 
 // Orchestration only: generation guards a connection lifetime while the
 // interchangeable backends own I/O and the JS modules own data shaping.
@@ -14,7 +15,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.1"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.8.0"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -269,6 +270,12 @@ QtObject {
   property int pollBackoff: 0
   property double quotaBackoffUntil: 0
   property bool popupOpen: false
+  property var occupancy: ({})
+  property var occupancyFetchedAt: ({})
+  property var occupancyRequestedAt: ({})
+  property var occupancyByMode: ({})
+  readonly property int occupancyPollMs: 60000
+  readonly property int occupancyCacheMs: 90000
   readonly property int effectivePollMs: Math.min(600000, (popupOpen ? 30000 : pollSeconds * 1000) * Math.pow(2, pollBackoff))
   property var sentTripIds: ({
   })
@@ -299,8 +306,14 @@ QtObject {
   clockTimer: Timer {
     interval: 15000
     repeat: true
-    running: root.departures.length > 0
-    onTriggered: root.project(Date.now())
+    running: root.departures.length > 0 || root.journeyBoard.length > 0
+    onTriggered: {
+      var now = Date.now()
+      root.rebuildOccupancy(now)
+      root.project(now)
+      root.reprojectJourney(now)
+      root.refreshCrowding()
+    }
   }
 
   property Process notification
@@ -364,6 +377,7 @@ QtObject {
 
   property var journeyRequest: null
   property var journeyBoard: []
+  property var journeyPlace: null
   property int journeyWalkMinutes: 0
   property string journeyError: ""
   property var lastNewTripLocation: null
@@ -667,6 +681,14 @@ QtObject {
     searchRequest = null
     journeyRequest = null
     nearbyRequest = null
+    resetCrowding()
+  }
+
+  function resetCrowding() {
+    occupancyFetchedAt = ({})
+    occupancyRequestedAt = ({})
+    occupancyByMode = ({})
+    occupancy = demoMode ? demoBackend.occupancyMap() : ({})
   }
 
   function quotaBlocked() {
@@ -875,7 +897,7 @@ QtObject {
     board = Model.hasDestination(place)
       ? Model.markDominated(Model.boardFromJourneys(departures, place, now))
       : Model.boardFor(departures, place, now)
-    var projected = Model.buildRows(board, place, now)
+    var projected = Model.buildRows(board, place, now, occupancy)
     rows.clear()
     for (var i = 0; i < projected.length && i < Model.MAX_ROWS; i++) rows.append(projected[i])
     alerts = Model.collectAlerts(board)
@@ -892,20 +914,110 @@ QtObject {
     underlineFraction = barState.fraction
     barCaption = barState.caption
     maybeNotify(now)
+    refreshCrowding()
   }
 
   function legsFor(depId) {
     var wanted = String(depId || "")
     for (var i = 0; i < board.length; i++) if (String(board[i].id) === wanted)
-      return Model.legRows(board[i])
+      return Model.legRows(board[i], occupancy)
 
     return []
   }
 
   function setPopupOpen(value) {
     popupOpen = value === true
-    if (popupOpen && connected)
+    if (popupOpen && connected) {
       poll()
+      refreshCrowding()
+    }
+  }
+
+  function visibleCrowdingModes() {
+    var seen = {}, modes = []
+    function scan(entries) {
+      var list = Array.isArray(entries) ? entries : []
+      for (var i = 0; i < list.length && i < Model.MAX_ROWS; i++) {
+        var legs = list[i] && Array.isArray(list[i].legs) ? list[i].legs : []
+        for (var l = 0; l < legs.length; l++) {
+          var mode = legs[l] && legs[l].kind === "ride" ? String(legs[l].mode || "") : ""
+          if ((mode === "train" || mode === "metro" || mode === "bus") && !seen[mode]) {
+            seen[mode] = true
+            modes.push(mode)
+          }
+        }
+      }
+    }
+    if (popupOpen) scan(board)
+    if (newTripOpen) scan(journeyBoard)
+    return modes
+  }
+
+  function rebuildOccupancy(now) {
+    if (demoMode) {
+      occupancy = demoBackend.occupancyMap()
+      return
+    }
+    var merged = {}, feeds = occupancyByMode
+    for (var mode in feeds) if (now - Number(occupancyFetchedAt[mode] || 0) <= occupancyCacheMs) {
+      var values = feeds[mode] || {}
+      for (var tripId in values) merged[tripId] = values[tripId]
+    }
+    occupancy = merged
+  }
+
+  function reprojectJourney(now) {
+    if (!journeyPlace)
+      return
+    var projected = Model.buildRows(journeyBoard, journeyPlace, now, occupancy)
+    journeyRows.clear()
+    for (var i = 0; i < projected.length && i < Model.MAX_ROWS; i++) journeyRows.append(projected[i])
+  }
+
+  function reprojectCrowding() {
+    var projected = activePlace ? Model.buildRows(board, activePlace, nowMs, occupancy) : []
+    rows.clear()
+    for (var i = 0; i < projected.length && i < Model.MAX_ROWS; i++) rows.append(projected[i])
+    reprojectJourney(Date.now())
+  }
+
+  function refreshCrowding() {
+    if ((!popupOpen && !newTripOpen) || demoMode || !connected || quotaBlocked())
+      return
+    var modes = visibleCrowdingModes(), now = Date.now()
+    for (var i = 0; i < modes.length; i++) {
+      var mode = modes[i]
+      if (now - Number(occupancyRequestedAt[mode] || 0) < occupancyPollMs)
+        continue
+      var requested = Object.assign({}, occupancyRequestedAt)
+      requested[mode] = now
+      occupancyRequestedAt = requested
+      fetchCrowdingMode(mode)
+    }
+  }
+
+  function fetchCrowdingMode(mode) {
+    var path = Api.vehiclePosPath(mode)
+    if (!path)
+      return
+    liveBackend.requestBinary(Api.BASE_URL + path, function(result) {
+      if (!result.ok)
+        return
+      var parsed = {}
+      try {
+        parsed = Crowding.parseOccupancy(Crowding.fromBase64(result.data))
+      } catch (e) {
+        return
+      }
+      var feeds = Object.assign({}, occupancyByMode)
+      feeds[mode] = parsed
+      occupancyByMode = feeds
+      var fetched = Object.assign({}, occupancyFetchedAt)
+      fetched[mode] = Date.now()
+      occupancyFetchedAt = fetched
+      rebuildOccupancy(fetched[mode])
+      reprojectCrowding()
+    })
   }
 
   function dayKey(now) {
@@ -1020,6 +1132,7 @@ QtObject {
     lastNewTripDestination = destination
     journeyError = ""
     journeyBoard = []
+    journeyPlace = null
     journeyWalkMinutes = 0
     journeyRows.clear()
     if (journeyRequest && typeof journeyRequest.abort === "function")
@@ -1079,8 +1192,9 @@ QtObject {
         "ssid": ""
       }
       journeyBoard = Model.markDominated(Model.boardFromJourneys(list, boardPlace, Date.now()))
-      var projected = Model.buildRows(journeyBoard, boardPlace, Date.now())
-      for (var i = 0; i < projected.length && i < Model.MAX_ROWS; i++) journeyRows.append(projected[i])
+      journeyPlace = boardPlace
+      reprojectJourney(Date.now())
+      refreshCrowding()
       if (callback)
         callback(list)
     }
@@ -1099,7 +1213,7 @@ QtObject {
   function journeyLegsFor(depId) {
     var wanted = String(depId || "")
     for (var i = 0; i < journeyBoard.length; i++) if (String(journeyBoard[i].id) === wanted)
-      return Model.legRows(journeyBoard[i])
+      return Model.legRows(journeyBoard[i], occupancy)
 
     return []
   }
@@ -1110,8 +1224,11 @@ QtObject {
 
   function setNewTripOpen(value) {
     newTripOpen = value === true
-    if (newTripOpen && lastNewTripLocation && lastNewTripDestination)
-      planFrom(lastNewTripLocation, lastNewTripDestination, null)
+    if (newTripOpen) {
+      refreshCrowding()
+      if (lastNewTripLocation && lastNewTripDestination)
+        planFrom(lastNewTripLocation, lastNewTripDestination, null)
+    }
   }
 
   function writeCache() {

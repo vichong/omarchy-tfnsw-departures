@@ -27,6 +27,9 @@ const addressTp = Api.tripPath("200080", { lat: -33.867509, lon: 151.207789 }, 3
 assert(addressTp.indexOf("type_destination=coord") > 0
   && addressTp.indexOf("name_destination=151.207789%3A-33.867509%3AEPSG%3A4326") > 0,
   "coordinate destination")
+equal([Api.vehiclePosPath("train"), Api.vehiclePosPath("metro"), Api.vehiclePosPath("bus"), Api.vehiclePosPath("lightrail")],
+  ["/v2/gtfs/vehiclepos/sydneytrains", "/v2/gtfs/vehiclepos/metro", "/v1/gtfs/vehiclepos/buses", ""],
+  "vehicle-position feeds exist only for supported crowding modes")
 
 // --- modes
 equal([Api.modeFor(1).id, Api.modeFor(2).id, Api.modeFor(9).id, Api.modeFor("5").id, Api.modeFor(42).id],
@@ -110,6 +113,13 @@ const journeys = Api.parseJourneys(fixture("trip_sydenham_to_wynyard.json"))
 equal(journeys.length, 1, "one journey in the trimmed fixture")
 const ride = journeys[0].legs[0]
 equal([ride.kind, ride.line, ride.from, ride.to, ride.platform, ride.stops.length], ["ride", "T4", "Sydenham Station", "Wynyard Station", "3", 9], "ride leg with full stop sequence")
+equal(ride.tripId, "623S.1396.158.16.T.8.90985901", "ride keeps the realtime trip id used by vehicle positions")
+const avmsLeg = Api.parseLeg({
+  origin: { name: "A", departureTimePlanned: "2026-09-02T12:00:00Z" },
+  destination: { name: "B", arrivalTimePlanned: "2026-09-02T12:10:00Z" },
+  transportation: { number: "333", product: { class: 5 }, properties: { AVMSTripID: "1360167" } }
+})
+equal(avmsLeg.tripId, "1360167", "AVMSTripID is the fallback join key for a ride leg")
 assert(ride.stops[3].name === "Redfern Station" && ride.stops[3].departMs > 0, "intermediate stops carry realtime times")
 assert(journeys[0].durationSec > 0 && journeys[0].departMs < journeys[0].arriveMs, "journey timing")
 const walkOnly = Api.parseJourneys(fixture("trip_address_to_wynyard.json"))

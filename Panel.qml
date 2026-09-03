@@ -765,6 +765,7 @@ Ui.Panel {
             travelText: model.travelText
             changesText: model.changesText
             legsSummary: model.legsSummary
+            crowding: model.crowding
             leaveText: model.leaveText
             leaveMs: model.leaveMs
             walkMinutes: root.ready && root.service.activePlace ? root.service.activePlace.walkMinutes : 0

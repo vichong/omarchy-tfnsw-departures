@@ -16,7 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.1"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.8.0"
 
   property bool opened: false
   property string tab: "settings"
@@ -1325,6 +1325,7 @@ Item {
               travelText: model.travelText
               changesText: model.changesText
               legsSummary: model.legsSummary
+              crowding: model.crowding
               leaveText: model.leaveText
               leaveMs: model.leaveMs
               walkMinutes: root.newTripWalk

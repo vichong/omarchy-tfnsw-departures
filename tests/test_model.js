@@ -133,6 +133,12 @@ assert(/^[0-9]{2}:[0-9]{2}$/.test(tripRows[0].arriveText) && /min$/.test(tripRow
 equal([tripRows[0].destination, tripRows[0].headsign], ["Wynyard", journeys[0].legs[0].destination], "trip rows lead with the place destination and keep the vehicle headsign")
 assert(/^T4 · 4′ → [0-9]{2}:[0-9]{2}$/.test(Model.pillText(tripBoard, tripPlace, tripNow)), "pill shows the arrival for trips: " + Model.pillText(tripBoard, tripPlace, tripNow))
 assert(Model.boardFromJourneys(journeys, Object.assign({}, tripPlace, { lines: ["T8"] }), tripNow).length === 0, "line filter applies to the first ride")
+const crowding = {}
+crowding[journeys[0].legs[0].tripId] = "few"
+const crowdedTripRows = Model.buildRows(tripBoard, tripPlace, tripNow, crowding)
+equal([tripBoard[0].tripId, crowdedTripRows[0].tripId, crowdedTripRows[0].crowding],
+  [journeys[0].legs[0].tripId, journeys[0].legs[0].tripId, "few"],
+  "trip board rows carry crowding joined from the first ride")
 const tripNotification = Model.notificationFor(tripBoard, tripPlace, journeys[0].departMs - 6 * 60000, {})
 assert(tripNotification && / · arrives [0-9]{2}:[0-9]{2}$/.test(tripNotification.body), "trip notification includes arrival time")
 const multi = Api.parseJourneys(fixture("trip_surry_hills_to_chatswood.json"))
@@ -143,15 +149,20 @@ const commuteRows = Model.buildRows(commuteBoard, commute, commuteNow)
 assert(commuteRows.length >= 2 && commuteRows[0].changesText === "1 change" && /^L[23] → M1$/.test(commuteRows[0].legsSummary), "multi-leg journey rows summarise the change")
 assert(commuteBoard[0].legs === multi[0].legs, "journey entry keeps the parsed legs array")
 equal([commuteBoard[0].headsign, commuteRows[0].headsign], [multi[0].legs[0].destination, multi[0].legs[0].destination], "journey entry and row expose the first ride headsign")
-const legRows = Model.legRows(commuteBoard[0])
+const legOccupancy = {}
+legOccupancy[multi[0].legs[1].tripId] = "standing"
+const legRows = Model.legRows(commuteBoard[0], legOccupancy)
 equal(legRows.map(r => r.kind), ["ride", "change", "ride"], "a transfer gap between adjacent rides becomes a change row")
 equal([legRows[0].line, legRows[0].headsign, legRows[0].from, legRows[0].to, legRows[0].realtime], ["L3", "Circular Quay", "Surry Hills Light Rail", "Central Chalmers Street Light Rail", true], "first ride keeps its direction, endpoints and realtime state")
 equal([legRows[1].minutes, legRows[1].from], [9, "Central Station"], "change row gives rounded gap and change stop")
 equal([legRows[2].line, legRows[2].headsign, legRows[2].platform], ["M1", "Tallawong", "26"], "second ride keeps its own direction and platform")
+equal([legRows[0].tripId, legRows[0].crowding, legRows[2].tripId, legRows[2].crowding],
+  [multi[0].legs[0].tripId, "", multi[0].legs[1].tripId, "standing"],
+  "ride leg rows carry their trip ids and independently joined crowding")
 equal(legRows[0].stopsText, "Surry Hills · Central Chalmers St", "leg rows expose the stop sequence")
 equal(legRows[2].stopsText, "Central · Gadigal · Martin Place · Barangaroo · Victoria Cross · Crows Nest · … +1", "long stop sequences are bounded")
 equal(Model.stopListText(["One", "Two", "Three"], 2), "One · Two · … +1", "stop list helper accepts strings and a custom bound")
-assert(Object.keys(legRows[0]).sort().join(",") === ["alertTitle", "arriveText", "departText", "disruption", "from", "headsign", "kind", "line", "minutes", "mode", "platform", "realtime", "stopsText", "to"].sort().join(","), "leg rows have the documented shape")
+assert(Object.keys(legRows[0]).sort().join(",") === ["alertTitle", "arriveText", "crowding", "departText", "disruption", "from", "headsign", "kind", "line", "minutes", "mode", "platform", "realtime", "stopsText", "to", "tripId"].sort().join(","), "leg rows have the documented shape")
 const noStops = { legs: [Object.assign({}, multi[0].legs[0], { stops: [] })] }
 equal(Model.legRows(noStops)[0].stopsText, "Surry Hills · Central Chalmers St", "ride without a stop sequence falls back to endpoints")
 const withWalk = { legs: [multi[0].legs[0], Object.assign({}, multi[0].legs[0], { kind: "walk", mode: "walk", line: "", destination: "", platform: "", from: multi[0].legs[0].to, to: multi[0].legs[1].from, departMs: multi[0].legs[0].arriveMs, arriveMs: multi[0].legs[1].departMs, durationSec: 510, realtime: false, infos: [] }), multi[0].legs[1]] }

@@ -25,6 +25,7 @@ CursorSurface {
   property string travelText: ""
   property string changesText: ""
   property string legsSummary: ""
+  property string crowding: ""
   property string leaveText: ""
   property double leaveMs: 0
   property int walkMinutes: 0
@@ -274,7 +275,8 @@ CursorSurface {
             Row {
               id: boardPills
 
-              anchors.right: parent.right
+              anchors.right: collapsedCrowding.visible ? collapsedCrowding.left : parent.right
+              anchors.rightMargin: collapsedCrowding.visible ? Style.space(6) : 0
               anchors.verticalCenter: parent.verticalCenter
               spacing: Style.space(3)
 
@@ -325,6 +327,16 @@ CursorSurface {
                 font.family: root.family
                 font.pixelSize: Style.space(9)
               }
+            }
+
+            CrowdingIndicator {
+              id: collapsedCrowding
+
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              status: root.crowding
+              foreground: root.fg
+              fontFamily: root.family
             }
           }
 
@@ -610,6 +622,13 @@ CursorSurface {
                 font.family: root.family
                 font.pixelSize: Style.font.body
                 font.weight: Font.DemiBold
+              }
+
+              CrowdingIndicator {
+                anchors.right: parent.right
+                status: modelData.crowding || ""
+                foreground: root.fg
+                fontFamily: root.family
               }
             }
           }

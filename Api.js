@@ -187,6 +187,15 @@ function tripPath(origin, destination, count) {
   return TP_PATH + "/trip" + query(p)
 }
 
+function vehiclePosPath(mode) {
+  switch (String(mode || "")) {
+  case "train": return "/v2/gtfs/vehiclepos/sydneytrains"
+  case "metro": return "/v2/gtfs/vehiclepos/metro"
+  case "bus": return "/v1/gtfs/vehiclepos/buses"
+  default: return ""
+  }
+}
+
 function originSpec(origin) {
   return endpointSpec(origin)
 }
@@ -400,7 +409,7 @@ function parseDepartures(data) {
 function effectiveMs(dep) { return dep.estimatedMs || dep.plannedMs }
 
 // trip → [{ departMs, arriveMs, durationSec, legs: [{ kind: walk|ride, mode,
-//   line, destination, platform, from, to, departMs, arriveMs, durationSec,
+//   line, tripId, destination, platform, from, to, departMs, arriveMs, durationSec,
 //   distanceM, realtime, stops: [{ name, arriveMs, departMs }], infos }] }]
 function parseJourneys(data) {
   var journeys = data && Array.isArray(data.journeys) ? data.journeys : []
@@ -429,6 +438,7 @@ function parseLeg(leg) {
   var product = t.product || {}
   var origin = leg.origin || {}
   var destination = leg.destination || {}
+  var properties = t.properties || {}
   var departMs = parseTime(origin.departureTimeEstimated) || parseTime(origin.departureTimePlanned)
   var arriveMs = parseTime(destination.arrivalTimeEstimated) || parseTime(destination.arrivalTimePlanned)
   if (!departMs || !arriveMs) return null
@@ -448,6 +458,7 @@ function parseLeg(leg) {
     kind: isWalk ? "walk" : "ride",
     mode: isWalk ? "walk" : modeFor(product.class).id,
     line: isWalk ? "" : shortLine(t),
+    tripId: isWalk ? "" : clip(properties.RealtimeTripId || properties.AVMSTripID || "", 120),
     destination: clip(t.destination && t.destination.name ? t.destination.name : "", 120),
     platform: isWalk ? "" : platformOf(origin),
     fromId: clip(origin.parent && origin.parent.id ? origin.parent.id : (origin.id || ""), 40),

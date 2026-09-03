@@ -16,7 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.1"
 
   property bool opened: false
   property string tab: "settings"
@@ -40,8 +40,13 @@ Item {
   property string newTripSearchText: ""
   property var newTripLocation: null
   property var nearbyStops: []
+  property bool nearbyExpanded: false
+  property bool nearbyFallback: false
   property var newTripOrigin: null
   property var newTripDestination: null
+  property var newTripDestinationStops: []
+  property var newTripDestinationStop: null
+  property bool destinationNearbyExpanded: false
   property var newTripDestinationOptions: []
   property bool otherDestinationOpen: false
   property var otherDestinationResults: []
@@ -53,6 +58,9 @@ Item {
   property string placeStopName: ""
   property string placeDestStopId: ""
   property string placeDestStopName: ""
+  property string placeDestAddress: ""
+  property var placeDestLat: null
+  property var placeDestLon: null
   property string placeLines: ""
   property string placeDestination: ""
   property var placeModes: []
@@ -131,6 +139,9 @@ Item {
       placeStopName = ""
       placeDestStopId = ""
       placeDestStopName = ""
+      placeDestAddress = ""
+      placeDestLat = null
+      placeDestLon = null
       placeLines = ""
       placeDestination = ""
       placeModes = []
@@ -144,6 +155,9 @@ Item {
     placeStopName = p.stopName
     placeDestStopId = p.destStopId || ""
     placeDestStopName = p.destStopName || ""
+    placeDestAddress = p.destAddress || ""
+    placeDestLat = p.destLat
+    placeDestLon = p.destLon
     placeLines = p.lines.join(", ")
     placeDestination = p.destination
     placeModes = p.modes.slice()
@@ -174,6 +188,9 @@ Item {
     placeStopName = String(place.stopName || "")
     placeDestStopId = String(place.destStopId || "")
     placeDestStopName = String(place.destStopName || "")
+    placeDestAddress = String(place.destAddress || "")
+    placeDestLat = place.destLat
+    placeDestLon = place.destLon
     placeLines = ""
     placeDestination = ""
     placeModes = []
@@ -253,7 +270,8 @@ Item {
 
     var parts = []
     var from = Model.boardStopName(place.stopName)
-    if (from) parts.push(from + (place.destStopName ? " → " + Model.boardStopName(place.destStopName) : ""))
+    if (from) parts.push(from + (place.destStopName
+      ? " → " + Model.boardStopName(place.destAddress || place.destStopName) : ""))
     if (place.walkMinutes > 0) parts.push(place.walkMinutes + " min walk")
     var filter = filterSummary(place.lines || [], place.modes || [], place.destination)
     parts.push(place.lines && place.lines.length ? place.lines.join(", ") : filter)
@@ -271,6 +289,9 @@ Item {
       "stopName": placeStopName,
       "destStopId": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopId : "",
       "destStopName": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopName : "",
+      "destAddress": placeDestAddress,
+      "destLat": placeDestLat,
+      "destLon": placeDestLon,
       "lines": placeLines.split(","),
       "destination": placeDestination,
       "modes": placeModes,
@@ -327,8 +348,29 @@ Item {
     if (service)
       service.searchStops("", function() {})
 
-    placeDestStopId = loc.id
-    placeDestStopName = loc.name
+    if (loc.isStop) {
+      placeDestStopId = loc.id
+      placeDestStopName = loc.name
+      placeDestAddress = ""
+      placeDestLat = null
+      placeDestLon = null
+    } else {
+      placeDestAddress = loc.name
+      placeDestLat = loc.lat
+      placeDestLon = loc.lon
+      placeDestStopId = ""
+      placeDestStopName = ""
+      var local = Model.nearestStops(service.stops, loc.lat, loc.lon, 8, 3000)
+      service.nearbyStops(loc.lat, loc.lon, function(apiStops) {
+        if (root.placeDestAddress !== loc.name)
+          return
+        var merged = Model.mergeNearby(local, apiStops)
+        if (merged.length) {
+          root.placeDestStopId = merged[0].id
+          root.placeDestStopName = merged[0].name
+        }
+      })
+    }
     destinationSearchText = ""
     destinationSearchComplete = false
     destinationResults = []
@@ -340,6 +382,9 @@ Item {
 
     placeDestStopId = ""
     placeDestStopName = ""
+    placeDestAddress = ""
+    placeDestLat = null
+    placeDestLon = null
     destinationSearchText = ""
     destinationSearchComplete = false
     destinationResults = []
@@ -389,6 +434,9 @@ Item {
       return
 
     var query = String(text || "").trim()
+    placeDestAddress = ""
+    placeDestLat = null
+    placeDestLon = null
     placeDestStopName = String(text || "")
     destinationSearchText = query
     var local = Model.matchStops(service.stops, query).filter(function(x) {
@@ -404,7 +452,7 @@ Item {
       if (query !== root.destinationSearchText)
         return
 
-      root.destinationResults = root.mergedSearchResults(local, results, true, root.placeStopId)
+      root.destinationResults = root.mergedSearchResults(local, results, false, root.placeStopId)
       root.destinationSearchComplete = true
     })
   }
@@ -470,22 +518,45 @@ Item {
     newTripLocation = loc
     newTripSearchText = ""
     newTripResults = []
-    nearbyStops = loc.isStop ? [] : Model.nearestStops(service.stops, loc.lat, loc.lon, 3, 1500)
+    nearbyExpanded = false
+    nearbyFallback = false
+    nearbyStops = loc.isStop ? [] : Model.nearestStops(service.stops, loc.lat, loc.lon, 8, 3000)
     newTripOrigin = loc.isStop ? loc : (nearbyStops.length ? nearbyStops[0] : null)
     newTripDestinationOptions = Model.destinationOptions(service.effectivePlaces)
     newTripDestination = defaultNewTripDestination()
+    newTripDestinationStop = newTripDestination
+    newTripDestinationStops = []
     otherDestinationOpen = false
     otherDestinationResults = []
     expandedJourneyId = ""
     lastJourneys = []
-    planNewTrip()
+    if (loc.isStop) {
+      planNewTrip()
+      return
+    }
+    var local = nearbyStops.slice()
+    service.nearbyStops(loc.lat, loc.lon, function(apiStops) {
+      if (root.newTripLocation !== loc)
+        return
+      root.nearbyStops = Model.mergeNearby(local, apiStops)
+      root.newTripOrigin = root.nearbyStops.length ? root.nearbyStops[0] : loc
+      root.nearbyFallback = root.nearbyStops.length === 0
+      root.planNewTrip()
+    })
+    if (newTripOrigin)
+      planNewTrip()
   }
 
   function clearNewTripLocation() {
     newTripLocation = null
     nearbyStops = []
+    nearbyExpanded = false
+    nearbyFallback = false
     newTripOrigin = null
     newTripDestination = null
+    newTripDestinationStops = []
+    newTripDestinationStop = null
+    destinationNearbyExpanded = false
     otherDestinationOpen = false
     lastJourneys = []
     expandedJourneyId = ""
@@ -503,17 +574,27 @@ Item {
     planNewTrip()
   }
 
+  function selectDestinationStop(stop) {
+    newTripDestinationStop = stop
+    planNewTrip()
+  }
+
   function chooseNewTripDestination(value) {
-    if (value === "other") {
+    if (value === "search") {
       otherDestinationOpen = true
       newTripDestination = null
+      newTripDestinationStop = null
+      newTripDestinationStops = []
       lastJourneys = []
       if (service) service.journeyRows.clear()
       return
     }
     otherDestinationOpen = false
+    destinationNearbyExpanded = false
     for (var i = 0; i < newTripDestinationOptions.length; i++) if (String(newTripDestinationOptions[i].id) === String(value)) {
       newTripDestination = newTripDestinationOptions[i]
+      newTripDestinationStop = newTripDestination
+      newTripDestinationStops = []
       break
     }
     planNewTrip()
@@ -536,7 +617,7 @@ Item {
     service.searchStops(query, function(results) {
       if (query !== String(root.otherDestinationSearchText || "").trim())
         return
-      root.otherDestinationResults = root.mergedSearchResults(local, results, true,
+      root.otherDestinationResults = root.mergedSearchResults(local, results, false,
         root.newTripOrigin ? root.newTripOrigin.id : "")
     })
   }
@@ -547,22 +628,56 @@ Item {
     otherDestinationSearchText = ""
     otherDestinationResults = []
     otherDestinationOpen = false
+    newTripDestinationStops = []
+    destinationNearbyExpanded = false
+    if (stop.isStop) {
+      newTripDestinationStop = stop
+      planNewTrip()
+      return
+    }
+    newTripDestinationStop = null
+    var local = Model.nearestStops(service.stops, stop.lat, stop.lon, 8, 3000)
+    service.nearbyStops(stop.lat, stop.lon, function(apiStops) {
+      if (root.newTripDestination !== stop)
+        return
+      root.newTripDestinationStops = Model.mergeNearby(local, apiStops)
+      root.newTripDestinationStop = root.newTripDestinationStops.length ? root.newTripDestinationStops[0] : null
+      root.planNewTrip()
+    })
     planNewTrip()
   }
 
   function actualFirstStop(journeys) {
-    if (!service || !journeys.length || !journeys[0].legs)
+    if (!journeys.length || !journeys[0].legs)
       return null
-    var name = ""
+    var ride = null
     for (var i = 0; i < journeys[0].legs.length; i++) if (journeys[0].legs[i].kind === "ride") {
-      name = journeys[0].legs[i].from
+      ride = journeys[0].legs[i]
       break
     }
-    var wanted = Model.boardStopName(name).toLowerCase()
-    for (var s = 0; s < service.stops.length; s++)
-      if (Model.boardStopName(service.stops[s].name).toLowerCase() === wanted)
-        return Model.nearestStops([service.stops[s]], service.stops[s].lat, service.stops[s].lon, 1, 1)[0]
-    return null
+    if (!ride || !Api.isStopId(ride.fromId)) return null
+    var walk = journeys[0].legs[0].kind === "walk"
+      ? Math.max(0, Math.round(Number(journeys[0].legs[0].durationSec || 0) / 60)) : 0
+    return { "id": ride.fromId, "name": ride.from, "shortName": Model.displayStopName(ride.from),
+      "isStop": true, "type": "stop", "modes": [], "metres": walk * 80,
+      "distanceMetres": walk * 80, "walkMinutes": walk }
+  }
+
+  function actualLastStop(journeys) {
+    if (!journeys.length || !journeys[0].legs)
+      return null
+    var legs = journeys[0].legs
+    var ride = null
+    for (var i = legs.length - 1; i >= 0; i--) if (legs[i].kind === "ride") {
+      ride = legs[i]
+      break
+    }
+    if (!ride || !Api.isStopId(ride.toId)) return null
+    var walk = legs.length && legs[legs.length - 1].kind === "walk"
+      ? Math.max(0, Math.round(Number(legs[legs.length - 1].durationSec || 0) / 60)) : 0
+    return { "id": ride.toId, "name": ride.to, "shortName": Model.displayStopName(ride.to),
+      "isStop": true, "type": "stop", "modes": [], "metres": walk * 80,
+      "distanceMetres": walk * 80, "walkMinutes": walk }
   }
 
   // Walk from the address to the chosen nearby stop (distance estimate);
@@ -576,16 +691,40 @@ Item {
     expandedJourneyId = ""
     // Plan from the chosen stop so the chips mean what they say; the address
     // only decides the walk estimate.
-    var origin = { "isStop": true, "id": String(newTripOrigin.id), "name": String(newTripOrigin.name || "") }
-    service.planFrom(origin, newTripDestination, function(journeys) {
+    var origin = nearbyFallback ? newTripLocation
+      : { "isStop": true, "id": String(newTripOrigin.id), "name": String(newTripOrigin.name || "") }
+    var destination = newTripDestination
+    var selectedDestination = newTripDestination
+    var selectedLocation = newTripLocation
+    if (!destination.isStop && newTripDestinationStop) {
+      destination = Object.assign({}, destination, { "arriveVia": newTripDestinationStop })
+    }
+    service.planFrom(origin, destination, function(journeys) {
+      if (root.newTripDestination !== selectedDestination || root.newTripLocation !== selectedLocation)
+        return
       root.lastJourneys = journeys
+      if (root.nearbyFallback && root.nearbyStops.length === 0) {
+        var first = root.actualFirstStop(journeys)
+        if (first) {
+          root.nearbyStops = [first]
+          root.newTripOrigin = first
+        }
+      }
+      if (!root.newTripDestination.isStop && root.newTripDestinationStops.length === 0) {
+        var last = root.actualLastStop(journeys)
+        if (last) {
+          root.newTripDestinationStops = [last]
+          root.newTripDestinationStop = last
+        }
+      }
     }, newTripWalk)
   }
 
   function newTripDraft() {
-    if (!service || !newTripLocation || !newTripOrigin || !newTripDestination)
+    if (!service || !newTripLocation || !newTripOrigin || !newTripDestination || !newTripDestinationStop)
       return null
-    return Model.tempPlaceFrom(newTripLocation, newTripOrigin, newTripDestination, newTripWalk)
+    return Model.tempPlaceFrom(newTripLocation, newTripOrigin, newTripDestinationStop, newTripWalk,
+      newTripDestination.isStop ? null : newTripDestination)
   }
 
   Connections {
@@ -943,21 +1082,25 @@ Item {
             spacing: Style.space(6)
 
             Repeater {
-              model: root.nearbyStops
+              model: root.nearbyExpanded ? root.nearbyStops.slice(0, 8)
+                : root.nearbyStops.slice(0, 3).concat(root.nearbyStops.length > 3 ? [{ "isMore": true }] : [])
 
               delegate: NewTripButton {
                 required property var modelData
 
-                selected: root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
-                text: modelData.name + " · " + modelData.walkMinutes + " min walk"
-                onClicked: root.selectNearbyStop(modelData)
+                selected: !modelData.isMore && root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
+                text: modelData.isMore ? "More…" : modelData.name + " · " + modelData.walkMinutes + " min walk"
+                onClicked: {
+                  if (modelData.isMore) root.nearbyExpanded = true
+                  else root.selectNearbyStop(modelData)
+                }
               }
             }
           }
 
           Caption {
-            visible: root.nearbyStops.length === 0
-            text: "No bundled rail, light rail or ferry stop within 1.5 km."
+            visible: root.nearbyFallback
+            text: "No stops within 3 km — planned from your address"
           }
         }
 
@@ -984,10 +1127,10 @@ Item {
                   && String(out[i].value) === String(root.newTripDestination.id)) found = true
               if (root.newTripDestination && !found)
                 out.push({ "value": root.newTripDestination.id, "label": root.newTripDestination.name + " · New trip" })
-              out.push({ "value": "other", "label": "Other stop…" })
+              out.push({ "value": "search", "label": "Search…" })
               return out
             }
-            value: root.otherDestinationOpen ? "other" : (root.newTripDestination ? root.newTripDestination.id : "")
+            value: root.otherDestinationOpen ? "search" : (root.newTripDestination ? root.newTripDestination.id : "")
             onChanged: function(value) { root.chooseNewTripDestination(value) }
           }
 
@@ -995,7 +1138,7 @@ Item {
             visible: root.otherDestinationOpen
             width: parent.width
             text: root.otherDestinationSearchText
-            placeholderText: "Search stations and stops…"
+            placeholderText: "Search stops or addresses…"
             onTextEdited: root.searchOtherDestination(text)
             onAccepted: {
               var first = root.firstSearchResult(root.otherDestinationResults)
@@ -1034,13 +1177,54 @@ Item {
               }
             }
           }
+
+          Column {
+            width: parent.width
+            visible: root.newTripDestination && !root.newTripDestination.isStop
+            spacing: Style.space(6)
+
+            FieldLabel {
+              text: "Arrive via"
+            }
+
+            Flow {
+              width: parent.width
+              spacing: Style.space(6)
+
+              Repeater {
+                model: root.destinationNearbyExpanded ? root.newTripDestinationStops.slice(0, 8)
+                  : root.newTripDestinationStops.slice(0, 3).concat(root.newTripDestinationStops.length > 3 ? [{ "isMore": true }] : [])
+
+                delegate: NewTripButton {
+                  required property var modelData
+
+                  selected: !modelData.isMore && root.newTripDestinationStop
+                    && String(root.newTripDestinationStop.id) === String(modelData.id)
+                  text: modelData.isMore ? "More…"
+                    : modelData.name + " · " + modelData.walkMinutes + " min walk"
+                  onClicked: {
+                    if (modelData.isMore) root.destinationNearbyExpanded = true
+                    else root.selectDestinationStop(modelData)
+                  }
+                }
+              }
+            }
+          }
         }
 
         Column {
           id: newTripBoard
 
-          readonly property var firstRow: root.service && root.service.journeyRows.count > 0
-            ? root.service.journeyRows.get(0) : null
+          // The leave window follows the first row you can still catch.
+          readonly property var firstRow: {
+            if (!root.service) return null
+            var rows = root.service.journeyRows
+            for (var i = 0; i < rows.count; i++) {
+              var row = rows.get(i)
+              if (!row.missed && !row.cancelled && !row.dominated) return row
+            }
+            return rows.count > 0 ? rows.get(0) : null
+          }
 
           width: parent.width
           visible: firstRow !== null
@@ -1089,6 +1273,8 @@ Item {
                   textFormat: Text.PlainText
                   text: (root.newTripWalk > 0 ? root.newTripWalk + " min walk · " : "")
                     + (newTripBoard.firstRow ? newTripBoard.firstRow.line + " to " + newTripBoard.firstRow.headsign : "")
+                    + (root.lastJourneys.length && Model.finalWalkMinutes(root.lastJourneys[0]) > 0
+                      ? " · " + Model.finalWalkMinutes(root.lastJourneys[0]) + " min walk at the end" : "")
                   color: root.muted
                   font.family: root.family
                   font.pixelSize: Style.font.caption

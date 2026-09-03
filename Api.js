@@ -138,6 +138,19 @@ function stopFinderPath(text) {
   return TP_PATH + "/stop_finder" + query(p)
 }
 
+function coordPath(lat, lon, radiusM) {
+  var latitude = Number(lat), longitude = Number(lon)
+  var radius = Math.max(1, Math.min(5000, Math.round(Number(radiusM) || 800)))
+  var p = commonParams()
+  p.coord = longitude.toFixed(6) + ":" + latitude.toFixed(6) + ":EPSG:4326"
+  p.inclFilter = 1
+  p.type_1 = "BUS_POINT"
+  p.radius_1 = radius
+  p.PoisOnMapMacro = "true"
+  p.version = "10.2.1.42"
+  return TP_PATH + "/coord" + query(p)
+}
+
 // Departure board for one stop. `excludeModes` lists mode ids to drop
 // server-side, which shrinks the payload and keeps buses off a station board.
 // No itdDate/itdTime: the API reads them as Sydney local time (not UTC, as
@@ -161,24 +174,27 @@ function departuresPath(stopId, excludeModes) {
   return TP_PATH + "/departure_mon" + query(p)
 }
 
-// Journey planner: origin is a stop id or "lon:lat" coordinate string,
-// destination a stop id.
+// Journey planner: either endpoint is a stop id or { lat, lon }.
 function tripPath(origin, destination, count) {
   var p = commonParams()
   p.depArrMacro = "dep"
   var o = originSpec(origin)
   p.type_origin = o.type; p.name_origin = o.name
-  p.type_destination = "stop"; p.name_destination = String(destination)
+  var d = endpointSpec(destination)
+  p.type_destination = d.type; p.name_destination = d.name
   p.calcNumberOfTrips = Math.max(1, Math.min(MAX_JOURNEYS, parseInt(count, 10) || 3))
   p.TfNSWTR = "true"
   return TP_PATH + "/trip" + query(p)
 }
 
 function originSpec(origin) {
-  if (origin && typeof origin === "object" && isFinite(origin.lat) && isFinite(origin.lon)) {
-    return { type: "coord", name: Number(origin.lon).toFixed(6) + ":" + Number(origin.lat).toFixed(6) + ":EPSG:4326" }
-  }
-  return { type: "stop", name: String(origin) }
+  return endpointSpec(origin)
+}
+
+function endpointSpec(endpoint) {
+  if (endpoint && typeof endpoint === "object" && isFinite(endpoint.lat) && isFinite(endpoint.lon))
+    return { type: "coord", name: Number(endpoint.lon).toFixed(6) + ":" + Number(endpoint.lat).toFixed(6) + ":EPSG:4326" }
+  return { type: "stop", name: String(endpoint) }
 }
 
 // ---------------------------------------------------------------- parsing
@@ -309,6 +325,42 @@ function parseLocations(data) {
   return out
 }
 
+function nearbyName(value) {
+  var parts = String(value || "").split(",")
+  var first = parts.length ? parts[0].trim() : ""
+  var suburb = parts.length > 1 ? parts[parts.length - 1].trim() : ""
+  return clip(first + (suburb && suburb !== first ? ", " + suburb : ""), 120)
+}
+
+// coord → nearby public-transport stops. Platform records are folded into
+// their parent stop and the nearest platform supplies the walking distance.
+function parseNearby(data) {
+  var list = data && Array.isArray(data.locations) ? data.locations : []
+  var byId = {}
+  for (var i = 0; i < list.length; i++) {
+    var loc = list[i]
+    if (!loc || typeof loc !== "object") continue
+    var parent = loc.parent && typeof loc.parent === "object" ? loc.parent : {}
+    var id = String(parent.id || loc.id || "")
+    if (!isStopId(id)) continue
+    var metres = Number(loc.properties && loc.properties.distance)
+    if (!isFinite(metres) || metres < 0) continue
+    var name = nearbyName(parent.name || loc.name)
+    if (!name) continue
+    if (!byId[id] || metres < byId[id].metres) byId[id] = {
+      id: id,
+      name: name,
+      metres: Math.round(metres),
+      walkMinutes: Math.max(0, Math.round(metres / 80)),
+      modes: []
+    }
+  }
+  var out = []
+  for (var key in byId) out.push(byId[key])
+  out.sort(function(a, b) { return a.metres - b.metres || a.name.localeCompare(b.name) || a.id.localeCompare(b.id) })
+  return out.slice(0, 12)
+}
+
 // departure_mon → [{ id, tripId, line, lineName, destination, platform, mode,
 //   plannedMs, estimatedMs, realtime, cancelled, infos, stopName }]
 function parseDepartures(data) {
@@ -398,7 +450,9 @@ function parseLeg(leg) {
     line: isWalk ? "" : shortLine(t),
     destination: clip(t.destination && t.destination.name ? t.destination.name : "", 120),
     platform: isWalk ? "" : platformOf(origin),
+    fromId: clip(origin.parent && origin.parent.id ? origin.parent.id : (origin.id || ""), 40),
     from: firstSegment(origin.disassembledName || origin.name),
+    toId: clip(destination.parent && destination.parent.id ? destination.parent.id : (destination.id || ""), 40),
     to: firstSegment(destination.disassembledName || destination.name),
     departMs: departMs, arriveMs: arriveMs,
     durationSec: typeof leg.duration === "number" ? leg.duration : Math.round((arriveMs - departMs) / 1000),

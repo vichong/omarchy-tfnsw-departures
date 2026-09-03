@@ -4,8 +4,10 @@ A shell plugin that puts the next catchable Transport for NSW service or trip in
 the Omarchy bar. Everything counts down in **leave in** time: departure time
 minus your walk to the stop. The bar shows just the Transport mark; the popup
 shows the leave window closing. The popup shows departures, arrivals, travel time, platforms,
-realtime delays, cancellations and disruption alerts. The New trip view starts
-with an address or stop, finds nearby stops, and plans to a saved or searched destination.
+realtime delays, cancellations and disruption alerts. The New trip view accepts
+stops or addresses at both ends, includes nearby bus stops, and keeps planning
+from the address when no stop is nearby. Destination addresses include the final
+walk to the door.
 
 The popup follows a station indicator-board layout: line-colour badges lead each
 destination, compact pills show realtime and change status, and expanded trips
@@ -58,7 +60,9 @@ bundled list, while addresses, landmarks and bus stops come from the live stop
 finder once at least three characters have been entered.
 
 Add a place and search for its origin stop. Leave **Going to** empty for a live
-departure board, or choose a destination stop to turn the place into a trip.
+departure board, or choose a destination stop or address to turn the place into
+a trip. Address trips retain the nearest arrival stop and plan the final walk
+to the door.
 The place selector makes the distinction explicit: `From Home` is a departure
 board, while `Home → Wynyard` is a planned trip. Trip rows lead with your saved
 destination, keep the vehicle headsign secondary, and show arrival and travel
@@ -90,6 +94,9 @@ Configuration lives at
     "stopName": "Sydenham Station",
     "destStopId": "200080",
     "destStopName": "Wynyard Station",
+    "destAddress": "1 Martin Pl, Sydney",
+    "destLat": -33.8675,
+    "destLon": 151.2078,
     "lines": ["T4", "T8"],
     "destination": "City",
     "modes": ["train", "metro"],

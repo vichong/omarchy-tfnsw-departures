@@ -37,6 +37,15 @@ equal(nearby.map(x => x.id), ["10", "11", "13"], "nearest stops are distance-ran
 equal(nearby.map(x => x.walkMinutes), [0, 3, 6], "nearest stops estimate walking at 80 metres per minute")
 equal(Model.nearestStops([{ id: "12", name: "Far Station", modes: ["train"], lat: -33.9000, lon: 151.2070 }], -33.8680, 151.2070, 3, 1500), [], "nearest stops enforce the maximum radius")
 equal(Model.nearestStops(searchableStops, null, 151.2), [], "nearest stops require coordinates")
+const mergedNearby = Model.mergeNearby([
+  { id: "10", name: "Bundled Station", modes: ["train"], lat: -33.8, lon: 151.2, distanceMetres: 240, walkMinutes: 99 }
+], [
+  { id: "10", name: "API duplicate", metres: 80, walkMinutes: 1, modes: [] },
+  { id: "20", name: "Bus stop", metres: 160, walkMinutes: 99, modes: [] }
+])
+equal(mergedNearby.map(x => [x.id, x.name, x.metres, x.walkMinutes]),
+  [["20", "Bus stop", 160, 2], ["10", "Bundled Station", 240, 3]],
+  "nearby merge deduplicates with bundled data winning and sorts by metres")
 equal([
   Model.displayStopName("Chatswood Station"),
   Model.displayStopName("Surry Hills Light Rail"),
@@ -158,6 +167,15 @@ equal(destinationChoices.map(x => x.id), ["204420", "200080", "201029", "206710"
 equal(destinationChoices[1].label, "Wynyard Station · Home", "destination choices include place context")
 const tempPlace = Model.tempPlaceFrom({ name: "123 George St, Sydney" }, { id: "201029", name: "Surry Hills Light Rail" }, { id: "206710", name: "Chatswood Station" }, 5.6)
 equal(tempPlace, { id: "temp", name: "123 George St", stopId: "201029", stopName: "Surry Hills Light Rail", destStopId: "206710", destStopName: "Chatswood Station", walkMinutes: 6, lines: [], modes: [] }, "temporary place has the unsaved trip shape")
+const addressPlace = Model.tempPlaceFrom({ name: "123 George St, Sydney" },
+  { id: "201029", name: "Surry Hills Light Rail" }, { id: "206710", name: "Chatswood Station" }, 6,
+  { name: "1 Help St, Chatswood", isStop: false, lat: -33.796, lon: 151.181 })
+equal([addressPlace.destAddress, addressPlace.destLat, addressPlace.destLon],
+  ["1 Help St, Chatswood", -33.796, 151.181], "temporary trip retains its destination address coordinates")
+equal(Model.routeLabel(addressPlace), "New trip · 123 George St → 1 Help St",
+  "address trip route names the door destination")
+equal(Model.finalWalkMinutes({ legs: [{ kind: "ride", durationSec: 600 }, { kind: "walk", durationSec: 350 }] }), 6,
+  "final walking leg is rounded for the leave-window caption")
 equal(Model.routeLabel(tempPlace), "New trip · 123 George St → Chatswood", "temporary place is identified in the popup selector")
 equal(Model.placeLabel(tripPlace), "Home → Wynyard", "trip label shows the destination's short name")
 equal(Model.placeTooltip(commute), "Surry Hills Light Rail → Chatswood Station · 3 min walk", "place tooltip shows full stops and walk allocation")

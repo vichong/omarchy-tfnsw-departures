@@ -17,6 +17,10 @@ function intOr(value, fallback) {
   return isNaN(n) ? fallback : n
 }
 
+function finiteNumber(value) {
+  return typeof value === "number" && isFinite(value) ? Number(value) : null
+}
+
 function clampPoll(value) {
   return Math.max(POLL_MIN, Math.min(POLL_MAX, intOr(value, POLL_DEFAULT)))
 }
@@ -56,6 +60,10 @@ function parsePlace(raw, index) {
   if (!Api.isStopId(raw.stopId)) return null
   // A destination makes the place a trip; it needs a valid stop id or is dropped.
   var hasDestination = Api.isStopId(raw.destStopId) && String(raw.destStopId) !== String(raw.stopId)
+  var destAddress = hasDestination ? cleanText(raw.destAddress, 120) : ""
+  var destLat = finiteNumber(raw.destLat), destLon = finiteNumber(raw.destLon)
+  var hasDestCoord = destAddress !== "" && destLat !== null && destLon !== null
+    && destLat >= -90 && destLat <= 90 && destLon >= -180 && destLon <= 180
   return {
     id: placeId(raw.id, index),
     name: cleanText(raw.name, 40) || ("Place " + (index + 1)),
@@ -63,6 +71,9 @@ function parsePlace(raw, index) {
     stopName: cleanText(raw.stopName, 80),
     destStopId: hasDestination ? String(raw.destStopId) : "",
     destStopName: hasDestination ? cleanText(raw.destStopName, 80) : "",
+    destAddress: hasDestCoord ? destAddress : "",
+    destLat: hasDestCoord ? destLat : null,
+    destLon: hasDestCoord ? destLon : null,
     lines: lineList(raw.lines),
     destination: cleanText(raw.destination, 60),
     modes: modeList(raw.modes),

@@ -124,6 +124,42 @@ function nearestStops(list, lat, lon, limit, maxMetres) {
   return out
 }
 
+function mergeNearby(bundled, api) {
+  var out = [], positions = {}
+  function add(item, bundledWins) {
+    if (!item || typeof item !== "object" || !Api.isStopId(item.id)) return
+    var rawMetres = item.metres !== undefined && item.metres !== null ? item.metres : item.distanceMetres
+    var metres = Number(rawMetres)
+    if (!isFinite(metres) || metres < 0) return
+    var normalized = {
+      id: String(item.id),
+      name: String(item.name || item.shortName || "").trim(),
+      shortName: String(item.shortName || displayStopName(item.name || "")),
+      isStop: true,
+      modes: listCopy(item.modes),
+      type: "stop",
+      lat: typeof item.lat === "number" && isFinite(item.lat) ? item.lat : null,
+      lon: typeof item.lon === "number" && isFinite(item.lon) ? item.lon : null,
+      metres: Math.round(metres),
+      distanceMetres: Math.round(metres),
+      walkMinutes: Math.max(0, Math.round(metres / 80))
+    }
+    if (!normalized.name) return
+    if (positions[normalized.id] !== undefined) {
+      if (bundledWins) out[positions[normalized.id]] = normalized
+      return
+    }
+    positions[normalized.id] = out.length
+    out.push(normalized)
+  }
+  var local = Array.isArray(bundled) ? bundled : []
+  var remote = Array.isArray(api) ? api : []
+  for (var i = 0; i < local.length; i++) add(local[i], true)
+  for (var r = 0; r < remote.length; r++) add(remote[r], false)
+  out.sort(function(a, b) { return a.metres - b.metres || a.name.localeCompare(b.name) || a.id.localeCompare(b.id) })
+  return out.slice(0, 12)
+}
+
 // Saved origin and destination stops become a compact destination chooser.
 // The first place mentioning a stop supplies its contextual label.
 function destinationOptions(places) {
@@ -154,10 +190,10 @@ function destinationOptions(places) {
   return out
 }
 
-function tempPlaceFrom(location, firstStop, destStop, walkMinutes) {
+function tempPlaceFrom(location, firstStop, destStop, walkMinutes, destinationLocation) {
   if (!location || !firstStop || !destStop) return null
   var name = String(location.name || location.shortName || "New trip").split(",")[0].trim() || "New trip"
-  return {
+  var place = {
     id: "temp",
     name: name,
     stopId: String(firstStop.id || ""),
@@ -168,10 +204,17 @@ function tempPlaceFrom(location, firstStop, destStop, walkMinutes) {
     lines: [],
     modes: []
   }
+  if (destinationLocation && !destinationLocation.isStop && isFinite(destinationLocation.lat) && isFinite(destinationLocation.lon)) {
+    place.destAddress = String(destinationLocation.name || destinationLocation.shortName || "").trim()
+    place.destLat = Number(destinationLocation.lat)
+    place.destLon = Number(destinationLocation.lon)
+  }
+  return place
 }
 
 function boardStopName(name) {
-  return String(name || "")
+  // Addresses come as "1 Bligh St, Sydney": the board shows the first segment.
+  return String(name || "").split(",")[0]
     .replace(/\s+(Station|Wharf|Light Rail|Interchange)\b.*$/i, "")
     .replace(/\bStreet\b/g, "St")
     .trim()
@@ -381,11 +424,17 @@ function legRows(entry) {
 
 function hasDestination(place) { return !!(place && place.destStopId) }
 
+function finalWalkMinutes(entry) {
+  var legs = entry && Array.isArray(entry.legs) ? entry.legs : []
+  if (!legs.length || legs[legs.length - 1].kind !== "walk") return 0
+  return Math.max(0, Math.round(Number(legs[legs.length - 1].durationSec || 0) / 60))
+}
+
 // "From Home" / "Home → Wynyard": what the place selector says.
 function placeLabel(place) {
   if (!place) return ""
   if (!hasDestination(place)) return "From " + place.name
-  return place.name + " → " + firstWord(place.destStopName || "destination")
+  return place.name + " → " + firstWord(place.destAddress || place.destStopName || "destination")
 }
 
 // Selector text under the place name: the route, since the title already
@@ -394,17 +443,17 @@ function routeLabel(place) {
   if (!place) return ""
   if (String(place.id || "") === "temp")
     return "New trip · " + String(place.name || "New trip") + (hasDestination(place)
-      ? " → " + (boardStopName(place.destStopName) || "destination") : "")
+      ? " → " + (boardStopName(place.destAddress || place.destStopName) || "destination") : "")
   var from = boardStopName(place.stopName) || place.name
   if (!hasDestination(place)) return "From " + from
-  return from + " → " + (boardStopName(place.destStopName) || "destination")
+  return from + " → " + (boardStopName(place.destAddress || place.destStopName) || "destination")
 }
 
 function placeTooltip(place) {
   if (!place) return ""
   var text = String(place.stopName || place.name || "")
   if (hasDestination(place))
-    text += " → " + String(place.destStopName || "destination")
+    text += " → " + String(place.destAddress || place.destStopName || "destination")
   var walk = isFinite(place.walkMinutes) ? Math.max(0, Math.round(Number(place.walkMinutes))) : 0
   if (walk > 0) text += " · " + walk + " min walk"
   return text
@@ -524,7 +573,7 @@ function barState(board, place, nowMs) {
     leaveMs: leave,
     lineColor: Api.lineColor(next.line, next.mode),
     line: String(next.line || ""),
-    destination: hasDestination(place) ? boardStopName(place.destStopName) : String(next.headsign || next.destination || ""),
+    destination: hasDestination(place) ? boardStopName(place.destAddress || place.destStopName) : String(next.headsign || next.destination || ""),
     fraction: underlineFraction(leave),
     caption: barCaption(leave)
   }
@@ -568,7 +617,8 @@ function projectRow(dep, place, nowMs) {
     lineName: dep.lineName,
     mode: dep.mode,
     glyph: glyphFor(dep.mode),
-    destination: trip && place && place.destStopName ? boardStopName(place.destStopName) : dep.destination,
+    destination: trip && place && (place.destAddress || place.destStopName)
+      ? boardStopName(place.destAddress || place.destStopName) : dep.destination,
     headsign: dep.headsign || dep.destination,
     platform: dep.platform,
     timeText: clockText(Api.effectiveMs(dep)),

@@ -394,7 +394,7 @@ Flickable {
       Text {
         width: parent.width * 0.42
         textFormat: Text.PlainText
-        text: "Transport NSW for Omarchy v" + (page.host && page.host.version ? page.host.version : "0.7.0")
+        text: "Transport NSW for Omarchy v" + (page.host && page.host.version ? page.host.version : "0.7.1")
         color: page.muted
         font.family: page.family
         font.pixelSize: Style.space(9)
@@ -1105,8 +1105,8 @@ Flickable {
       PixelField {
         width: Math.max(0, parent.width - (clearEndpoint.visible ? clearEndpoint.width + parent.spacing : 0))
         height: page.host.controlHeight
-        text: endpoint.destination ? page.host.placeDestStopName : page.host.placeStopName
-        placeholderText: "Search stations and stops…"
+        text: endpoint.destination ? (page.host.placeDestAddress || page.host.placeDestStopName) : page.host.placeStopName
+        placeholderText: endpoint.destination ? "Search stops or addresses…" : "Search stations and stops…"
         font.italic: text === ""
         foreground: page.foreground
         onTextEdited: {

@@ -520,6 +520,8 @@ Ui.Panel {
                   ? root.service.activePlace.walkMinutes + " min walk · " : "")
                   + (root.ready && root.service.nextLine ? root.service.nextLine : "")
                   + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
+                  + (root.ready && root.service.nextFinalWalkMinutes > 0
+                    ? " · " + root.service.nextFinalWalkMinutes + " min walk at the end" : "")
                 elide: Text.ElideRight
                 color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
                 font.family: root.family

@@ -247,7 +247,7 @@ CursorSurface {
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
-                  width: implicitWidth
+                  width: Math.min(implicitWidth, Math.max(0, parent.width - (root.headsign !== "" && root.headsign !== root.destination ? Style.space(70) + parent.spacing : 0)))
                   textFormat: Text.PlainText
                   text: root.destination
                   color: root.fg
@@ -512,7 +512,20 @@ CursorSurface {
 
               Row {
                 width: parent.width
-                spacing: Style.space(9)
+                spacing: Style.space(6)
+
+                // Mode pictogram, as on the collapsed row: a change from L3 to
+                // M1 reads as light rail → metro, not just a colour change.
+                Text {
+                  id: legGlyph
+
+                  anchors.verticalCenter: parent.verticalCenter
+                  textFormat: Text.PlainText
+                  text: Model.glyphFor(modelData.mode)
+                  color: root.muted
+                  font.family: root.family
+                  font.pixelSize: Style.space(17)
+                }
 
                 LineBadge {
                   id: legBadge
@@ -526,7 +539,7 @@ CursorSurface {
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
-                  width: Math.max(0, parent.width - legBadge.width - parent.spacing)
+                  width: Math.max(0, parent.width - legGlyph.width - legBadge.width - parent.spacing * 2)
                   textFormat: Text.PlainText
                   text: modelData.headsign
                   elide: Text.ElideRight

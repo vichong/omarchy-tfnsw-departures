@@ -14,7 +14,7 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.7.1"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
@@ -257,6 +257,7 @@ QtObject {
   property string nextLineColor: ""
   property string nextLine: ""
   property string nextDestination: ""
+  property int nextFinalWalkMinutes: 0
   property real underlineFraction: 0
   property string barCaption: ""
   property string lastPolledAt: ""
@@ -349,6 +350,11 @@ QtObject {
         })
     }
   }
+
+  // Nearby-stop lookups share LiveBackend's serialized worker with every
+  // other request. A newer coordinate aborts and supersedes the old result.
+  property var nearbyRequest: null
+  property int nearbySerial: 0
 
   // New-trip journeys refresh only while the overlay tab is visible.
   property ListModel journeyRows
@@ -443,6 +449,9 @@ QtObject {
         var sameStop = cached && root.activePlace
           && String(cached.stopId || "") === String(root.activePlace.stopId)
           && String(cached.destStopId || "") === String(root.activePlace.destStopId || "")
+          && String(cached.destAddress || "") === String(root.activePlace.destAddress || "")
+          && (cached.destLat === undefined || cached.destLat === root.activePlace.destLat)
+          && (cached.destLon === undefined || cached.destLon === root.activePlace.destLon)
         if (sameStop && Array.isArray(cached.departures) && cached.departures.length <= Api.MAX_STOP_EVENTS) {
           root.departures = cached.departures
           root.lastPolledMs = Number(cached.savedAt) || 0
@@ -487,6 +496,9 @@ QtObject {
     var boardChanged = JSON.stringify(places) !== JSON.stringify(c.places) || activePlaceId !== c.activePlaceId
     var previousStopId = activePlace ? activePlace.stopId : ""
     var previousDestStopId = activePlace ? activePlace.destStopId : ""
+    var previousDestAddress = activePlace ? activePlace.destAddress : ""
+    var previousDestLat = activePlace ? activePlace.destLat : null
+    var previousDestLon = activePlace ? activePlace.destLon : null
     configError = parsed.error
     demoMode = c.demoMode
     if (demoMode) {
@@ -502,6 +514,9 @@ QtObject {
     colorful = c.colorful
     var stopChanged = (activePlace ? activePlace.stopId : "") !== previousStopId
       || (activePlace ? activePlace.destStopId : "") !== previousDestStopId
+      || (activePlace ? activePlace.destAddress : "") !== previousDestAddress
+      || (activePlace ? activePlace.destLat : null) !== previousDestLat
+      || (activePlace ? activePlace.destLon : null) !== previousDestLon
     configLoaded = true
     if (connectionChanged) {
       supersede()
@@ -651,6 +666,7 @@ QtObject {
     polling = false
     searchRequest = null
     journeyRequest = null
+    nearbyRequest = null
   }
 
   function quotaBlocked() {
@@ -752,6 +768,9 @@ QtObject {
     var placeId = activePlace.id
     var stopId = String(activePlace.stopId || "")
     var destStopId = String(activePlace.destStopId || "")
+    var destAddress = String(activePlace.destAddress || "")
+    var destLat = activePlace.destLat
+    var destLon = activePlace.destLon
     function complete(result) {
       if (token !== generation)
         return
@@ -759,7 +778,9 @@ QtObject {
       polling = false
       if (!root.activePlace || root.activePlace.id !== placeId
           || String(root.activePlace.stopId || "") !== stopId
-          || String(root.activePlace.destStopId || "") !== destStopId) {
+          || String(root.activePlace.destStopId || "") !== destStopId
+          || String(root.activePlace.destAddress || "") !== destAddress
+          || root.activePlace.destLat !== destLat || root.activePlace.destLon !== destLon) {
         // The place or either endpoint changed under this request; its board
         // belongs to the old source.
         if (pollRequested) {
@@ -798,7 +819,10 @@ QtObject {
         demoBackend.departures(complete)
     } else {
       var path = trip
-        ? Api.tripPath(activePlace.stopId, activePlace.destStopId, 6)
+        ? Api.tripPath(activePlace.stopId, activePlace.destAddress ? {
+            "lat": activePlace.destLat,
+            "lon": activePlace.destLon
+          } : activePlace.destStopId, 6)
         : Api.departuresPath(activePlace.stopId, excludedModes(activePlace))
       liveBackend.request(path, function(response) {
         if (response.ok)
@@ -836,6 +860,7 @@ QtObject {
     nextLineColor = ""
     nextLine = ""
     nextDestination = ""
+    nextFinalWalkMinutes = 0
     underlineFraction = 0
     barCaption = ""
   }
@@ -862,6 +887,8 @@ QtObject {
     nextLineColor = barState.lineColor
     nextLine = barState.line
     nextDestination = barState.destination
+    var next = Model.nextCatchable(board, place, now)
+    nextFinalWalkMinutes = Model.finalWalkMinutes(next)
     underlineFraction = barState.fraction
     barCaption = barState.caption
     maybeNotify(now)
@@ -938,6 +965,40 @@ QtObject {
     searchDebounce.restart()
   }
 
+  function nearbyStops(lat, lon, callback) {
+    nearbySerial++
+    var serial = nearbySerial
+    if (nearbyRequest && typeof nearbyRequest.abort === "function")
+      nearbyRequest.abort()
+
+    nearbyRequest = null
+    function complete(result) {
+      if (serial !== root.nearbySerial)
+        return
+
+      root.nearbyRequest = null
+      root.noteRateLimit(result)
+      if (callback)
+        callback(result.ok ? result.data : [])
+    }
+    if (!isFinite(lat) || !isFinite(lon) || quotaBlocked()) {
+      if (callback)
+        callback([])
+      return
+    }
+    if (demoMode || !connected) {
+      if (callback)
+        callback([])
+      return
+    }
+    nearbyRequest = liveBackend.request(Api.coordPath(lat, lon, 800), function(response) {
+      if (response.ok)
+        response.data = Api.parseNearby(response.data)
+
+      complete(response)
+    })
+  }
+
   // Minutes of the journey's first walking leg; 0 when it starts on the vehicle.
   function walkMinutesOf(journey) {
     var legs = journey && Array.isArray(journey.legs) ? journey.legs : []
@@ -947,7 +1008,9 @@ QtObject {
 
   function planFrom(location, destination, callback, walkMinutes) {
     var walkEstimate = Math.max(0, Math.round(Number(walkMinutes) || 0))
-    if (!location || !destination || !Api.isStopId(destination.id)) {
+    var destinationIsCoord = destination && !destination.isStop
+      && isFinite(destination.lat) && isFinite(destination.lon)
+    if (!location || !destination || (!destinationIsCoord && !Api.isStopId(destination.id))) {
       if (callback)
         callback([])
 
@@ -974,6 +1037,12 @@ QtObject {
       "lat": location.lat,
       "lon": location.lon
     }
+    var arriveVia = destination.arriveVia && Api.isStopId(destination.arriveVia.id)
+      ? destination.arriveVia : destination
+    var destinationSpec = destinationIsCoord ? {
+      "lat": destination.lat,
+      "lon": destination.lon
+    } : destination.id
     function complete(result) {
       journeyRequest = null
       noteRateLimit(result)
@@ -998,8 +1067,11 @@ QtObject {
         "name": String(location.name || "New trip").split(",")[0],
         "stopId": location.isStop ? String(location.id || "") : "",
         "stopName": firstRide ? firstRide.from : String(location.name || ""),
-        "destStopId": String(destination.id),
-        "destStopName": String(destination.name || destination.shortName || ""),
+        "destStopId": String(arriveVia.id || ""),
+        "destStopName": String(arriveVia.name || arriveVia.shortName || ""),
+        "destAddress": destinationIsCoord ? String(destination.name || destination.shortName || "") : "",
+        "destLat": destinationIsCoord ? Number(destination.lat) : null,
+        "destLon": destinationIsCoord ? Number(destination.lon) : null,
         "lines": [],
         "destination": "",
         "modes": [],
@@ -1016,7 +1088,7 @@ QtObject {
     if (demoMode)
       demoBackend.plan(complete)
     else
-      journeyRequest = liveBackend.request(Api.tripPath(origin, destination.id, 4), function(response) {
+      journeyRequest = liveBackend.request(Api.tripPath(origin, destinationSpec, 4), function(response) {
         if (response.ok)
           response.data = Api.parseJourneys(response.data)
 
@@ -1048,6 +1120,9 @@ QtObject {
       "placeId": activePlace ? activePlace.id : "",
       "stopId": activePlace ? activePlace.stopId : "",
       "destStopId": activePlace ? activePlace.destStopId || "" : "",
+      "destAddress": activePlace ? activePlace.destAddress || "" : "",
+      "destLat": activePlace ? activePlace.destLat : null,
+      "destLon": activePlace ? activePlace.destLon : null,
       "departures": departures.slice(0, Api.MAX_STOP_EVENTS)
     }) + "\n"
     if (text.length < Api.MAX_RESPONSE_BYTES)

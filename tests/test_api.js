@@ -18,6 +18,15 @@ assert(tp.indexOf("type_origin=coord") > 0 && tp.indexOf("name_origin=151.207789
 assert(tp.indexOf("type_destination=stop&name_destination=200080") > 0 && tp.indexOf("calcNumberOfTrips=3") > 0, "trip destination and count")
 assert(Api.tripPath("220510", "204420", 99).indexOf("calcNumberOfTrips=" + Api.MAX_JOURNEYS) > 0, "journey count is capped")
 assert(Api.isStopId("204420") && !Api.isStopId("streetID:1:2") && !Api.isStopId(""), "stop id validation")
+const cp = Api.coordPath(-33.8688, 151.2093, 800)
+assert(cp.indexOf("/v1/tp/coord?") === 0 && cp.indexOf("coord=151.209300%3A-33.868800%3AEPSG%3A4326") > 0,
+  "nearby coordinate path")
+assert(cp.indexOf("type_1=BUS_POINT") > 0 && cp.indexOf("radius_1=800") > 0 && cp.indexOf("version=10.2.1.42") > 0,
+  "nearby coordinate filters")
+const addressTp = Api.tripPath("200080", { lat: -33.867509, lon: 151.207789 }, 3)
+assert(addressTp.indexOf("type_destination=coord") > 0
+  && addressTp.indexOf("name_destination=151.207789%3A-33.867509%3AEPSG%3A4326") > 0,
+  "coordinate destination")
 
 // --- modes
 equal([Api.modeFor(1).id, Api.modeFor(2).id, Api.modeFor(9).id, Api.modeFor("5").id, Api.modeFor(42).id],
@@ -54,6 +63,21 @@ assert(station.isBest && Math.abs(station.lat + 33.914) < 0.01 && Math.abs(stati
 const address = Api.parseLocations(fixture("stop_finder_address.json"))[0]
 equal([address.type, address.isStop, address.name], ["singlehouse", false, "1 Martin Pl, Sydney"], "street address resolves with coordinates")
 assert(address.lat !== null && address.lon !== null, "address has coordinates")
+
+// Fixture-free sample follows the coord response shape documented in SPEC.md.
+const nearbySample = { locations: [
+  { id: "platform-a", name: "The Star, Pirrama Rd, Pyrmont", type: "platform", coord: [-33.866, 151.195],
+    parent: { id: "200014", name: "The Star, Pirrama Rd, Pyrmont" }, properties: { distance: 161 } },
+  { id: "platform-b", name: "The Star, Pirrama Rd, Pyrmont", type: "platform", coord: [-33.866, 151.195],
+    parent: { id: "200014", name: "The Star, Pirrama Rd, Pyrmont" }, properties: { distance: 130 } },
+  { id: "200099", name: "Town Hall, Park St, Sydney", type: "platform", coord: [-33.873, 151.207],
+    properties: { distance: 401 } },
+  { id: "bad", name: "Ignored", type: "platform", properties: { distance: 10 } }
+] }
+equal(Api.parseNearby(nearbySample), [
+  { id: "200014", name: "The Star, Pyrmont", metres: 130, walkMinutes: 2, modes: [] },
+  { id: "200099", name: "Town Hall, Sydney", metres: 401, walkMinutes: 5, modes: [] }
+], "nearby platforms are deduplicated, named, ranked and walk-timed")
 
 // --- departures
 const deps = Api.parseDepartures(fixture("departure_mon_sydenham.json"))

@@ -656,6 +656,8 @@ Item {
     }
     newTripDestinationStop = null
     var local = Model.nearestStops(service.stops, stop.lat, stop.lon, 8, 3000)
+    // Show the bundled stations at once; bus stops join when the lookup returns.
+    newTripDestinationStops = local
     service.nearbyStops(stop.lat, stop.lon, function(apiStops) {
       if (root.newTripDestination !== stop)
         return
@@ -1147,8 +1149,9 @@ Item {
             spacing: Style.space(6)
 
             Repeater {
-              model: root.nearbyExpanded ? root.nearbyStops.slice(0, 8)
-                : root.nearbyStops.slice(0, 3).concat(root.nearbyStops.length > 3 ? [{ "isMore": true }] : [])
+              readonly property var featured: Model.featureNearby(root.nearbyStops, root.newTripOrigin ? root.newTripOrigin.id : "", 15)
+              model: root.nearbyExpanded ? featured.slice(0, 8)
+                : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
 
               delegate: NewTripButton {
                 required property var modelData
@@ -1257,8 +1260,9 @@ Item {
               spacing: Style.space(6)
 
               Repeater {
-                model: root.destinationNearbyExpanded ? root.newTripDestinationStops.slice(0, 8)
-                  : root.newTripDestinationStops.slice(0, 3).concat(root.newTripDestinationStops.length > 3 ? [{ "isMore": true }] : [])
+                readonly property var featured: Model.featureNearby(root.newTripDestinationStops, root.newTripDestinationStop ? root.newTripDestinationStop.id : "", 15)
+                model: root.destinationNearbyExpanded ? featured.slice(0, 8)
+                  : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
 
                 delegate: NewTripButton {
                   required property var modelData

@@ -246,4 +246,13 @@ equal(walked[0].arriveMs - multi[0].arriveMs, 9 * 60000, "arrival moves by the w
 equal(Model.finalWalkMinutes(walked[0]), 9, "finalWalkMinutes reads the appended leg")
 equal(Model.appendEndWalk(multi, 0, "x"), multi, "zero walk leaves journeys untouched")
 
+const nearbyMix = [
+  { id: "b1", name: "Crown St", walkMinutes: 2, modes: [] },
+  { id: "b2", name: "Crown St opp", walkMinutes: 2, modes: [] },
+  { id: "lr", name: "Surry Hills Light Rail", walkMinutes: 6, modes: ["lightrail"] },
+  { id: "c", name: "Central Station", walkMinutes: 18, modes: ["train"] }
+]
+equal(Model.featureNearby(nearbyMix, "c", 15).map(x => x.id), ["c", "lr", "b1", "b2"], "planner's choice first, then a near station, then by distance")
+equal(Model.featureNearby(nearbyMix, "", 5).map(x => x.id), ["b1", "b2", "lr", "c"], "no station within the walk limit keeps distance order")
+
 done("test_model")

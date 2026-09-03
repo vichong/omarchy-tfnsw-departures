@@ -454,6 +454,29 @@ function appendEndWalk(journeys, minutes, toName) {
   return out
 }
 
+// Chip order for nearby stops: the preferred one first (the planner's own
+// choice), then the nearest station-class stop (train, metro, light rail,
+// ferry) when it is within maxStationWalk minutes, then the rest by distance.
+function featureNearby(list, preferredId, maxStationWalk) {
+  var source = list && isFinite(list.length) ? list : []
+  var limit = isFinite(maxStationWalk) ? Number(maxStationWalk) : 15
+  var out = [], seen = {}
+  function take(item) {
+    if (!item || seen[String(item.id)]) return
+    seen[String(item.id)] = true
+    out.push(item)
+  }
+  for (var p = 0; p < source.length; p++) if (preferredId && String(source[p].id) === String(preferredId)) take(source[p])
+  for (var i = 0; i < source.length; i++) {
+    var modes = source[i].modes && isFinite(source[i].modes.length) ? source[i].modes : []
+    var station = false
+    for (var m = 0; m < modes.length; m++) if (["train", "metro", "lightrail", "ferry"].indexOf(String(modes[m])) !== -1) station = true
+    if (station && Number(source[i].walkMinutes || 0) <= limit) { take(source[i]); break }
+  }
+  for (var r = 0; r < source.length; r++) take(source[r])
+  return out
+}
+
 function finalWalkMinutes(entry) {
   var legs = entry && Array.isArray(entry.legs) ? entry.legs : []
   if (!legs.length || legs[legs.length - 1].kind !== "walk") return 0

@@ -381,6 +381,7 @@ QtObject {
   property int journeyWalkMinutes: 0
   property string journeyError: ""
   property string lastPlanNote: ""
+  property string lastNearbyNote: ""
   property var lastNewTripLocation: null
   property var lastNewTripDestination: null
   property bool newTripOpen: false
@@ -1087,15 +1088,19 @@ QtObject {
 
     nearbyRequest = null
     function complete(result) {
-      if (serial !== root.nearbySerial)
+      if (serial !== root.nearbySerial) {
+        root.lastNearbyNote = "stale serial"
         return
+      }
 
       root.nearbyRequest = null
       root.noteRateLimit(result)
+      root.lastNearbyNote = result.ok ? "ok " + result.data.length : "failed " + result.kind
       if (callback)
         callback(result.ok ? result.data : [])
     }
     if (!isFinite(lat) || !isFinite(lon) || quotaBlocked()) {
+      lastNearbyNote = "skipped: coords/quota"
       if (callback)
         callback([])
       return
@@ -1260,7 +1265,7 @@ QtObject {
   }
 
   function statusLine() {
-    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " stops=" + stops.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " journeys=" + journeyRows.count + " journeyError=" + JSON.stringify(journeyError) + " plan=" + JSON.stringify(lastPlanNote) + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
+    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " stops=" + stops.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " journeys=" + journeyRows.count + " journeyError=" + JSON.stringify(journeyError) + " plan=" + JSON.stringify(lastPlanNote) + " nearby=" + JSON.stringify(lastNearbyNote) + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
   }
 
   Component.onCompleted: prepareDirs.running = true

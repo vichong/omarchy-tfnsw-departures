@@ -596,10 +596,17 @@ key already returns the feeds).
   delimited only, unknown fields skipped, hard cap 20 000 entities, stop
   parsing at the byte bound). Tests with a hand-built fixture of two
   entities.
-- **Join**: departures carry `tripId` (departure_mon `RealtimeTripId`);
-  `Api.parseLeg` must also keep `tripId` from the leg's
-  `transportation.properties.RealtimeTripId`. A row's crowding = the status
-  of its first ride leg's tripId (or its own tripId for plain departures).
+- **Join** (verified 2026-09-03): the vehicle feeds key on the operator's
+  AVMS trip id (Metro "0251-001-121-009:1000", trains
+  "C763.1396.159.48.D.4.90987024", buses "1360167"). The Trip Planner's
+  **trip legs** carry exactly that value as
+  `transportation.properties.RealtimeTripId` (also `AVMSTripID`) when
+  `TfNSWTR=true` (already sent), so `Api.parseLeg` must keep it as
+  `tripId`. `departure_mon` events do **not** carry it (only `gtfsTripId`
+  in the "3001.nsw-3-M1…" scheme and a `tripCode`), so crowding is shown
+  for trip boards (a place with a destination, New trip, Use now) and not
+  for departure-only boards in v0.8; note that in README. A row's crowding
+  = the status of its first ride leg's `tripId`.
 - **Polling**: only while the popup or New trip pane is open; one fetch per
   mode present in the visible rows, at most every 60 s per mode (bus feed
   ≈ 380 KB); results cached in memory 90 s; never on the bar tick. Counts

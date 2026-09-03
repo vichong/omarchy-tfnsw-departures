@@ -471,37 +471,40 @@ station until "Chatswood"), and the place pickers only searched on Enter.
 - The Here tab uses the same list for stops; addresses still go live.
 - Tests: ranking, limit, empty/short queries, malformed list rejected.
 
-## v0.7 (proposed, awaiting Vic's go-ahead): "Somewhere else" replaces "From here"
+## v0.7 (proposed, awaiting Vic's go-ahead): "Somewhere else" as a guided add-place
 Why: the Here tab plans to the active place's *origin* stop while its
-dropdown shows routes ("Home → Chatswood"), never shows where the trip
-starts once picked, and renders results in the pre-board style.
+dropdown shows routes, never shows where the trip starts once picked, and
+renders results in the pre-board style. Vic's framing (2026-09-03): address
+→ nearest station with walk time → destination → results → save as a place.
+One concept only: a **place**, saved or not.
 
-Model: a **temporary place**.
-- Title "Somewhere else". Entry points: the Here tab button (kept) and a
-  last option in the popup's route selector, "Somewhere else…".
-- **I'm at**: type-ahead field (v0.6.1). Once picked it becomes a chip
-  showing the full name with a clear (×) button; the field hides.
-- **Going to**: `Dropdown` of *stops* derived from every place's origin and
-  destination stops, deduplicated by stop id, labelled
-  "Chatswood Station · FH Work" (stop name, then the place names that use
-  it, muted). Default: the active place's destination if it has one, else
-  its origin stop.
-- **Results**: the popup board, reused: leave window (walk minutes from the
-  trip's first walk leg), `DepartureRow`s with badges, RT and change pills,
-  expandable legs. Journeys come from `trip` with the picked coordinate as
-  origin and the chosen stop id as destination (existing `planFrom`).
-- **Use in bar**: one accent button. Creates an unsaved place
-  `{ id: "temp", name: "Somewhere else", stopId: <first ride leg's origin
-  stop>, stopName, destStopId, destStopName, walkMinutes: <walk leg
-  minutes>, lines: [], modes: [] }`, sets it active (manual, so Wi-Fi
-  auto-switch does not override it for 30 min as today), closes the overlay.
-  The popup selector then lists "Somewhere else · 123 George St → Chatswood"
-  above the saved places; picking any saved place discards it. It is never
-  written to config.json.
-- **Journey strip** under each expanded result (and reused in the popup's
-  expanded rows): a single horizontal line of walk figure "12 min" →
-  LineBadge "Surry Hills → Central" → change dot → LineBadge → "Chatswood".
-  Drawn from `legRows`; no map, no network.
-- Remove "Plan to <stop>." caption, the route dropdown and the old result
-  rows. No map (Qt Location is not installed on Omarchy; tiles would add an
-  external host).
+Flow (one screen, steps reveal top-down):
+1. **Where are you?** type-ahead (v0.6.1; NSW addresses come from the
+   TfNSW geocoder already). Picked → chip with full name and ×.
+2. **Nearest stops**: from the picked coordinate, `stop_finder` with
+   `coord` (or the bundled list by distance, ≤ 1.5 km, top 3) → three
+   chips "Surry Hills Light Rail · 6 min walk" (walk = distance / 80 m per
+   min, replaced by the trip's real walk leg once results arrive). Default
+   = nearest; user may pick another.
+3. **Going to**: `Dropdown` of *stops* derived from every place's origin
+   and destination stops, deduplicated, labelled "Chatswood Station · FH
+   Work"; plus "Other stop…" opening a type-ahead. Default: the active
+   place's destination if it has one, else its origin.
+4. **Results**: the popup board reused (leave window with the real walk
+   minutes, `DepartureRow`s, expandable legs). Journeys from `trip` with the
+   address coordinate as origin so the API chooses the actual first stop;
+   if it differs from the chosen chip, the chip updates.
+5. **Actions**: `Use in bar` (accent) creates an unsaved temporary place
+   `{ id: "temp", name: <first word of address>, stopId, stopName,
+   destStopId, destStopName, walkMinutes, lines: [], modes: [] }`, sets it
+   active (manual), closes the overlay; the popup selector lists it as
+   "Somewhere else · 123 George St → Chatswood" above saved places, and
+   picking a saved place discards it. `Save as place` opens the same
+   temporary place in the Settings place editor prefilled, where Vic names
+   it and saves. Never written to config.json until saved.
+- **Journey strip** under each expanded result (reused in the popup): walk
+  figure "12 min" → LineBadge "Surry Hills → Central" → change dot →
+  LineBadge → "Chatswood". No map (Qt Location is not installed; tiles
+  would add an external host).
+- Entry points: Here tab button (renamed "Somewhere else") and the popup
+  selector's last option "Somewhere else…".

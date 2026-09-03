@@ -75,9 +75,12 @@ CursorSurface {
 
   foreground: fg
   current: selected || expanded
+  // Collapsed rows are as tall as the rounded countdown block plus gutters
+  // (the mockup's 48-unit square), not a slab that fills the row.
+  readonly property int blockSize: Style.space(48)
   implicitHeight: expanded
-    ? Math.max(Style.space(64), legsColumn.implicitHeight + Style.spacing.lg * 2)
-    : Style.space(64)
+    ? Math.max(blockSize + Style.spacing.sm * 2, legsColumn.implicitHeight + Style.spacing.lg * 2)
+    : blockSize + Style.spacing.sm * 2
 
   // Hairline divider between rows, like the board mockup.
   Rectangle {
@@ -110,13 +113,16 @@ CursorSurface {
     id: content
 
     anchors.fill: parent
+    anchors.leftMargin: Style.spacing.sm
     opacity: root.subdued ? 0.5 : 1
 
     Rectangle {
       id: countdown
 
-      width: Style.space(44)
-      height: parent.height
+      anchors.verticalCenter: parent.verticalCenter
+      width: root.blockSize
+      height: root.blockSize
+      radius: Style.space(4)
       color: root.cancelled || root.missed
         ? Qt.rgba(root.muted.r, root.muted.g, root.muted.b, 0.1) : root.lineColor
       border.width: root.cancelled || root.missed ? Style.space(1) : 0
@@ -137,7 +143,7 @@ CursorSurface {
             text: root.countdownText
             color: root.cancelled || root.missed ? root.muted : root.countdownFg
             font.family: root.family
-            font.pixelSize: root.countdownText === "NOW" ? Style.font.bodySmall : Style.font.title
+            font.pixelSize: root.countdownText === "NOW" ? Style.font.body : Style.font.display
             font.bold: true
           }
 
@@ -213,7 +219,7 @@ CursorSurface {
                 anchors.verticalCenter: parent.verticalCenter
                 line: root.line
                 mode: root.mode
-                size: Style.space(24)
+                size: Style.space(18)
               }
 
               Row {
@@ -436,7 +442,7 @@ CursorSurface {
                         anchors.verticalCenter: parent.verticalCenter
                         line: modelData.line
                         mode: modelData.mode
-                        size: Style.space(24)
+                        size: Style.space(18)
                       }
 
                       Text {

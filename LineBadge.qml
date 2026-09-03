@@ -18,7 +18,7 @@ Item {
     return value.r * 0.2126 + value.g * 0.7152 + value.b * 0.0722
   }
 
-  width: Math.min(Style.space(64), Math.max(size, label.implicitWidth + Style.space(10)))
+  width: Math.min(Style.space(64), Math.max(size * 1.5, label.implicitWidth + Style.space(10)))
   height: size
   implicitWidth: width
   implicitHeight: height
@@ -43,7 +43,7 @@ Item {
     // on the light lines (T1 orange, bus blue, ferry green).
     color: Api.lightTextOn(Api.lineColor(root.line, root.mode)) ? root.lightThemeToken : root.darkThemeToken
     font.family: "JetBrains Mono"
-    font.pixelSize: Math.max(8, root.size * 0.5)
+    font.pixelSize: Math.max(8, root.size * 0.6)
     font.bold: true
   }
 }

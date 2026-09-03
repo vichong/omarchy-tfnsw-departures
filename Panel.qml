@@ -285,14 +285,14 @@ Ui.Panel {
 
               visible: root.ready && root.service.effectivePlaces.length > 1
               width: parent.width
-              implicitHeight: visible ? Math.round(Style.spacing.controlHeight * captionScale) : 0
+              implicitHeight: visible ? Math.round(Style.space(30) * captionScale) : 0
               height: implicitHeight
 
               Ui.Dropdown {
                 // A compact chip like the mockup, not a full-width form control.
                 width: Math.min(placeSelectorSlot.width, Style.space(250)) / placeSelectorSlot.captionScale
                 showLabel: false
-                rowHeight: Style.spacing.controlHeight
+                rowHeight: Style.space(30)
                 scale: placeSelectorSlot.captionScale
                 transformOrigin: Item.TopLeft
                 foreground: root.fg
@@ -435,10 +435,12 @@ Ui.Panel {
           width: parent.width
           visible: root.ready && root.service.alerts.length > 0
 
-          Ui.CursorSurface {
+          // The board's alert band: tinted strip, status dot, chevron.
+          Rectangle {
             width: parent.width
-            foreground: root.fg
             implicitHeight: alertSummary.implicitHeight + Style.spacing.rowPaddingX
+            radius: Style.space(4)
+            color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.06)
 
             MouseArea {
               anchors.fill: parent
@@ -446,22 +448,47 @@ Ui.Panel {
               onClicked: root.alertsExpanded = !root.alertsExpanded
             }
 
+            Rectangle {
+              id: alertDot
+
+              anchors.left: parent.left
+              anchors.leftMargin: Style.spacing.lg
+              anchors.verticalCenter: parent.verticalCenter
+              width: Style.space(6)
+              height: width
+              radius: width / 2
+              color: root.hasDisruption ? Color.urgent : Color.accent
+            }
+
             Text {
               id: alertSummary
 
-              anchors.left: parent.left
-              anchors.right: parent.right
+              anchors.left: alertDot.right
+              anchors.right: alertChevron.left
               anchors.verticalCenter: parent.verticalCenter
-              anchors.leftMargin: Style.spacing.xl
-              anchors.rightMargin: Style.spacing.xl
+              anchors.leftMargin: Style.spacing.sm
+              anchors.rightMargin: Style.spacing.sm
               textFormat: Text.PlainText
               text: root.ready && root.service.alerts.length === 1
-                ? "󰀦  " + root.service.alerts[0].title
-                : "󰀦  " + (root.ready ? root.service.alerts.length : 0) + " alerts · tap for details"
+                ? root.service.alerts[0].title
+                : (root.ready ? root.service.alerts.length : 0) + " alerts"
               elide: Text.ElideRight
-              color: root.hasDisruption ? Color.urgent : Qt.darker(root.fg, 1.35)
+              color: root.fg
               font.family: root.family
               font.pixelSize: Style.font.caption
+            }
+
+            Text {
+              id: alertChevron
+
+              anchors.right: parent.right
+              anchors.rightMargin: Style.spacing.lg
+              anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
+              text: root.alertsExpanded ? "󰅃" : "󰅀"
+              color: Qt.darker(root.fg, 1.35)
+              font.family: root.family
+              font.pixelSize: Style.font.iconSmall
             }
           }
 

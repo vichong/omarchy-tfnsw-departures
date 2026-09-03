@@ -465,7 +465,7 @@ Flickable {
 
     radius: Style.space(4)
     implicitWidth: buttonLabel.implicitWidth + horizontalPadding * 2 + Style.space(2)
-    implicitHeight: buttonLabel.implicitHeight + verticalPadding * 2 + Style.space(2)
+    implicitHeight: Style.space(30)
     color: primary ? Color.accent
       : selected ? Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.14)
       : buttonHover.hovered ? Qt.rgba(page.foreground.r, page.foreground.g, page.foreground.b, 0.06)

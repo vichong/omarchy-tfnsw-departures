@@ -75,6 +75,7 @@ Item {
   // The kit's controls have different natural heights. Measure one bordered
   // button once so fields, dropdowns and adjacent buttons line up.
   readonly property int controlHeight: Style.space(30)
+  readonly property int chipHeight: Style.space(26)
   readonly property string family: Style.font.family
   readonly property color background: Color.background
   readonly property color foreground: Color.foreground
@@ -1178,6 +1179,7 @@ Item {
               delegate: NewTripButton {
                 required property var modelData
 
+                chip: true
                 selected: !modelData.isMore && root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
                 text: modelData.isMore ? "More…" : root.chipGlyph(modelData) + modelData.name + " · " + modelData.walkMinutes + " min walk"
                 onClicked: {
@@ -1186,6 +1188,15 @@ Item {
                 }
               }
             }
+          }
+
+          WalkStrip {
+            visible: root.newTripLocation !== null && !root.newTripLocation.isStop && root.newTripOrigin !== null
+            startText: root.newTripLocation ? Model.boardStopName(root.newTripLocation.name) : ""
+            startBold: true
+            walk: root.newTripWalk
+            endGlyph: root.newTripOrigin ? root.chipGlyph(root.newTripOrigin).trim() : ""
+            endText: root.newTripOrigin ? Model.boardStopName(root.newTripOrigin.name) : ""
           }
 
           Caption {
@@ -1290,6 +1301,7 @@ Item {
                 delegate: NewTripButton {
                   required property var modelData
 
+                  chip: true
                   selected: !modelData.isMore && root.newTripDestinationStop
                     && String(root.newTripDestinationStop.id) === String(modelData.id)
                   text: modelData.isMore ? "More…"
@@ -1302,20 +1314,14 @@ Item {
               }
             }
 
-            // Say plainly where the ride ends and what is left on foot.
-            Text {
-              width: parent.width
+            // Where the ride ends and what is left on foot, at a glance.
+            WalkStrip {
               visible: root.newTripDestinationStop !== null
-              textFormat: Text.PlainText
-              text: root.newTripDestinationStop
-                ? "Get off at " + Model.boardStopName(root.newTripDestinationStop.name)
-                  + " · " + (root.newTripDestinationStop.walkMinutes || 0) + " min walk to "
-                  + Model.boardStopName(root.newTripDestination ? root.newTripDestination.name : "")
-                : ""
-              elide: Text.ElideRight
-              color: root.foreground
-              font.family: root.family
-              font.pixelSize: Style.font.caption
+              startGlyph: root.newTripDestinationStop ? root.chipGlyph(root.newTripDestinationStop).trim() : ""
+              startText: root.newTripDestinationStop ? Model.boardStopName(root.newTripDestinationStop.name) : ""
+              walk: root.newTripDestinationStop ? Number(root.newTripDestinationStop.walkMinutes || 0) : 0
+              endText: Model.boardStopName(root.newTripDestination ? root.newTripDestination.name : "")
+              endBold: true
             }
           }
         }
@@ -1501,6 +1507,72 @@ Item {
     }
   }
 
+
+  // "Address → walk → stop" (origin) or "stop → walk → address" (destination):
+  // the ends of the trip and what is on foot, at a glance.
+  component WalkStrip: Row {
+    id: walkStrip
+
+    property string startGlyph: ""
+    property string startText: ""
+    property bool startBold: false
+    property int walk: 0
+    property string endGlyph: ""
+    property string endText: ""
+    property bool endBold: false
+
+    spacing: Style.space(6)
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      visible: walkStrip.startGlyph !== ""
+      textFormat: Text.PlainText
+      text: walkStrip.startGlyph
+      color: root.muted
+      font.family: root.family
+      font.pixelSize: Style.space(15)
+    }
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      textFormat: Text.PlainText
+      text: walkStrip.startText
+      color: root.foreground
+      font.family: root.family
+      font.pixelSize: Style.font.caption
+      font.weight: walkStrip.startBold ? Font.DemiBold : Font.Normal
+    }
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      textFormat: Text.PlainText
+      text: "→  󰖃 " + walkStrip.walk + " min  →"
+      color: root.muted
+      font.family: root.family
+      font.pixelSize: Style.font.caption
+    }
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      visible: walkStrip.endGlyph !== ""
+      textFormat: Text.PlainText
+      text: walkStrip.endGlyph
+      color: root.muted
+      font.family: root.family
+      font.pixelSize: Style.space(15)
+    }
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      textFormat: Text.PlainText
+      text: walkStrip.endText
+      color: root.foreground
+      font.family: root.family
+      font.pixelSize: Style.font.caption
+      font.weight: walkStrip.endBold ? Font.DemiBold : Font.Normal
+    }
+  }
+
   component NewTripButton: BorderSurface {
     id: newTripButton
 
@@ -1508,11 +1580,13 @@ Item {
     property bool selected: false
     property bool primary: false
     property bool leftAlign: false
+    // Chips (nearby stops) are one size, every other button is the control height.
+    property bool chip: false
     signal clicked()
 
     radius: Style.space(4)
     implicitWidth: newTripButtonLabel.implicitWidth + Style.space(20)
-    implicitHeight: newTripButtonLabel.implicitHeight + Style.space(12)
+    implicitHeight: chip ? root.chipHeight : root.controlHeight
     color: primary ? Color.accent
       : selected ? Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.14)
       : newTripButtonHover.hovered ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.06)

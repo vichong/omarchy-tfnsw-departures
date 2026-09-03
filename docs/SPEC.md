@@ -521,12 +521,95 @@ field styling):
 - Tests: nearest-stops distance ranking and walk estimate; temp place
   shape; selector listing with a temp place; destination list derivation.
 
-## v0.7.1 (next): destination addresses in New trip
-Vic (2026-09-03): after the address → nearest stop → destination flow, also
-show the walk at the far end. "Going to" accepts an address via the "Other
-stop…" type-ahead (any location, not only stops); the trip is then planned
-to the coordinate so the API returns the final walking leg. The board's
-arrival is the arrival at the door; the journey strip ends with "walk N
-min"; the leave-window caption reads "1 min walk · L1 to Chatswood · 6 min
-walk at the end". Saving such a trip stores the last ride's stop as
-destStopId and keeps the address as `destination` text.
+## v0.7.1: New trip — nearby stops that never come up empty, destination addresses
+Approved 2026-09-03. Vic: "nothing came up for an address" (1.5 km cap, no
+bus stops) and "going to: stations, search and/or address search, then pick
+the closest station and the walk time from the destination station to the
+destination address".
+
+### Nearest stops (step 2)
+- Bundled list radius 3000 m, top 3, chips show "· N min walk"
+  (round(m / 80)).
+- **Bus and other stops from the API**: `Api.coordPath(lat, lon, radiusM)` →
+  `/v1/tp/coord?outputFormat=rapidJSON&coord=<lon>:<lat>:EPSG:4326&
+  coordOutputFormat=EPSG:4326&inclFilter=1&type_1=BUS_POINT&radius_1=<r>&
+  PoisOnMapMacro=true&version=10.2.1.42`. Response `locations[]` are
+  platforms: `{ id, name ("The Star, Pirrama Rd, Pyrmont"), type:
+  "platform", coord [lat, lon], parent: { id, name }, properties:
+  { distance (m) } }`. `Api.parseNearby(data)` → `[{ id: parent.id || id,
+  name: parent.name || name (first segment before the comma + ", suburb"),
+  metres, walkMinutes, modes: [] }]`, deduplicated by id, sorted by metres,
+  bounded to 12. Radius 800 m. Runs through the serialized worker like any
+  request; results merge with the bundled ones (bundled entry wins on the
+  same id; else by distance), still top 3 chips **plus** a fourth chip
+  "More…" that expands to the next 5 when there are more.
+- **Never empty**: if both are empty, plan from the address coordinate
+  (`planFrom` with the location, walk from the journey's first walk leg —
+  the existing code path) and show the API's first stop as the single chip
+  with its real walk leg. Caption under the chips in that case: "No stops
+  within 3 km — planned from your address".
+- Chip selection replans from the chosen stop (as v0.7).
+
+### Going to (step 3): stations, search, or an address
+- The `Dropdown` keeps the stops derived from your places, plus
+  "Search…" which opens the type-ahead accepting stops **and addresses**
+  (local matches first, live results under "More", as the origin field).
+- Stop picked → as v0.7.
+- **Address picked** → nearest stops to the destination computed the same
+  way as step 2 (bundled ≤ 3 km + coord API ≤ 800 m); the closest is the
+  **destination stop** (shown as a chip row "Arrive via · Chatswood Station
+  · 6 min walk", selectable like step 2). The trip is planned to the
+  address **coordinate** (`Api.tripPath` already accepts `{lat, lon}` for
+  the destination) so the API returns the final walking leg; the board's
+  arrival is at the door; the leave-window caption becomes "1 min walk ·
+  L1 to Chatswood · 6 min walk at the end"; the journey strip ends with
+  the walk figure and minutes; row caption "37 min → 2:43 PM" is to the
+  door.
+- Temporary place / Save as trip: `destStopId/destStopName` = the chosen
+  destination stop; `destination` (the free-text filter) is left empty;
+  the address is kept in a new optional place field `destAddress`
+  (ConfigStore: cleanText 120) shown in the editor as the "Going to" value
+  when present, and used by Panel/Service to plan to the coordinate when
+  the place is active (`destLat/destLon` stored alongside, numbers,
+  validated). Tests for ConfigStore and the nearest merge.
+
+## v0.8: crowding (people icons) from GTFS-Realtime vehicle positions
+Approved 2026-09-03; same API key, no new registration (verified: the
+key already returns the feeds).
+- Feeds (`Api.vehiclePosPath(mode)`): buses `/v1/gtfs/vehiclepos/buses`,
+  metro `/v2/gtfs/vehiclepos/metro`, trains `/v2/gtfs/vehiclepos/
+  sydneytrains`, light rail (none — skip), ferries `/v1/gtfs/vehiclepos/
+  ferries/sydneyferries` (check for occupancy; skip if absent). Protobuf
+  (gtfs-realtime `FeedMessage`): entity(2) → vehicle(4) → trip(1).trip_id
+  (1, string) and occupancy_status(9, enum: 0 EMPTY, 1 MANY_SEATS_AVAILABLE,
+  2 FEW_SEATS_AVAILABLE, 3 STANDING_ROOM_ONLY, 4 CRUSHED_STANDING_ROOM_ONLY,
+  5 FULL, 6 NOT_ACCEPTING_PASSENGERS).
+- **Binary transport**: the curl worker collects text, so binary feeds go
+  through `scripts/tfnsw-bounded` with a new first argument mode
+  `fetch-b64 <url>` that runs `curl --proto =https --max-filesize … -H
+  "Authorization: apikey …" (key via stdin config as today) | base64 -w0`;
+  stdout is base64 text bounded by the existing head cap (raise the cap for
+  this call to 4 MiB of base64 ≈ 3 MiB binary). Decode in JS
+  (`Model.fromBase64` — no `Qt.atob` reliance; hand-rolled table) into a
+  byte array and parse with a **minimal protobuf walker**
+  (`Model.parseOccupancy(bytes)` → `{ tripId: status }`, varint/length-
+  delimited only, unknown fields skipped, hard cap 20 000 entities, stop
+  parsing at the byte bound). Tests with a hand-built fixture of two
+  entities.
+- **Join**: departures carry `tripId` (departure_mon `RealtimeTripId`);
+  `Api.parseLeg` must also keep `tripId` from the leg's
+  `transportation.properties.RealtimeTripId`. A row's crowding = the status
+  of its first ride leg's tripId (or its own tripId for plain departures).
+- **Polling**: only while the popup or New trip pane is open; one fetch per
+  mode present in the visible rows, at most every 60 s per mode (bus feed
+  ≈ 380 KB); results cached in memory 90 s; never on the bar tick. Counts
+  toward the same quota; skip when `quotaBlocked()`.
+- **Rendering** (mockup 7×11 glyphs, three of them, gap 2): filled count =
+  1 for MANY_SEATS, 2 for FEW_SEATS, 3 for STANDING_ROOM and above; filled
+  glyph colour = foreground (not green/amber); unfilled = foreground at
+  22%. Tooltip on hover: "Many seats available" / "Few seats available" /
+  "Standing room only" / "Full". Hidden when no status is known. Shown on
+  the collapsed row after the pills and on each ride leg in the expanded
+  board. Nerd glyph: "󰀉" (nf-md-account) at Style.space(11).
+- README: a Crowding paragraph (which modes have it; buses and Metro
+  reliable, trains sparse, light rail none).

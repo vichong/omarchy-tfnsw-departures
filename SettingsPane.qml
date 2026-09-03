@@ -3,6 +3,7 @@ import QtQuick.Controls
 import qs.Commons
 import qs.Ui
 import "Api.js" as Api
+import "Model.js" as Model
 
 Flickable {
   id: page
@@ -1174,6 +1175,53 @@ Flickable {
           onClicked: {
             if (endpoint.destination) page.host.pickDestination(modelData)
             else page.host.pickStop(modelData)
+          }
+        }
+      }
+    }
+
+    // An address was picked: the stops around it, nearest first, with the
+    // station-class one promoted — pick the stop the trip starts or ends at.
+    Column {
+      id: nearbyChips
+
+      readonly property var nearby: endpoint.destination ? page.host.destNearby : page.host.placeNearby
+      readonly property string chosenId: endpoint.destination ? page.host.placeDestStopId : page.host.placeStopId
+
+      width: parent.width
+      visible: nearby.length > 0
+      spacing: Style.space(6)
+
+      Text {
+        textFormat: Text.PlainText
+        text: endpoint.destination ? "Arrive via" : "Nearest stops"
+        color: page.muted
+        font.family: page.family
+        font.pixelSize: Style.space(9)
+      }
+
+      Flow {
+        width: parent.width
+        spacing: Style.space(6)
+
+        Repeater {
+          model: Model.featureNearby(nearbyChips.nearby, nearbyChips.chosenId, 15).slice(0, 6)
+
+          delegate: PixelButton {
+            required property var modelData
+
+            width: implicitWidth
+            bordered: true
+            selected: String(modelData.id) === nearbyChips.chosenId
+            text: page.host.chipGlyph(modelData) + modelData.name + " · " + modelData.walkMinutes + " min walk"
+            fontFamily: page.family
+            fontSize: Style.font.caption
+            horizontalPadding: Style.space(9)
+            verticalPadding: Style.space(5)
+            onClicked: {
+              if (endpoint.destination) page.host.pickDestNearby(modelData)
+              else page.host.pickPlaceNearby(modelData)
+            }
           }
         }
       }

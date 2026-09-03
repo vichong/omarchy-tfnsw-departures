@@ -80,7 +80,9 @@ Ui.Panel {
   function scriptedNewTrip(action) {
     if (!root.ready) return
     scriptedAction = action
-    if (!root.service.newTripOpen) root.openOverlay("newtrip")
+    var wantsSettings = action.indexOf("placeFrom:") === 0
+    if (wantsSettings) root.openOverlay("settings")
+    else if (!root.service.newTripOpen) root.openOverlay("newtrip")
     scriptedTimer.restart()
   }
 
@@ -133,6 +135,7 @@ Ui.Panel {
     function newtripUse(): void { if (root.ready) root.service.requestNewTripAction("use") }
     function newtripFrom(text: string): void { root.scriptedNewTrip("from:" + text) }
     function newtripTo(text: string): void { root.scriptedNewTrip("to:" + text) }
+    function placeFrom(text: string): void { root.scriptedNewTrip("placeFrom:" + text) }
     function newtripSave(): void { if (root.ready) root.service.requestNewTripAction("save") }
     function here(): void { root.openOverlay("newtrip") }
     function place(id: string): string { return root.ready && root.service.setActivePlace(id, true) ? id : "unknown place" }

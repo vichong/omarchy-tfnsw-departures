@@ -152,6 +152,7 @@ omarchy-shell tfnsw open
 omarchy-shell tfnsw newtrip        # open New trip
 omarchy-shell tfnsw newtripUse     # Use now (with a planned trip open)
 omarchy-shell tfnsw newtripSave    # Save as trip
+omarchy-shell tfnsw placeFrom "<text>"  # Settings: search Leaving from and pick the first result
 omarchy-shell tfnsw here
 omarchy-shell tfnsw settings
 ```

@@ -70,6 +70,11 @@ Item {
   property string placeDestination: ""
   property var placeModes: []
   property int placeWalk: 0
+  // Place editor: an address at either end offers the nearby stops as chips.
+  property var placeNearby: []
+  property string placeNearbyAddress: ""
+  property var destNearby: []
+  property int placeDestWalk: 0
   property string placeSsid: ""
   property bool placeFilterOpen: false
   // The kit's controls have different natural heights. Measure one bordered
@@ -132,6 +137,9 @@ Item {
 
   function loadPlace(id) {
     placeFilterOpen = false
+    placeNearby = []
+    placeNearbyAddress = ""
+    destNearby = []
     var p = placeById(id)
     placeSearchText = ""
     placeSearchComplete = false
@@ -298,6 +306,7 @@ Item {
       "destAddress": placeDestAddress,
       "destLat": placeDestLat,
       "destLon": placeDestLon,
+      "destWalkMinutes": placeDestWalk,
       "lines": placeLines.split(","),
       "destination": placeDestination,
       "modes": placeModes,
@@ -339,6 +348,26 @@ Item {
     if (service)
       service.searchStops("", function() {})
 
+    placeNearby = []
+    placeNearbyAddress = ""
+    if (!loc.isStop) {
+      // An address: show the stops around it and let the user pick the one
+      // the trip should start from (the walk estimate comes with the chip).
+      placeNearbyAddress = String(loc.name || "")
+      placeStopId = ""
+      placeStopName = String(loc.name || "")
+      var local = Model.nearestStops(service.stops, loc.lat, loc.lon, 8, 3000)
+      placeNearby = local
+      service.nearbyStops(loc.lat, loc.lon, function(apiStops) {
+        if (root.placeNearbyAddress !== String(loc.name || ""))
+          return
+        root.placeNearby = Model.mergeNearby(local, apiStops)
+      }, "settings-origin")
+      placeSearchText = ""
+      placeSearchComplete = false
+      stopResults = []
+      return
+    }
     selectedStop = loc
     placeStopId = loc.id
     placeStopName = loc.name
@@ -350,10 +379,28 @@ Item {
     stopResults = []
   }
 
+  function pickPlaceNearby(stop) {
+    placeStopId = String(stop.id || "")
+    placeStopName = String(stop.name || "")
+    placeWalk = Math.max(0, Math.round(Number(stop.walkMinutes) || 0))
+    placeNearby = []
+    placeNearbyAddress = ""
+    if (placeDestStopId === placeStopId)
+      clearDestination()
+  }
+
+  function pickDestNearby(stop) {
+    placeDestStopId = String(stop.id || "")
+    placeDestStopName = String(stop.name || "")
+    placeDestWalk = Math.max(0, Math.round(Number(stop.walkMinutes) || 0))
+  }
+
   function pickDestination(loc) {
     if (service)
       service.searchStops("", function() {})
 
+    destNearby = []
+    placeDestWalk = 0
     if (loc.isStop) {
       placeDestStopId = loc.id
       placeDestStopName = loc.name
@@ -367,15 +414,15 @@ Item {
       placeDestStopId = ""
       placeDestStopName = ""
       var local = Model.nearestStops(service.stops, loc.lat, loc.lon, 8, 3000)
+      destNearby = local
+      if (local.length) pickDestNearby(local[0])
       service.nearbyStops(loc.lat, loc.lon, function(apiStops) {
         if (root.placeDestAddress !== loc.name)
           return
         var merged = Model.mergeNearby(local, apiStops)
-        if (merged.length) {
-          root.placeDestStopId = merged[0].id
-          root.placeDestStopName = merged[0].name
-        }
-      }, "here")
+        root.destNearby = merged
+        if (merged.length && !root.placeDestStopId) root.pickDestNearby(merged[0])
+      }, "settings-destination")
     }
     destinationSearchText = ""
     destinationSearchComplete = false
@@ -481,7 +528,7 @@ Item {
       if (query !== root.placeSearchText)
         return
 
-      root.stopResults = root.mergedSearchResults(local, results, true, "")
+      root.stopResults = root.mergedSearchResults(local, results, false, "")
       root.placeSearchComplete = true
     })
   }
@@ -795,6 +842,13 @@ Item {
     target: root.service
 
     function onNewTripAction(name) {
+      if (name.indexOf("placeFrom:") === 0) {
+        // Scripted place editor search (omarchy-shell tfnsw placeFrom "<text>").
+        if (!root.opened || root.tab !== "settings") return
+        root.pendingScriptedPick = "placeFrom"
+        root.searchPlaceStops(name.slice(10))
+        return
+      }
       if (!root.opened || root.tab !== "newtrip")
         return
       if (name === "use")
@@ -821,6 +875,13 @@ Item {
     if (!first) return
     pendingScriptedPick = ""
     pickNewTripLocation(first)
+  }
+  onStopResultsChanged: {
+    if (pendingScriptedPick !== "placeFrom") return
+    var first = firstSearchResult(stopResults)
+    if (!first) return
+    pendingScriptedPick = ""
+    pickStop(first)
   }
   onOtherDestinationResultsChanged: {
     if (pendingScriptedPick !== "to") return

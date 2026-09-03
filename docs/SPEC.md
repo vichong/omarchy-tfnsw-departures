@@ -520,3 +520,13 @@ field styling):
   rows.
 - Tests: nearest-stops distance ranking and walk estimate; temp place
   shape; selector listing with a temp place; destination list derivation.
+
+## v0.7.1 (next): destination addresses in New trip
+Vic (2026-09-03): after the address → nearest stop → destination flow, also
+show the walk at the far end. "Going to" accepts an address via the "Other
+stop…" type-ahead (any location, not only stops); the trip is then planned
+to the coordinate so the API returns the final walking leg. The board's
+arrival is the arrival at the door; the journey strip ends with "walk N
+min"; the leave-window caption reads "1 min walk · L1 to Chatswood · 6 min
+walk at the end". Saving such a trip stores the last ride's stop as
+destStopId and keeps the address as `destination` text.

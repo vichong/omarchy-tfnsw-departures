@@ -18,7 +18,7 @@ with the countdown.
 |:---:|:---:|
 | ![Transport NSW leave-in countdown in the Omarchy bar](docs/screenshots/bar.png) | ![Live departure board popup](docs/screenshots/popup.png) |
 | **Settings** | **New trip** |
-| ![Transport NSW plugin settings](docs/screenshots/settings.png) | ![Journey planner from the current location](docs/screenshots/here.png) |
+| ![Transport NSW plugin settings](docs/screenshots/settings.png) | ![New trip: address, nearest stop, destination, board](docs/screenshots/newtrip.png) |
 
 ## Install
 
@@ -137,7 +137,9 @@ omarchy-shell tfnsw next
 omarchy-shell tfnsw refresh
 omarchy-shell tfnsw place home
 omarchy-shell tfnsw open
-omarchy-shell tfnsw newtrip
+omarchy-shell tfnsw newtrip        # open New trip
+omarchy-shell tfnsw newtripUse     # Use now (with a planned trip open)
+omarchy-shell tfnsw newtripSave    # Save as trip
 omarchy-shell tfnsw here
 omarchy-shell tfnsw settings
 ```

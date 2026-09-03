@@ -938,7 +938,15 @@ QtObject {
     searchDebounce.restart()
   }
 
-  function planFrom(location, destination, callback) {
+  // Minutes of the journey's first walking leg; 0 when it starts on the vehicle.
+  function walkMinutesOf(journey) {
+    var legs = journey && Array.isArray(journey.legs) ? journey.legs : []
+    if (!legs.length || legs[0].kind !== "walk") return 0
+    return Math.max(0, Math.round(Number(legs[0].durationSec || 0) / 60))
+  }
+
+  function planFrom(location, destination, callback, walkMinutes) {
+    var walkEstimate = Math.max(0, Math.round(Number(walkMinutes) || 0))
     if (!location || !destination || !Api.isStopId(destination.id)) {
       if (callback)
         callback([])
@@ -977,8 +985,9 @@ QtObject {
         return
       }
       var list = result.data.slice(0, Api.MAX_JOURNEYS)
-      if (list.length && list[0].legs && list[0].legs.length && list[0].legs[0].kind === "walk")
-        journeyWalkMinutes = Math.max(0, Math.round(Number(list[0].legs[0].durationSec || 0) / 60))
+      // Walk = the caller's estimate to the chosen stop; only when planning
+      // from a coordinate does the journey's own first walking leg apply.
+      journeyWalkMinutes = walkEstimate > 0 ? walkEstimate : (list.length ? walkMinutesOf(list[0]) : 0)
       var firstRide = null
       if (list.length && list[0].legs) for (var l = 0; l < list[0].legs.length; l++) if (list[0].legs[l].kind === "ride") {
         firstRide = list[0].legs[l]
@@ -994,7 +1003,7 @@ QtObject {
         "lines": [],
         "destination": "",
         "modes": [],
-        "walkMinutes": 0,
+        "walkMinutes": journeyWalkMinutes,
         "ssid": ""
       }
       journeyBoard = Model.markDominated(Model.boardFromJourneys(list, boardPlace, Date.now()))
@@ -1022,6 +1031,10 @@ QtObject {
 
     return []
   }
+
+  // Scriptable New trip actions (omarchy-shell tfnsw newtripUse / newtripSave).
+  signal newTripAction(string name)
+  function requestNewTripAction(name) { newTripAction(String(name || "")) }
 
   function setNewTripOpen(value) {
     newTripOpen = value === true

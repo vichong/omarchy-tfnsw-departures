@@ -565,28 +565,40 @@ Item {
     return null
   }
 
+  // Walk from the address to the chosen nearby stop (distance estimate);
+  // zero when the start is itself a stop.
+  readonly property int newTripWalk: newTripLocation && !newTripLocation.isStop && newTripOrigin
+    ? Math.max(0, Math.round(Number(newTripOrigin.walkMinutes) || 0)) : 0
+
   function planNewTrip() {
     if (!service || !newTripLocation || !newTripOrigin || !newTripDestination)
       return
     expandedJourneyId = ""
-    service.planFrom(newTripLocation, newTripDestination, function(journeys) {
+    // Plan from the chosen stop so the chips mean what they say; the address
+    // only decides the walk estimate.
+    var origin = { "isStop": true, "id": String(newTripOrigin.id), "name": String(newTripOrigin.name || "") }
+    service.planFrom(origin, newTripDestination, function(journeys) {
       root.lastJourneys = journeys
-      var actual = root.actualFirstStop(journeys)
-      if (actual) {
-        root.newTripOrigin = actual
-        var present = false
-        for (var i = 0; i < root.nearbyStops.length; i++)
-          if (String(root.nearbyStops[i].id) === String(actual.id)) present = true
-        if (!present && !root.newTripLocation.isStop)
-          root.nearbyStops = [actual].concat(root.nearbyStops.slice(0, 2))
-      }
-    })
+    }, newTripWalk)
   }
 
   function newTripDraft() {
     if (!service || !newTripLocation || !newTripOrigin || !newTripDestination)
       return null
-    return Model.tempPlaceFrom(newTripLocation, newTripOrigin, newTripDestination, service.journeyWalkMinutes)
+    return Model.tempPlaceFrom(newTripLocation, newTripOrigin, newTripDestination, newTripWalk)
+  }
+
+  Connections {
+    target: root.service
+
+    function onNewTripAction(name) {
+      if (!root.opened || root.tab !== "newtrip")
+        return
+      if (name === "use")
+        root.useNewTripNow()
+      else if (name === "save")
+        root.saveNewTrip()
+    }
   }
 
   function useNewTripNow() {
@@ -937,8 +949,7 @@ Item {
                 required property var modelData
 
                 selected: root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
-                text: modelData.name + " · " + (selected && root.service && root.service.journeyRows.count > 0
-                  ? root.service.journeyWalkMinutes : modelData.walkMinutes) + " min walk"
+                text: modelData.name + " · " + modelData.walkMinutes + " min walk"
                 onClicked: root.selectNearbyStop(modelData)
               }
             }
@@ -1076,7 +1087,7 @@ Item {
 
                 Text {
                   textFormat: Text.PlainText
-                  text: root.service.journeyWalkMinutes + " min walk · "
+                  text: (root.newTripWalk > 0 ? root.newTripWalk + " min walk · " : "")
                     + (newTripBoard.firstRow ? newTripBoard.firstRow.line + " to " + newTripBoard.firstRow.headsign : "")
                   color: root.muted
                   font.family: root.family
@@ -1130,7 +1141,7 @@ Item {
               legsSummary: model.legsSummary
               leaveText: model.leaveText
               leaveMs: model.leaveMs
-              walkMinutes: root.service ? root.service.journeyWalkMinutes : 0
+              walkMinutes: root.newTripWalk
               realtime: model.realtime
               cancelled: model.cancelled
               dominated: model.dominated

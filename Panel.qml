@@ -111,6 +111,8 @@ Ui.Panel {
     function refresh(): void { if (root.ready) root.service.refresh() }
     function settings(): void { root.openOverlay("settings") }
     function newtrip(): void { root.openOverlay("newtrip") }
+    function newtripUse(): void { if (root.ready) root.service.requestNewTripAction("use") }
+    function newtripSave(): void { if (root.ready) root.service.requestNewTripAction("save") }
     function here(): void { root.openOverlay("newtrip") }
     function place(id: string): string { return root.ready && root.service.setActivePlace(id, true) ? id : "unknown place" }
     function next(): string { return root.ready ? root.service.pillText : "" }

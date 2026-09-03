@@ -6,6 +6,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 key=$(secret-tool lookup service tfnsw-departures account apikey)
+export TFNSW_KEY="$key"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 for f in sydneytrains metro lightrail/innerwest lightrail/cbdandsoutheast lightrail/newcastle ferries/sydneyferries; do
   n=${f//\//-}
@@ -27,11 +28,37 @@ def add(sid, name, mode, lat, lon):
 for d, mode in [('sydneytrains', 'train'), ('metro', 'metro'), ('ferries-sydneyferries', 'ferry'), ('lightrail-newcastle', 'lightrail')]:
     for r in rows(d):
         if r.get('location_type') == '1': add(r['stop_id'], r['stop_name'].strip(), mode, r['stop_lat'], r['stop_lon'])
+# Light rail platforms without a parent station (the Inner West line) carry
+# platform ids; the Trip Planner's global stop id differs, so resolve those
+# names through stop_finder and merge the platforms into one stop.
+import json as _json, urllib.request, urllib.parse
+key = os.environ.get('TFNSW_KEY', '')
+def global_stop_id(name):
+    q = urllib.parse.urlencode({'outputFormat': 'rapidJSON', 'coordOutputFormat': 'EPSG:4326',
+                                'type_sf': 'any', 'name_sf': name, 'TfNSWSF': 'true', 'version': '10.2.1.42'})
+    req = urllib.request.Request('https://api.transport.nsw.gov.au/v1/tp/stop_finder?' + q,
+                                 headers={'Authorization': 'apikey ' + key})
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = _json.load(resp)
+    for loc in data.get('locations', []):
+        if loc.get('type') == 'stop' and str(loc.get('name', '')).split(',')[0].strip() == name:
+            return str(loc.get('id'))
+    return None
+orphans = {}
 for d in ['lightrail-innerwest', 'lightrail-cbdandsoutheast']:
     for r in rows(d):
         name = re.sub(r'\s+Light Rail.*$', '', r['stop_name']).strip() + ' Light Rail'
-        sid = r.get('parent_station') or r['stop_id']
-        add(sid, name, 'lightrail', r['stop_lat'], r['stop_lon'])
+        parent = r.get('parent_station') or ''
+        if parent:
+            add(parent, name, 'lightrail', r['stop_lat'], r['stop_lon'])
+        else:
+            orphans.setdefault(name, []).append(r)
+for name, platforms in orphans.items():
+    sid = global_stop_id(name) if key else None
+    if not sid:
+        sid = sorted(p['stop_id'] for p in platforms)[0]
+        print('warning: no global id for', name, '- using platform', sid, file=sys.stderr)
+    add(sid, name, 'lightrail', platforms[0]['stop_lat'], platforms[0]['stop_lon'])
 def pick(names):
     for suffix in (' Station', ' Interchange', ' Wharf', ' Light Rail'):
         for n in names:

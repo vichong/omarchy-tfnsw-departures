@@ -248,9 +248,12 @@ CursorSurface {
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
-                  width: Math.min(implicitWidth, Math.max(0, parent.width - (root.headsign !== "" && root.headsign !== root.destination ? Style.space(70) + parent.spacing : 0)))
+                  // Destination first: it takes what it needs; the headsign gets the
+                  // rest and hides when that is under 48 units.
+                  width: Math.min(implicitWidth, parent.width)
                   textFormat: Text.PlainText
                   text: root.destination
+                  elide: Text.ElideRight
                   color: root.fg
                   font.family: root.family
                   font.pixelSize: Style.font.subtitle
@@ -259,8 +262,8 @@ CursorSurface {
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
-                  visible: root.headsign !== "" && root.headsign !== root.destination
-                  width: Math.max(Style.space(70), parent.width - parent.children[0].width - parent.spacing)
+                  visible: root.headsign !== "" && root.headsign !== root.destination && width >= Style.space(48)
+                  width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
                   textFormat: Text.PlainText
                   text: root.headsign
                   color: root.muted

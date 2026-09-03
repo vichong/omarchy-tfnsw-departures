@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Fetch one binary feed (GTFS-Realtime protobuf) and emit it as base64 on
+# stdout, so QML's text-only stdout collector can carry it. The API key is
+# never on the command line: a curl config with the Authorization header is
+# read from stdin (same as LiveBackend). Output is capped by tfnsw-bounded.
+set -euo pipefail
+url=$1
+case "$url" in https://api.transport.nsw.gov.au/*) ;; *) exit 64 ;; esac
+limit=${TFNSW_MAX_BYTES:-4194304}
+config=$(cat)
+exec env TFNSW_MAX_BYTES="$limit" "$(dirname "$0")/tfnsw-bounded" bash -c '
+  set -o pipefail
+  printf "%s\n" "$0" | curl -sS --proto =https --max-filesize 3145728 --max-time 20 -K - "$1" | base64 -w0
+' "$config" "$url"

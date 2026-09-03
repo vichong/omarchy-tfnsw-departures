@@ -74,6 +74,7 @@ function parsePlace(raw, index) {
     destAddress: hasDestCoord ? destAddress : "",
     destLat: hasDestCoord ? destLat : null,
     destLon: hasDestCoord ? destLon : null,
+    destWalkMinutes: hasDestCoord ? Math.max(0, Math.min(MAX_WALK_MINUTES, intOr(raw.destWalkMinutes, 0))) : 0,
     lines: lineList(raw.lines),
     destination: cleanText(raw.destination, 60),
     modes: modeList(raw.modes),

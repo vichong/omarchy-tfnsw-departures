@@ -65,6 +65,24 @@ Ui.Panel {
     expandedDepId = expandedDepId === id ? "" : id
   }
 
+  // Scripted New trip steps: open the pane, then hand the step to it.
+  property string scriptedAction: ""
+  Timer {
+    id: scriptedTimer
+
+    interval: 700
+    onTriggered: if (root.ready && root.scriptedAction !== "") {
+      root.service.requestNewTripAction(root.scriptedAction)
+      root.scriptedAction = ""
+    }
+  }
+  function scriptedNewTrip(action) {
+    if (!root.ready) return
+    scriptedAction = action
+    if (!root.service.newTripOpen) root.openOverlay("newtrip")
+    scriptedTimer.restart()
+  }
+
   function openOverlay(tab) {
     if (!bar || !bar.shell || typeof bar.shell.summon !== "function")
       return
@@ -112,6 +130,8 @@ Ui.Panel {
     function settings(): void { root.openOverlay("settings") }
     function newtrip(): void { root.openOverlay("newtrip") }
     function newtripUse(): void { if (root.ready) root.service.requestNewTripAction("use") }
+    function newtripFrom(text: string): void { root.scriptedNewTrip("from:" + text) }
+    function newtripTo(text: string): void { root.scriptedNewTrip("to:" + text) }
     function newtripSave(): void { if (root.ready) root.service.requestNewTripAction("save") }
     function here(): void { root.openOverlay("newtrip") }
     function place(id: string): string { return root.ready && root.service.setActivePlace(id, true) ? id : "unknown place" }

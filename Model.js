@@ -208,6 +208,7 @@ function tempPlaceFrom(location, firstStop, destStop, walkMinutes, destinationLo
     place.destAddress = String(destinationLocation.name || destinationLocation.shortName || "").trim()
     place.destLat = Number(destinationLocation.lat)
     place.destLon = Number(destinationLocation.lon)
+    place.destWalkMinutes = Math.max(0, Math.round(Number(destStop.walkMinutes) || 0))
   }
   return place
 }
@@ -286,11 +287,12 @@ function boardFor(departures, place, nowMs) {
 // arrival, travel time and changes. The line/mode/platform come from the
 // first ride; a journey with no ride (walk only) is skipped.
 function boardFromJourneys(journeys, place, nowMs) {
-  var list = Array.isArray(journeys) ? journeys : []
+  // Length-based: arrays that crossed a QML `property var` fail Array.isArray.
+  var list = journeys && isFinite(journeys.length) ? journeys : []
   var entries = []
   for (var i = 0; i < list.length; i++) {
     var journey = list[i]
-    var legs = journey && Array.isArray(journey.legs) ? journey.legs : []
+    var legs = journey && journey.legs && isFinite(journey.legs.length) ? journey.legs : []
     var rides = []
     for (var l = 0; l < legs.length; l++) if (legs[l].kind === "ride") rides.push(legs[l])
     if (!rides.length) continue
@@ -427,6 +429,30 @@ function legRows(entry, occupancy) {
 }
 
 function hasDestination(place) { return !!(place && place.destStopId) }
+
+// The ride ends at the chosen stop; the walk to the door is ours to add so the
+// board arrives where the user is actually going.
+function appendEndWalk(journeys, minutes, toName) {
+  var walk = Math.max(0, Math.round(Number(minutes) || 0))
+  var list = journeys && isFinite(journeys.length) ? journeys : []
+  if (!walk) return list
+  var out = []
+  for (var i = 0; i < list.length; i++) {
+    var journey = list[i]
+    // Arrays that crossed a QML `property var` fail Array.isArray: copy by length.
+    var legs = []
+    var source = journey.legs && isFinite(journey.legs.length) ? journey.legs : []
+    for (var l = 0; l < source.length; l++) legs.push(source[l])
+    var last = legs.length ? legs[legs.length - 1] : null
+    var startMs = Number(last ? last.arriveMs : journey.arriveMs) || 0
+    legs.push({ kind: "walk", mode: "walk", line: "", destination: "", headsign: "", platform: "",
+                from: last ? String(last.to || "") : "", to: String(toName || ""), fromId: "", toId: "",
+                departMs: startMs, arriveMs: startMs + walk * 60000, durationSec: walk * 60,
+                realtime: false, infos: [], stops: [], tripId: "" })
+    out.push(Object.assign({}, journey, { legs: legs, arriveMs: startMs + walk * 60000 }))
+  }
+  return out
+}
 
 function finalWalkMinutes(entry) {
   var legs = entry && Array.isArray(entry.legs) ? entry.legs : []

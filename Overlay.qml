@@ -42,6 +42,8 @@ Item {
   property var nearbyStops: []
   property bool nearbyExpanded: false
   property bool nearbyFallback: false
+  // Destination chips: the planner's own end stop by default; a click overrides it.
+  property bool destinationOverride: false
   property var newTripOrigin: null
   property var newTripDestination: null
   property var newTripDestinationStops: []
@@ -576,7 +578,23 @@ Item {
 
   function selectDestinationStop(stop) {
     newTripDestinationStop = stop
+    destinationOverride = true
     planNewTrip()
+  }
+
+  // Where the planner's first journey actually ends and how far is left on foot.
+  function actualEndStop(journeys) {
+    if (!journeys.length || !journeys[0].legs)
+      return null
+    var legs = journeys[0].legs
+    var ride = null
+    for (var i = legs.length - 1; i >= 0; i--) if (legs[i].kind === "ride") {
+      ride = legs[i]
+      break
+    }
+    if (!ride || !Api.isStopId(ride.toId)) return null
+    return { "id": String(ride.toId), "name": String(ride.to || ""), "isStop": true,
+             "walkMinutes": Model.finalWalkMinutes(journeys[0]), "modes": [ride.mode] }
   }
 
   function chooseNewTripDestination(value) {
@@ -630,6 +648,7 @@ Item {
     otherDestinationOpen = false
     newTripDestinationStops = []
     destinationNearbyExpanded = false
+    destinationOverride = false
     if (stop.isStop) {
       newTripDestinationStop = stop
       planNewTrip()
@@ -693,16 +712,36 @@ Item {
     // only decides the walk estimate.
     var origin = nearbyFallback ? newTripLocation
       : { "isStop": true, "id": String(newTripOrigin.id), "name": String(newTripOrigin.name || "") }
-    var destination = newTripDestination
     var selectedDestination = newTripDestination
     var selectedLocation = newTripLocation
-    if (!destination.isStop && newTripDestinationStop) {
-      destination = Object.assign({}, destination, { "arriveVia": newTripDestinationStop })
-    }
+    // An address destination is planned to the chosen arrive-via stop and the
+    // walk from there to the door is appended, so the board ends where the
+    // chip says it does.
+    // Address destination: by default the planner picks the end stop and the
+    // final walk (planned to the coordinate) and the chips show that choice;
+    // a clicked chip overrides it (planned to that stop, walk appended).
+    var toAddress = !newTripDestination.isStop
+    var override = toAddress && destinationOverride && newTripDestinationStop
+    var destination = override
+      ? { "isStop": true, "id": String(newTripDestinationStop.id), "name": String(newTripDestinationStop.name || "") }
+      : newTripDestination
+    var endWalk = override ? Number(newTripDestinationStop.walkMinutes || 0) : 0
+    var endWalkTo = override ? Model.boardStopName(newTripDestination.name) : ""
     service.planFrom(origin, destination, function(journeys) {
       if (root.newTripDestination !== selectedDestination || root.newTripLocation !== selectedLocation)
         return
       root.lastJourneys = journeys
+      if (toAddress && !root.destinationOverride) {
+        var end = root.actualEndStop(journeys)
+        if (end) {
+          root.newTripDestinationStop = end
+          var present = false
+          for (var d = 0; d < root.newTripDestinationStops.length; d++)
+            if (String(root.newTripDestinationStops[d].id) === String(end.id)) present = true
+          if (!present)
+            root.newTripDestinationStops = [end].concat(root.newTripDestinationStops)
+        }
+      }
       if (root.nearbyFallback && root.nearbyStops.length === 0) {
         var first = root.actualFirstStop(journeys)
         if (first) {
@@ -717,7 +756,7 @@ Item {
           root.newTripDestinationStop = last
         }
       }
-    }, newTripWalk)
+    }, newTripWalk, endWalk, endWalkTo)
   }
 
   function newTripDraft() {
@@ -737,7 +776,33 @@ Item {
         root.useNewTripNow()
       else if (name === "save")
         root.saveNewTrip()
+      else if (name.indexOf("from:") === 0) {
+        root.pendingScriptedPick = "from"
+        root.searchNewTrip(name.slice(5))
+      } else if (name.indexOf("to:") === 0) {
+        root.pendingScriptedPick = "to"
+        root.otherDestinationOpen = true
+        root.searchOtherDestination(name.slice(3))
+      }
     }
+  }
+
+  // Scripted New trip (omarchy-shell tfnsw newtripFrom / newtripTo): pick the
+  // first result as soon as the search delivers one.
+  property string pendingScriptedPick: ""
+  onNewTripResultsChanged: {
+    if (pendingScriptedPick !== "from") return
+    var first = firstSearchResult(newTripResults)
+    if (!first) return
+    pendingScriptedPick = ""
+    pickNewTripLocation(first)
+  }
+  onOtherDestinationResultsChanged: {
+    if (pendingScriptedPick !== "to") return
+    var first = firstSearchResult(otherDestinationResults)
+    if (!first) return
+    pendingScriptedPick = ""
+    pickOtherDestination(first)
   }
 
   function useNewTripNow() {
@@ -1209,6 +1274,22 @@ Item {
                 }
               }
             }
+
+            // Say plainly where the ride ends and what is left on foot.
+            Text {
+              width: parent.width
+              visible: root.newTripDestinationStop !== null
+              textFormat: Text.PlainText
+              text: root.newTripDestinationStop
+                ? "Get off at " + Model.boardStopName(root.newTripDestinationStop.name)
+                  + " · " + (root.newTripDestinationStop.walkMinutes || 0) + " min walk to "
+                  + Model.boardStopName(root.newTripDestination ? root.newTripDestination.name : "")
+                : ""
+              elide: Text.ElideRight
+              color: root.foreground
+              font.family: root.family
+              font.pixelSize: Style.font.caption
+            }
           }
         }
 
@@ -1274,7 +1355,7 @@ Item {
                   text: (root.newTripWalk > 0 ? root.newTripWalk + " min walk · " : "")
                     + (newTripBoard.firstRow ? newTripBoard.firstRow.line + " to " + newTripBoard.firstRow.headsign : "")
                     + (root.lastJourneys.length && Model.finalWalkMinutes(root.lastJourneys[0]) > 0
-                      ? " · " + Model.finalWalkMinutes(root.lastJourneys[0]) + " min walk at the end" : "")
+                      ? " · then " + Model.finalWalkMinutes(root.lastJourneys[0]) + " min walk" : "")
                   color: root.muted
                   font.family: root.family
                   font.pixelSize: Style.font.caption

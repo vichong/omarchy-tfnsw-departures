@@ -620,3 +620,24 @@ key already returns the feeds).
   board. Nerd glyph: "󰀉" (nf-md-account) at Style.space(11).
 - README: a Crowding paragraph (which modes have it; buses and Metro
   reliable, trains sparse, light rail none).
+
+## v0.8.1: the end of an address trip (Vic, 2026-09-03 afternoon)
+"That closest station is [chosen], and it's a ten minute walk from there to
+your address." Planning stop-to-stop at the destination end was wrong: from
+a bus stop to a bus stop the planner had no service until the next morning.
+**Hybrid model:** for an address destination the trip is planned to the
+coordinate by default, the planner's actual last ride stop becomes the
+highlighted "Arrive via" chip (prepended if it was not among the nearest),
+and its final walking leg is the walk shown. A caption under the chips says
+it plainly: "Get off at Martin Place · 7 min walk to 1 Bligh St"; the
+leave-window caption ends "· then 7 min walk". Clicking another chip
+**overrides**: the trip is planned to that stop and the walk from it to the
+address (distance estimate) is appended as a final walk leg
+(`Model.appendEndWalk`), so the board still arrives at the door. Origin
+keeps the v0.7 behaviour (planned from the chosen chip; default nearest).
+Saved / temporary places store `destWalkMinutes` with `destAddress` and are
+planned to `destStopId` with that walk appended. Scriptable steps:
+`omarchy-shell tfnsw newtripFrom "<text>"` / `newtripTo "<text>"` pick the
+first search result. Status line reports `journeys=` and `plan=` for
+diagnosis. Gotcha recorded: `Array.isArray` fails for arrays that crossed a
+QML `property var` — model helpers test `.length` instead.

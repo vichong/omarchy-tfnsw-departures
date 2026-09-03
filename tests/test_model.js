@@ -239,4 +239,11 @@ const sharedAlert = { title: "Lift 10 out of service", disruption: true }
 const repeated = { legs: [Object.assign({}, multi[0].legs[0], { infos: [sharedAlert] }), Object.assign({}, multi[0].legs[1], { infos: [sharedAlert] })] }
 equal(Model.legRows(repeated).filter(r => r.kind === "ride").map(r => r.alertTitle), ["Lift 10 out of service", ""], "an alert shared by consecutive legs is shown once")
 
+const walked = Model.appendEndWalk(multi, 9, "1 Bligh St")
+equal(walked[0].legs[walked[0].legs.length - 1].kind, "walk", "appendEndWalk adds a final walking leg")
+equal(walked[0].legs[walked[0].legs.length - 1].to, "1 Bligh St", "the walk goes to the door")
+equal(walked[0].arriveMs - multi[0].arriveMs, 9 * 60000, "arrival moves by the walk")
+equal(Model.finalWalkMinutes(walked[0]), 9, "finalWalkMinutes reads the appended leg")
+equal(Model.appendEndWalk(multi, 0, "x"), multi, "zero walk leaves journeys untouched")
+
 done("test_model")

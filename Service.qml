@@ -380,6 +380,7 @@ QtObject {
   property var journeyPlace: null
   property int journeyWalkMinutes: 0
   property string journeyError: ""
+  property string lastPlanNote: ""
   property var lastNewTripLocation: null
   property var lastNewTripDestination: null
   property bool newTripOpen: false
@@ -841,14 +842,15 @@ QtObject {
         demoBackend.departures(complete)
     } else {
       var path = trip
-        ? Api.tripPath(activePlace.stopId, activePlace.destAddress ? {
-            "lat": activePlace.destLat,
-            "lon": activePlace.destLon
-          } : activePlace.destStopId, 6)
+        ? Api.tripPath(activePlace.stopId, activePlace.destStopId, 6)
         : Api.departuresPath(activePlace.stopId, excludedModes(activePlace))
+      var endWalkMinutes = trip && activePlace.destAddress ? Number(activePlace.destWalkMinutes || 0) : 0
+      var endWalkTo = trip ? Model.boardStopName(activePlace.destAddress || "") : ""
       liveBackend.request(path, function(response) {
         if (response.ok)
-          response.data = trip ? Api.parseJourneys(response.data) : Api.parseDepartures(response.data)
+          response.data = trip
+            ? Model.appendEndWalk(Api.parseJourneys(response.data), endWalkMinutes, endWalkTo)
+            : Api.parseDepartures(response.data)
 
         complete(response)
       })
@@ -1118,16 +1120,19 @@ QtObject {
     return Math.max(0, Math.round(Number(legs[0].durationSec || 0) / 60))
   }
 
-  function planFrom(location, destination, callback, walkMinutes) {
+  function planFrom(location, destination, callback, walkMinutes, endWalkMinutes, endWalkTo) {
     var walkEstimate = Math.max(0, Math.round(Number(walkMinutes) || 0))
+    var endWalk = Math.max(0, Math.round(Number(endWalkMinutes) || 0))
     var destinationIsCoord = destination && !destination.isStop
       && isFinite(destination.lat) && isFinite(destination.lon)
     if (!location || !destination || (!destinationIsCoord && !Api.isStopId(destination.id))) {
+      lastPlanNote = "rejected: " + JSON.stringify({ hasLocation: !!location, dest: destination ? destination.id : null })
       if (callback)
         callback([])
 
       return
     }
+    lastPlanNote = "planning " + (location.isStop ? location.id : "coord") + " → " + (destinationIsCoord ? "coord" : destination.id) + " endWalk=" + endWalk
     lastNewTripLocation = location
     lastNewTripDestination = destination
     journeyError = ""
@@ -1160,13 +1165,15 @@ QtObject {
       journeyRequest = null
       noteRateLimit(result)
       if (!result.ok) {
+        lastPlanNote += " failed=" + result.kind
         journeyError = result.error
         if (callback)
           callback([])
 
         return
       }
-      var list = result.data.slice(0, Api.MAX_JOURNEYS)
+      var list = Model.appendEndWalk(result.data.slice(0, Api.MAX_JOURNEYS), endWalk, endWalkTo)
+      lastPlanNote += " parsed=" + result.data.length
       // Walk = the caller's estimate to the chosen stop; only when planning
       // from a coordinate does the journey's own first walking leg apply.
       journeyWalkMinutes = walkEstimate > 0 ? walkEstimate : (list.length ? walkMinutesOf(list[0]) : 0)
@@ -1191,7 +1198,13 @@ QtObject {
         "walkMinutes": journeyWalkMinutes,
         "ssid": ""
       }
-      journeyBoard = Model.markDominated(Model.boardFromJourneys(list, boardPlace, Date.now()))
+      try {
+        journeyBoard = Model.markDominated(Model.boardFromJourneys(list, boardPlace, Date.now()))
+        lastPlanNote += " board=" + journeyBoard.length
+      } catch (e) {
+        lastPlanNote += " boardError=" + String(e)
+        journeyBoard = []
+      }
       journeyPlace = boardPlace
       reprojectJourney(Date.now())
       refreshCrowding()
@@ -1247,7 +1260,7 @@ QtObject {
   }
 
   function statusLine() {
-    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " stops=" + stops.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
+    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " stops=" + stops.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " journeys=" + journeyRows.count + " journeyError=" + JSON.stringify(journeyError) + " plan=" + JSON.stringify(lastPlanNote) + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
   }
 
   Component.onCompleted: prepareDirs.running = true

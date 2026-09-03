@@ -53,6 +53,10 @@ key and makes no network calls.
 
 ## Setup
 
+Stations, light rail stops and ferry wharves are suggested as you type from a
+bundled list, while addresses, landmarks and bus stops come from the live stop
+finder once at least three characters have been entered.
+
 Add a place and search for its origin stop. Leave **Going to** empty for a live
 departure board, or choose a destination stop to turn the place into a trip.
 The place selector makes the distinction explicit: `From Home` is a departure
@@ -154,6 +158,10 @@ Transport for NSW.
 Not affiliated with Transport for NSW.
 
 ## Notes for developers
+
+The bundled `data/stops.json` list is rebuilt from the GTFS schedule feeds with
+`scripts/build-stops`; it is a developer-only data maintenance tool and is not
+run by the plugin.
 
 The Trip Planner API's `itdTime` fields are local Sydney time, despite other API
 timestamps using UTC-style representations. Do not reinterpret `itdTime` as UTC

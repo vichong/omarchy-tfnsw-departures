@@ -7,6 +7,31 @@ const deps = Api.parseDepartures(fixture("departure_mon_sydenham.json"))
 const now = Date.UTC(2026, 8, 2, 12, 5, 0)
 const home = { id: "home", name: "Home", stopId: "204420", stopName: "Sydenham Station", lines: ["T4"], destination: "City", modes: ["train"], walkMinutes: 5, ssid: "" }
 
+// --- bundled stop type-ahead
+const searchableStops = [
+  { id: "4", name: "Scratchatown Wharf 2", modes: ["ferry"], lat: -33.8, lon: 151.2 },
+  { id: "3", name: "The Chatswood Light Rail", modes: ["lightrail"] },
+  { id: "2", name: "East Chatswood Station", modes: ["train"] },
+  { id: "1", name: "Chatswood Station", modes: ["metro", "train"] }
+]
+equal(Model.matchStops(searchableStops, "CHAT").map(x => x.id), ["1", "2", "3", "4"], "stop matches rank name prefix, word prefix, then contains")
+equal(Model.matchStops(searchableStops, "c").map(x => x.id), ["1", "2", "3", "4"], "one-character local stop queries are supported")
+equal(Model.matchStops(searchableStops, "chat", 2).map(x => x.id), ["1", "2"], "stop match limit is honoured")
+equal(Model.matchStops(Array.from({ length: 10 }, (_, i) => ({ id: String(i + 10), name: "Stop " + i })), "stop").length, 8, "stop match limit defaults to eight")
+equal([Model.matchStops(searchableStops, ""), Model.matchStops(searchableStops, "   "), Model.matchStops(null, "chat")], [[], [], []], "empty queries and malformed lists have no matches")
+const malformedStops = [null, {}, { id: 123, name: "Number id" }, { id: "ABC", name: "Letter id" }, { id: "5", name: "  " }, { id: "6", name: "Valid Station", modes: "train" }]
+equal(Model.matchStops(malformedStops, "valid").map(x => x.id), ["6"], "malformed stop entries are ignored")
+equal(Model.matchStops(searchableStops, "chat", 1)[0], {
+  id: "1", name: "Chatswood Station", shortName: "Chatswood", isStop: true,
+  modes: ["metro", "train"], type: "stop", lat: null, lon: null
+}, "local stop results match the picker result shape")
+equal([
+  Model.displayStopName("Chatswood Station"),
+  Model.displayStopName("Surry Hills Light Rail"),
+  Model.displayStopName("Circular Quay Wharf 5"),
+  Model.displayStopName("Balmain East Wharf")
+], ["Chatswood", "Surry Hills", "Circular Quay", "Balmain East Wharf"], "picker stop names strip only supported trailing labels")
+
 const board = Model.boardFor(deps, home, now)
 assert(board.length > 0 && board.length <= Model.MAX_ROWS, "board is bounded")
 assert(board.every(d => d.line === "T4" && /City/.test(d.destination)), "board honours line and destination filters")

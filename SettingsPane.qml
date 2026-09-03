@@ -356,7 +356,7 @@ Flickable {
       Text {
         width: parent.width * 0.42
         textFormat: Text.PlainText
-        text: "Transport NSW for Omarchy v" + page.host.version
+        text: "Transport NSW for Omarchy v" + (page.host && page.host.version ? page.host.version : "0.6.1")
         color: page.muted
         font.family: page.family
         font.pixelSize: Style.font.caption
@@ -821,6 +821,14 @@ Flickable {
           if (endpoint.destination) page.host.searchDestinationStops(text)
           else page.host.searchPlaceStops(text)
         }
+        onAccepted: {
+          var first = page.host.firstSearchResult(endpoint.results)
+          if (!first)
+            return
+
+          if (endpoint.destination) page.host.pickDestination(first)
+          else page.host.pickStop(first)
+        }
       }
 
       Button {
@@ -838,18 +846,39 @@ Flickable {
     Repeater {
       model: endpoint.results
 
-      delegate: Button {
+      delegate: Item {
         required property var modelData
 
         width: endpoint.width
-        leftAlign: true
-        bordered: true
-        text: modelData.shortName + " · " + modelData.modes.join(", ")
-        foreground: page.foreground
-        fontFamily: page.family
-        onClicked: {
-          if (endpoint.destination) page.host.pickDestination(modelData)
-          else page.host.pickStop(modelData)
+        implicitHeight: modelData.isDivider ? moreLabel.implicitHeight : resultButton.implicitHeight
+
+        Text {
+          id: moreLabel
+
+          anchors.left: parent.left
+          anchors.verticalCenter: parent.verticalCenter
+          visible: modelData.isDivider === true
+          textFormat: Text.PlainText
+          text: "More"
+          color: page.muted
+          font.family: page.family
+          font.pixelSize: Style.font.caption
+        }
+
+        Button {
+          id: resultButton
+
+          width: parent.width
+          visible: modelData.isDivider !== true
+          leftAlign: true
+          bordered: true
+          text: page.host.searchResultText(modelData)
+          foreground: page.foreground
+          fontFamily: page.family
+          onClicked: {
+            if (endpoint.destination) page.host.pickDestination(modelData)
+            else page.host.pickStop(modelData)
+          }
         }
       }
     }

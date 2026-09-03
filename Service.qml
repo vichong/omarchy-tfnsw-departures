@@ -14,13 +14,15 @@ QtObject {
   // Shell injection and persistent paths.
   property var shell: null
   property var manifest: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.1"
   readonly property string home: String(Quickshell.env("HOME") || "")
   readonly property string configDir: home + "/.config/omarchy/tfnsw-departures"
   readonly property string configPath: configDir + "/config.json"
   readonly property string cacheDir: home + "/.cache/omarchy/tfnsw-departures"
   readonly property string cachePath: cacheDir + "/board.json"
   readonly property string helperPath: decodeURIComponent(String(Qt.resolvedUrl("scripts/tfnsw-bounded")).replace(/^file:\/\//, ""))
+  readonly property string stopsPath: decodeURIComponent(String(Qt.resolvedUrl("data/stops.json")).replace(/^file:\/\//, ""))
+  property var stops: []
   // Non-secret configuration. The API key lives only in CredentialManager.
   property bool configLoaded: false
   property string configError: ""
@@ -83,6 +85,71 @@ QtObject {
     path: root.cachePath
     printErrors: false
     atomicWrites: true
+  }
+
+  property FileView stopsFile
+
+  stopsFile: FileView {
+    path: root.stopsPath
+    printErrors: false
+    onLoaded: root.applyStops(text())
+    onLoadFailed: root.stops = []
+  }
+
+  function utf8ByteLength(text) {
+    var value = String(text || "")
+    var bytes = 0
+    for (var i = 0; i < value.length; i++) {
+      var code = value.charCodeAt(i)
+      if (code < 0x80) bytes++
+      else if (code < 0x800) bytes += 2
+      else if (code >= 0xD800 && code <= 0xDBFF && i + 1 < value.length
+               && value.charCodeAt(i + 1) >= 0xDC00 && value.charCodeAt(i + 1) <= 0xDFFF) {
+        bytes += 4
+        i++
+      } else bytes += 3
+      if (bytes > 512 * 1024)
+        return bytes
+    }
+    return bytes
+  }
+
+  function applyStops(text) {
+    var source = String(text || "")
+    if (utf8ByteLength(source) > 512 * 1024) {
+      stops = []
+      return
+    }
+    var parsed = null
+    try {
+      parsed = JSON.parse(source)
+    } catch (e) {
+      stops = []
+      return
+    }
+    if (!Array.isArray(parsed)) {
+      stops = []
+      return
+    }
+
+    var loaded = []
+    for (var i = 0; i < parsed.length && loaded.length < 2000; i++) {
+      var item = parsed[i]
+      if (!item || typeof item !== "object" || typeof item.id !== "string" || !Api.isStopId(item.id)
+          || typeof item.name !== "string" || item.name.trim() === "") continue
+      var modes = []
+      var rawModes = Array.isArray(item.modes) ? item.modes : []
+      for (var m = 0; m < rawModes.length; m++) if (Api.isValidModeId(rawModes[m]) && modes.indexOf(rawModes[m]) === -1)
+        modes.push(rawModes[m])
+      loaded.push({
+        "id": item.id,
+        "name": item.name.trim(),
+        "modes": modes,
+        "lat": typeof item.lat === "number" && isFinite(item.lat) ? item.lat : null,
+        "lon": typeof item.lon === "number" && isFinite(item.lon) ? item.lon : null
+      })
+    }
+    stops = loaded
   }
 
   property Process prepareDirs
@@ -906,7 +973,7 @@ QtObject {
   }
 
   function statusLine() {
-    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
+    return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " stops=" + stops.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
   }
 
   Component.onCompleted: prepareDirs.running = true

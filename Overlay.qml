@@ -16,7 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.0"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.6.1"
 
   property bool opened: false
   property string tab: "settings"
@@ -37,6 +37,7 @@ Item {
 
   // Here-tab state.
   property var hereResults: []
+  property string hereSearchText: ""
   property var hereLocation: null
   property var nearestStop: null
   property var lastJourneys: []
@@ -80,6 +81,9 @@ Item {
     }
     Qt.callLater(function() {
       keyCatcher.forceActiveFocus()
+      // The Here tab exists to type into: hand the keyboard to its field.
+      if (root.tab === "here" && paneLoader.item && typeof paneLoader.item.focusField === "function")
+        paneLoader.item.focusField()
     })
   }
 
@@ -273,9 +277,12 @@ Item {
   }
 
   function pickStop(loc) {
+    if (service)
+      service.searchStops("", function() {})
+
     selectedStop = loc
     placeStopId = loc.id
-    placeStopName = loc.shortName || loc.name
+    placeStopName = loc.name
     if (placeDestStopId === placeStopId)
       clearDestination()
 
@@ -285,14 +292,20 @@ Item {
   }
 
   function pickDestination(loc) {
+    if (service)
+      service.searchStops("", function() {})
+
     placeDestStopId = loc.id
-    placeDestStopName = loc.shortName || loc.name
+    placeDestStopName = loc.name
     destinationSearchText = ""
     destinationSearchComplete = false
     destinationResults = []
   }
 
   function clearDestination() {
+    if (service)
+      service.searchStops("", function() {})
+
     placeDestStopId = ""
     placeDestStopName = ""
     destinationSearchText = ""
@@ -300,16 +313,66 @@ Item {
     destinationResults = []
   }
 
+  function mergedSearchResults(local, remote, stopsOnly, excludedId) {
+    var merged = local.slice()
+    var seen = {}
+    for (var i = 0; i < local.length; i++) seen[String(local[i].id)] = true
+    var more = []
+    var list = Array.isArray(remote) ? remote : []
+    for (var r = 0; r < list.length; r++) {
+      var item = list[r]
+      if (!item || (stopsOnly && !item.isStop) || String(item.id) === String(excludedId || "")
+          || seen[String(item.id)]) continue
+      seen[String(item.id)] = true
+      more.push(item)
+    }
+    if (more.length)
+      merged = merged.concat([{ "isDivider": true, "type": "divider", "name": "More" }], more)
+    return merged
+  }
+
+  function firstSearchResult(results) {
+    var list = Array.isArray(results) ? results : []
+    for (var i = 0; i < list.length; i++) if (list[i] && !list[i].isDivider)
+      return list[i]
+    return null
+  }
+
+  function searchResultText(item) {
+    if (!item)
+      return ""
+
+    // Addresses keep their suburb ("Chatsworth St, Croydon"); stops drop the suffix.
+    var name = item.isStop ? Model.displayStopName(item.name) : String(item.name || item.shortName || "")
+    var modes = item.modes && isFinite(item.modes.length) ? item.modes : []
+    var glyphs = []
+    for (var i = 0; i < modes.length; i++) glyphs.push(Model.glyphFor(String(modes[i])))
+    if (glyphs.length)
+      return name + "  ·  " + glyphs.join(" ")
+    return name + (item.isStop ? "  ·  stop" : "  ·  address")
+  }
+
   function searchDestinationStops(text) {
     if (!service)
       return
 
-    destinationSearchText = String(text || "").trim()
-    destinationSearchComplete = false
-    service.searchStops(text, function(results) {
-      root.destinationResults = results.filter(function(x) {
-        return x.isStop && String(x.id) !== String(root.placeStopId)
-      })
+    var query = String(text || "").trim()
+    placeDestStopName = String(text || "")
+    destinationSearchText = query
+    var local = Model.matchStops(service.stops, query).filter(function(x) {
+      return String(x.id) !== String(root.placeStopId)
+    })
+    destinationResults = local
+    destinationSearchComplete = query.length < 3
+    if (query.length < 3) {
+      service.searchStops("", function() {})
+      return
+    }
+    service.searchStops(query, function(results) {
+      if (query !== root.destinationSearchText)
+        return
+
+      root.destinationResults = root.mergedSearchResults(local, results, true, root.placeStopId)
       root.destinationSearchComplete = true
     })
   }
@@ -318,12 +381,21 @@ Item {
     if (!service)
       return
 
-    placeSearchText = String(text || "").trim()
-    placeSearchComplete = false
-    service.searchStops(text, function(results) {
-      root.stopResults = results.filter(function(x) {
-        return x.isStop
-      })
+    var query = String(text || "").trim()
+    placeStopName = String(text || "")
+    placeSearchText = query
+    var local = Model.matchStops(service.stops, query)
+    stopResults = local
+    placeSearchComplete = query.length < 3
+    if (query.length < 3) {
+      service.searchStops("", function() {})
+      return
+    }
+    service.searchStops(query, function(results) {
+      if (query !== root.placeSearchText)
+        return
+
+      root.stopResults = root.mergedSearchResults(local, results, true, "")
       root.placeSearchComplete = true
     })
   }
@@ -332,18 +404,34 @@ Item {
     if (!service)
       return
 
-    service.searchStops(text, function(results) {
-      root.hereResults = results
+    var query = String(text || "").trim()
+    hereSearchText = String(text || "")
+    var local = Model.matchStops(service.stops, query)
+    hereResults = local
+    nearestStop = firstSearchResult(local)
+    if (query.length < 3) {
+      service.searchStops("", function() {})
+      return
+    }
+    service.searchStops(query, function(results) {
+      if (query !== String(root.hereSearchText || "").trim())
+        return
+
+      root.hereResults = root.mergedSearchResults(local, results, false, "")
       root.nearestStop = null
-      for (var i = 0; i < results.length; i++) if (results[i].isStop) {
-        root.nearestStop = results[i]
+      for (var i = 0; i < root.hereResults.length; i++) if (root.hereResults[i].isStop) {
+        root.nearestStop = root.hereResults[i]
         break
       }
     })
   }
 
   function pickHere(loc) {
+    if (service)
+      service.searchStops("", function() {})
+
     hereLocation = loc
+    hereSearchText = loc.name
     hereResults = []
     if (service)
       service.planFrom(loc, function(journeys) {
@@ -369,9 +457,9 @@ Item {
       ? service.activePlace : null
     service.addPlace({
       "id": id,
-      "name": nearestStop.shortName || "New place",
+      "name": Model.displayStopName(nearestStop.name) || "New place",
       "stopId": nearestStop.id,
-      "stopName": nearestStop.shortName || nearestStop.name,
+      "stopName": nearestStop.name,
       "destStopId": destination ? destination.stopId : "",
       "destStopName": destination ? destination.stopName : "",
       "lines": [],
@@ -558,6 +646,8 @@ Item {
         }
 
         Loader {
+          id: paneLoader
+
           sourceComponent: root.tab === "here" ? herePane : settingsPane
 
           anchors {
@@ -584,6 +674,8 @@ Item {
     id: herePane
 
     Flickable {
+      function focusField() { hereField.forceActiveFocus() }
+
       clip: true
       contentWidth: width
       contentHeight: hereColumn.height
@@ -628,27 +720,56 @@ Item {
           }
 
           TextField {
+            id: hereField
+
             width: parent.width
             height: root.controlHeight
             verticalAlignment: TextInput.AlignVCenter
+            text: root.hereSearchText
             placeholderText: "Address, landmark or stop…"
             foreground: root.foreground
             onTextEdited: root.searchHere(text)
+            onAccepted: {
+              var first = root.firstSearchResult(root.hereResults)
+              if (first)
+                root.pickHere(first)
+            }
           }
 
           Repeater {
             model: root.hereResults
 
-            delegate: Button {
+            delegate: Item {
               required property var modelData
 
               width: hereColumn.width
-              leftAlign: true
-              bordered: true
-              text: modelData.shortName + (modelData.isStop ? " · stop" : " · address")
-              foreground: root.foreground
-              fontFamily: root.family
-              onClicked: root.pickHere(modelData)
+              implicitHeight: modelData.isDivider ? moreLabel.implicitHeight : resultButton.implicitHeight
+
+              Text {
+                id: moreLabel
+
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                visible: modelData.isDivider === true
+                textFormat: Text.PlainText
+                text: "More"
+                color: root.muted
+                font.family: root.family
+                font.pixelSize: Style.font.caption
+              }
+
+              Button {
+                id: resultButton
+
+                width: parent.width
+                visible: modelData.isDivider !== true
+                leftAlign: true
+                bordered: true
+                text: root.searchResultText(modelData)
+                foreground: root.foreground
+                fontFamily: root.family
+                onClicked: root.pickHere(modelData)
+              }
             }
           }
         }

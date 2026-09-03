@@ -18,6 +18,64 @@ function glyphFor(modeId) { return MODE_GLYPHS[modeId] || MODE_GLYPHS.other }
 
 function normalizeLine(text) { return String(text || "").trim().toUpperCase() }
 
+function displayStopName(name) {
+  return String(name || "").replace(/\s+(?:Station|Light Rail|Wharf\s+[0-9]+)$/i, "").trim()
+}
+
+function listCopy(value) {
+  var out = []
+  var n = value && isFinite(value.length) ? Number(value.length) : 0
+  for (var i = 0; i < n; i++) out.push(String(value[i]))
+  return out
+}
+
+function matchStops(list, text, limit) {
+  var query = String(text || "").trim().toLowerCase()
+  if (!query || !Array.isArray(list)) return []
+  var maximum = isFinite(limit) ? Math.max(0, Math.floor(Number(limit))) : 8
+  var matches = []
+  for (var i = 0; i < list.length; i++) {
+    var item = list[i]
+    if (!item || typeof item !== "object" || typeof item.id !== "string" || !Api.isStopId(item.id)
+        || typeof item.name !== "string" || item.name.trim() === "") continue
+    var name = item.name.trim()
+    var lower = name.toLowerCase()
+    var rank = -1
+    if (lower.indexOf(query) === 0) rank = 0
+    else {
+      var words = lower.split(/[^a-z0-9]+/)
+      for (var w = 0; w < words.length; w++) if (words[w].indexOf(query) === 0) {
+        rank = 1
+        break
+      }
+      if (rank < 0 && lower.indexOf(query) !== -1) rank = 2
+    }
+    if (rank < 0) continue
+    matches.push({ item: item, name: name, rank: rank })
+  }
+  matches.sort(function(a, b) {
+    if (a.rank !== b.rank) return a.rank - b.rank
+    var byName = a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+    return byName || a.name.localeCompare(b.name) || a.item.id.localeCompare(b.item.id)
+  })
+  var out = []
+  for (var m = 0; m < matches.length && out.length < maximum; m++) {
+    var stop = matches[m].item
+    out.push({
+      id: stop.id,
+      name: matches[m].name,
+      shortName: displayStopName(matches[m].name),
+      isStop: true,
+      // Arrays that crossed a QML `property var` may not satisfy Array.isArray.
+      modes: listCopy(stop.modes),
+      type: "stop",
+      lat: typeof stop.lat === "number" && isFinite(stop.lat) ? stop.lat : null,
+      lon: typeof stop.lon === "number" && isFinite(stop.lon) ? stop.lon : null
+    })
+  }
+  return out
+}
+
 function boardStopName(name) {
   return String(name || "")
     .replace(/\s+(Station|Wharf|Light Rail|Interchange)\b.*$/i, "")

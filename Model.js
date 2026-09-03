@@ -719,7 +719,7 @@ function collectAlerts(board) {
   for (var k = 0; k < order.length && out.length < 4; k++) {
     var entry = counts[order[k]]
     out.push({ id: entry.info.id, title: entry.info.title, priority: entry.info.priority,
-               url: entry.info.url, disruption: isDisruption(entry.info) })
+               url: entry.info.url, text: String(entry.info.text || ""), disruption: isDisruption(entry.info) })
   }
   return out
 }

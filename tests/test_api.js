@@ -132,4 +132,9 @@ equal(Api.luminance("bogus"), 0, "bad colours have zero luminance")
 
 equal([Api.nearbyModes("Crown St at Rainford St, Surry Hills"), Api.nearbyModes("The Star Light Rail, Pyrmont"), Api.nearbyModes("Circular Quay Wharf 2"), Api.nearbyModes("Martin Place Station, Elizabeth St")], [["bus"], ["lightrail"], ["ferry"], ["train"]], "nearby modes inferred from the platform name")
 
+const infoWithText = Api.parseDepartures(fixture("departure_mon_sydenham.json")).map(d => d.infos).flat().find(i => i.text)
+assert(infoWithText && /buses replace trains/i.test(infoWithText.text), "alerts carry their body text from speechText")
+equal(Api.infoText("<p>Line&nbsp;one<br>Line   two</p>"), "Line one\nLine two", "HTML alert bodies become plain text")
+equal(Api.infoText("").length, 0, "no body is an empty string")
+
 done("test_api")

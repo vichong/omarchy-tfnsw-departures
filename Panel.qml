@@ -132,6 +132,7 @@ Ui.Panel {
     function refresh(): void { if (root.ready) root.service.refresh() }
     function settings(): void { root.openOverlay("settings") }
     function newtrip(): void { root.openOverlay("newtrip") }
+    function alerts(): void { root.alertsExpanded = !root.alertsExpanded }
     function newtripUse(): void { if (root.ready) root.service.requestNewTripAction("use") }
     function newtripFrom(text: string): void { root.scriptedNewTrip("from:" + text) }
     function newtripTo(text: string): void { root.scriptedNewTrip("to:" + text) }
@@ -686,7 +687,7 @@ Ui.Panel {
 
               width: column.width
               foreground: root.fg
-              implicitHeight: alertText.implicitHeight + Style.space(18)
+              implicitHeight: alertColumn.implicitHeight + Style.space(18)
 
               MouseArea {
                 anchors.fill: parent
@@ -694,21 +695,44 @@ Ui.Panel {
                 onClicked: root.openAlert(modelData.url)
               }
 
-              Text {
-                id: alertText
+              Column {
+                id: alertColumn
 
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.leftMargin: Style.space(14)
                 anchors.rightMargin: Style.space(14)
-                textFormat: Text.PlainText
-                text: "󰀦  " + modelData.title
-                wrapMode: Text.WordWrap
-                color: modelData.disruption ? Color.urgent : Color.accent
-                font.family: root.family
-                font.pixelSize: Style.font.bodySmall
-                font.weight: Font.Medium
+                spacing: Style.space(4)
+
+                Text {
+                  id: alertText
+
+                  width: parent.width
+                  textFormat: Text.PlainText
+                  text: "󰀦  " + modelData.title
+                  wrapMode: Text.WordWrap
+                  color: modelData.disruption ? Color.urgent : Color.accent
+                  font.family: root.family
+                  font.pixelSize: Style.font.bodySmall
+                  font.weight: Font.Medium
+                }
+
+                // The alert's own wording, as Transport NSW publishes it.
+                Text {
+                  width: parent.width
+                  visible: (modelData.text || "") !== ""
+                  textFormat: Text.PlainText
+                  text: modelData.text || ""
+                  wrapMode: Text.WordWrap
+                  maximumLineCount: 8
+                  elide: Text.ElideRight
+                  color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.75)
+                  font.family: root.family
+                  font.pixelSize: Style.font.caption
+                  lineHeightMode: Text.ProportionalHeight
+                  lineHeight: 1.35
+                }
               }
             }
           }

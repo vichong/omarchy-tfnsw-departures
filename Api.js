@@ -298,10 +298,21 @@ function parseInfos(infos) {
     var title = clip(String(info.urlText || info.subtitle || "").trim(), 120)
     if (!title || (id && seen[id])) continue
     if (id) seen[id] = true
+    var props = info.properties && typeof info.properties === "object" ? info.properties : {}
     out.push({ id: id || title, title: title, priority: String(info.priority || "normal"),
-               type: String(info.type || ""), url: httpsOnly(info.url) })
+               type: String(info.type || ""), url: httpsOnly(info.url),
+               text: infoText(props.speechText || props.smsText || info.content || "") })
   }
   return out
+}
+
+// Alert body as plain text: TfNSW's speechText is already prose; content is
+// HTML, so tags go and whitespace collapses. Bounded.
+function infoText(value) {
+  var text = String(value || "").replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]*>/g, " ")
+  text = text.replace(/&nbsp;/g, " ").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  text = text.replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim()
+  return clip(text, 600)
 }
 
 function httpsOnly(url) {

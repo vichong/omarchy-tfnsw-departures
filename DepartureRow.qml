@@ -427,13 +427,19 @@ CursorSurface {
       Item {
         width: parent.width
         visible: root.legs && root.legs.length > 0
-        implicitHeight: visible ? Style.space(31) : 0
+        // The strip wraps onto a second line for long journeys instead of
+        // running off the edge; every segment is one fixed-height row so the
+        // change dots sit on the badges' centre line.
+        implicitHeight: visible ? strip.height + Style.space(12) : 0
         clip: true
 
-        Row {
+        Flow {
+          id: strip
+
           anchors.left: parent.left
           anchors.right: parent.right
-          anchors.verticalCenter: parent.verticalCenter
+          anchors.top: parent.top
+          anchors.topMargin: Style.space(6)
           anchors.leftMargin: Style.space(11)
           anchors.rightMargin: Style.space(11)
           spacing: Style.space(8)
@@ -444,6 +450,7 @@ CursorSurface {
             delegate: Row {
               required property var modelData
 
+              height: Style.space(19)
               spacing: Style.space(5)
 
               Rectangle {

@@ -40,6 +40,7 @@ Ui.Panel {
   function moveCursor(delta) {
     if (rowCount)
       cursorIndex = Math.max(0, Math.min(rowCount - 1, cursorIndex + delta))
+    scroller.revealRow(cursorIndex)
   }
 
   function switchPlace(delta) {
@@ -260,10 +261,30 @@ Ui.Panel {
       onActivateRequested: if (root.ready && root.rowCount)
         root.toggleExpanded(root.service.rows.get(root.cursorIndex).depId)
 
+      // The board can be taller than the screen (six rows plus an expanded
+      // journey): the content scrolls inside the panel instead of spilling.
+      Flickable {
+        id: scroller
+
+        anchors.fill: parent
+        clip: true
+        contentWidth: width
+        contentHeight: column.implicitHeight
+        boundsBehavior: Flickable.StopAtBounds
+        interactive: contentHeight > height
+
+        function revealRow(index) {
+          var item = rowRepeater.itemAt(index)
+          if (!item) return
+          var top = item.y, bottom = item.y + item.height
+          if (top < contentY) contentY = Math.max(0, top)
+          else if (bottom > contentY + height) contentY = Math.max(0, Math.min(contentHeight - height, bottom - height))
+        }
+
       Column {
         id: column
 
-        anchors.fill: parent
+        width: parent.width
         spacing: Style.space(0)
 
         Item {
@@ -847,6 +868,7 @@ Ui.Panel {
             }
           }
         }
+      }
       }
     }
   }

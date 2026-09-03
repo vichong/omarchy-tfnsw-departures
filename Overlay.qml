@@ -371,7 +371,7 @@ Item {
           root.placeDestStopId = merged[0].id
           root.placeDestStopName = merged[0].name
         }
-      })
+      }, "here")
     }
     destinationSearchText = ""
     destinationSearchComplete = false
@@ -544,7 +544,7 @@ Item {
       root.newTripOrigin = root.nearbyStops.length ? root.nearbyStops[0] : loc
       root.nearbyFallback = root.nearbyStops.length === 0
       root.planNewTrip()
-    })
+    }, "origin")
     if (newTripOrigin)
       planNewTrip()
   }
@@ -664,7 +664,7 @@ Item {
       root.newTripDestinationStops = Model.mergeNearby(local, apiStops)
       root.newTripDestinationStop = root.newTripDestinationStops.length ? root.newTripDestinationStops[0] : null
       root.planNewTrip()
-    })
+    }, "destination")
     planNewTrip()
   }
 

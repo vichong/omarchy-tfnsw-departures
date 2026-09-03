@@ -366,8 +366,6 @@ QtObject {
 
   // Nearby-stop lookups share LiveBackend's serialized worker with every
   // other request. A newer coordinate aborts and supersedes the old result.
-  property var nearbyRequest: null
-  property int nearbySerial: 0
 
   // New-trip journeys refresh only while the overlay tab is visible.
   property ListModel journeyRows
@@ -682,7 +680,6 @@ QtObject {
     polling = false
     searchRequest = null
     journeyRequest = null
-    nearbyRequest = null
     resetCrowding()
   }
 
@@ -1080,37 +1077,45 @@ QtObject {
     searchDebounce.restart()
   }
 
-  function nearbyStops(lat, lon, callback) {
-    nearbySerial++
-    var serial = nearbySerial
-    if (nearbyRequest && typeof nearbyRequest.abort === "function")
-      nearbyRequest.abort()
-
-    nearbyRequest = null
+  // Nearby-stop lookups keep one in-flight request per slot ("origin" /
+  // "destination") so picking the destination never cancels the origin's.
+  property var nearbySlots: ({})
+  function nearbyStops(lat, lon, callback, slot) {
+    var key = String(slot || "origin")
+    var slots = nearbySlots
+    var state = slots[key] || { serial: 0, request: null }
+    state.serial++
+    var serial = state.serial
+    if (state.request && typeof state.request.abort === "function")
+      state.request.abort()
+    state.request = null
+    slots[key] = state
+    nearbySlots = slots
     function complete(result) {
-      if (serial !== root.nearbySerial) {
-        root.lastNearbyNote = "stale serial"
+      var current = root.nearbySlots[key]
+      if (!current || serial !== current.serial) {
+        root.lastNearbyNote = key + ": stale"
         return
       }
-
-      root.nearbyRequest = null
+      current.request = null
       root.noteRateLimit(result)
-      root.lastNearbyNote = result.ok ? "ok " + result.data.length : "failed " + result.kind
+      root.lastNearbyNote = key + ": " + (result.ok ? "ok " + result.data.length : "failed " + result.kind)
       if (callback)
         callback(result.ok ? result.data : [])
     }
     if (!isFinite(lat) || !isFinite(lon) || quotaBlocked()) {
-      lastNearbyNote = "skipped: coords/quota"
+      lastNearbyNote = key + ": skipped (coords/quota)"
       if (callback)
         callback([])
       return
     }
     if (demoMode || !connected) {
+      lastNearbyNote = key + ": skipped (demo/offline)"
       if (callback)
         callback([])
       return
     }
-    nearbyRequest = liveBackend.request(Api.coordPath(lat, lon, 800), function(response) {
+    state.request = liveBackend.request(Api.coordPath(lat, lon, 800), function(response) {
       if (response.ok)
         response.data = Api.parseNearby(response.data)
 

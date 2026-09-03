@@ -641,3 +641,61 @@ planned to `destStopId` with that walk appended. Scriptable steps:
 first search result. Status line reports `journeys=` and `plan=` for
 diagnosis. Gotcha recorded: `Array.isArray` fails for arrays that crossed a
 QML `property var` — model helpers test `.length` instead.
+
+## v0.9: journey-chain rows (Claude Design variant 2a, Vic, 2026-09-04)
+Source of truth: `docs/handoff/2a/README.md` and the `id="2a"` block of
+`docs/handoff/2a/TfNSW Departures Mockups.dc.html` (inline CSS; transcribe
+the numbers, do not eyeball). 1 CSS px = 1 `Style.space` unit. Colours stay
+theme tokens (`Color.foreground` at the mock's alphas), never the mock's
+Tokyo Night hexes.
+
+**What changes (collapsed row, `DepartureRow.qml`):** line 2 under the
+destination is no longer the caption ("Platform 1 · on time · 24 min →
+9:13 AM"). It becomes the **chain**: `walk-glyph N › badge › [walk-glyph N
+› badge …] › walk-glyph N · → 9:13 AM · Platform 1`.
+- Chain row: flex, gap 6, align centre. Walk item = glyph 9×12 + minutes,
+  10/500 fg-2 (`fg` at 0.78) for the place walks, muted for a change walk
+  (the mock shows the 7-min change in muted). Separator "›" 10 muted.
+  Chain badges are `LineBadge` size 17, minimum width 22, font 9/700.
+- Trailing caption 10 muted, `elide` right, `flex 0 1 auto`: "· → {arrive}
+  · Platform {n}" with the **arrival first** so truncation eats the
+  platform (buses: "Stand C"). Cancelled: caption is the status text.
+  Dominated rows: caption ends "· later arrival" and the "later arrival"
+  pill goes away (the README calls it a caption, not a pill).
+- The chain items come from `Model.legRows`: walk → walk item, ride →
+  badge, change → walk item with the change minutes (muted). Two rides
+  with no change row between them get just "›".
+- **Leading walk:** stop-to-stop plans have no walk leg for the place's
+  own walk. `Model.legRows(entry, occupancy, walkMinutes)` synthesises a
+  leading `walk` row when `walkMinutes > 0` and the first leg is not
+  already a walk: `minutes = walkMinutes`, `departText = clock(departMs −
+  walk)`, `arriveText = clock(first ride departMs)`. `Service.legsFor`
+  passes the active place's `walkMinutes`. Never double a walk that the
+  planner already returned (address-origin trips).
+- Rows without legs (a plain departure board, no destination): chain is
+  `[walk N ›] badge · Platform n` so every row reads the same way.
+- Headsign min-width 70 on ordinary rows, 0 on rows with two or more pills
+  (mock: the crowded M1 row lets the headsign vanish first).
+
+**Expanded board:** the strip `Flow` at the top of the board is **removed**
+(the chain now lives on the collapsed row). Board margin becomes
+`0 12 12 73` (indented under the text column), 1 px hairline at fg 0.14,
+radius 6, bg background at 0.28. Rows mirror the chain top to bottom:
+- walk row (padding 7 11): glyph 10×13 muted, "walk 6 min", right side
+  **"leave 8:36 AM"** for the leading walk and **"arrive 9:13 AM"** for the
+  final walk (a walk between rides reads "walk 5 min" with "8:51 → 8:56 AM").
+- leg row (padding 10 11 9): mode pictogram (kept from v0.8, Vic's request)
+  · badge 19 · headsign 11/600 fg with the departure clock 10 muted
+  baseline-aligned after it (gap 8) · stop list 10 muted line-height 1.5 ·
+  right: PLATFORM label-over-value (8/500 .14em muted over 12/600 fg,
+  margin-top 5) and the crowding glyphs beneath as now.
+- change row: 5 px hollow circle, "change · 7 min at Central", right side
+  "8:51 → 8:58 AM" (previous leg arrive → next leg depart); hairline top and
+  bottom. `legRows` change rows need `departText` (arrival of the previous
+  ride) and `arriveText` (departure of the next ride) filled in.
+- Chevron on the expanded row stays where it is (accent, rotated).
+
+**Not in scope:** hero, leave window, alerts band, footer and settings
+already match 1a/1b and stay as they are. TransportMark stays ours.
+Tests: extend `tests/test_model.js` for the leading-walk synthesis (no
+double walk when the first leg is a walk) and change-row times.

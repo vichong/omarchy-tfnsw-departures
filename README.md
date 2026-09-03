@@ -70,8 +70,10 @@ a trip. Address trips retain the nearest arrival stop and plan the final walk
 to the door.
 The place selector makes the distinction explicit: `From Home` is a departure
 board, while `Home → Wynyard` is a planned trip. Trip rows lead with your saved
-destination, keep the vehicle headsign secondary, and show arrival and travel
-time in the caption.
+destination, keep the vehicle headsign secondary, and read the journey as a
+chain underneath: walk › line › walk, then the arrival time and platform.
+Expanding a row opens an indicator board that mirrors the chain: when to
+leave, each leg with its departure and platform, and the change in between.
 
 ### Trips with changes
 
@@ -153,6 +155,7 @@ omarchy-shell tfnsw newtrip        # open New trip
 omarchy-shell tfnsw newtripUse     # Use now (with a planned trip open)
 omarchy-shell tfnsw newtripSave    # Save as trip
 omarchy-shell tfnsw placeFrom "<text>"  # Settings: search Leaving from and pick the first result
+omarchy-shell tfnsw expand 1       # expand the second row into its indicator board
 omarchy-shell tfnsw here
 omarchy-shell tfnsw settings
 ```

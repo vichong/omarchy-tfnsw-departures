@@ -133,6 +133,10 @@ Ui.Panel {
     function settings(): void { root.openOverlay("settings") }
     function newtrip(): void { root.openOverlay("newtrip") }
     function alerts(): void { root.alertsExpanded = !root.alertsExpanded }
+    function expand(index: int): void {
+      var list = root.ready ? root.service.board : []
+      if (index >= 0 && index < list.length) root.toggleExpanded(list[index].id)
+    }
     function newtripUse(): void { if (root.ready) root.service.requestNewTripAction("use") }
     function newtripFrom(text: string): void { root.scriptedNewTrip("from:" + text) }
     function newtripTo(text: string): void { root.scriptedNewTrip("to:" + text) }

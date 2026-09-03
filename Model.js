@@ -364,10 +364,33 @@ function markDominated(board) {
 
 // Project parsed trip legs for the expandable departure row. When the API
 // omits a walking leg between two rides, make the transfer time explicit.
-function legRows(entry, occupancy) {
+function legRows(entry, occupancy, walkMinutes) {
   var shownAlerts = {}
-  var legs = entry && Array.isArray(entry.legs) ? entry.legs : []
+  // Length-based: arrays that crossed a QML `property var` fail Array.isArray.
+  var legs = entry && entry.legs && isFinite(entry.legs.length) ? entry.legs : []
   var rows = []
+  var leadingWalk = Math.max(0, Math.round(Number(walkMinutes) || 0))
+  if (leadingWalk > 0 && legs.length > 0 && legs[0] && legs[0].kind !== "walk") {
+    var firstDepartMs = Number(legs[0].departMs || 0)
+    rows.push({
+      kind: "walk",
+      mode: "walk",
+      tripId: "",
+      crowding: "",
+      line: "",
+      headsign: "",
+      from: "",
+      to: String(legs[0].from || ""),
+      departText: firstDepartMs ? clockText(firstDepartMs - leadingWalk * 60000) : "",
+      arriveText: firstDepartMs ? clockText(firstDepartMs) : "",
+      platform: "",
+      realtime: false,
+      alertTitle: "",
+      disruption: false,
+      stopsText: "",
+      minutes: leadingWalk
+    })
+  }
   for (var i = 0; i < legs.length; i++) {
     var leg = legs[i]
     if (!leg || (leg.kind !== "ride" && leg.kind !== "walk")) continue
@@ -383,8 +406,8 @@ function legRows(entry, occupancy) {
         headsign: "",
         from: leg.from || legs[i - 1].to || "",
         to: "",
-        departText: "",
-        arriveText: "",
+        departText: clockText(legs[i - 1].arriveMs),
+        arriveText: clockText(leg.departMs),
         platform: "",
         realtime: false,
         alertTitle: "",
@@ -394,7 +417,7 @@ function legRows(entry, occupancy) {
       })
     }
 
-    var infos = Array.isArray(leg.infos) ? leg.infos : []
+    var infos = leg.infos && isFinite(leg.infos.length) ? leg.infos : []
     var alert = infos.length ? infos[0] : null
     for (var a = 0; a < infos.length; a++) if (isDisruption(infos[a])) {
       alert = infos[a]

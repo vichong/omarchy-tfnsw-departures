@@ -52,6 +52,9 @@ CursorSurface {
   readonly property string countdownLabel: cancelled ? "CANC" : missed ? "MISSED" : "LEAVE"
   readonly property bool expandable: legs && legs.length > 0
   readonly property int collapsedHeight: Style.space(46) + Style.space(20)
+  readonly property var pillItems: cancelled ? ["cancelled"]
+    : (realtime ? ["RT"] : []).concat(changesText ? [changesText] : [])
+  readonly property int pillCount: pillItems.length
 
   function shortStopName(name) {
     return String(name || "")
@@ -75,6 +78,44 @@ CursorSurface {
 
   function platformPrefix() {
     return mode === "bus" || mode === "coach" || mode === "schoolbus" ? "Stand " : "Platform "
+  }
+
+  function chainModel() {
+    var source = legs && isFinite(legs.length) ? legs : []
+    var result = []
+    for (var i = 0; i < source.length; i++) {
+      if (source[i] && (source[i].kind === "walk" || source[i].kind === "ride" || source[i].kind === "change"))
+        result.push(source[i])
+    }
+    if (result.length === 0) {
+      if (walkMinutes > 0)
+        result.push({ kind: "walk", minutes: walkMinutes })
+      result.push({ kind: "ride", line: line, mode: mode })
+    }
+    return result
+  }
+
+  function chainCaption() {
+    if (cancelled)
+      return status
+    var parts = []
+    if (arriveText)
+      parts.push("→ " + arriveText)
+    if (platform)
+      parts.push(platformPrefix() + platform)
+    if (dominated)
+      parts.push("later arrival")
+    return parts.length ? "· " + parts.join(" · ") : ""
+  }
+
+  function timeRange(fromText, toText) {
+    var from = String(fromText || "")
+    var to = String(toText || "")
+    var fromPeriod = clockPeriod(from)
+    var toPeriod = clockPeriod(to)
+    if (fromPeriod && fromPeriod === toPeriod)
+      from = clockMain(from)
+    return from + " → " + to
   }
 
   foreground: fg
@@ -221,10 +262,12 @@ CursorSurface {
 
               Text {
                 anchors.verticalCenter: parent.verticalCenter
-                width: Style.space(17)
+                width: Style.space(20)
+                height: Style.space(20)
                 textFormat: Text.PlainText
                 text: Model.glyphFor(root.mode)
                 horizontalAlignment: Text.AlignHCenter
+                verticalAlignment: Text.AlignVCenter
                 color: root.muted
                 font.family: root.family
                 font.pixelSize: Style.space(17)
@@ -242,14 +285,15 @@ CursorSurface {
 
               Row {
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(0, parent.width - Style.space(17) - collapsedBadge.width - parent.spacing * 2)
+                width: Math.max(0, parent.width - Style.space(20) - collapsedBadge.width - parent.spacing * 2)
                 height: parent.height
                 spacing: Style.space(6)
+                clip: true
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
                   // Destination first: it takes what it needs; the headsign gets the
-                  // rest and hides when that is under 48 units.
+                  // rest and hides when that is under its row-specific minimum.
                   width: Math.min(implicitWidth, parent.width)
                   textFormat: Text.PlainText
                   text: root.destination
@@ -262,8 +306,10 @@ CursorSurface {
 
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
-                  visible: root.headsign !== "" && root.headsign !== root.destination && width >= Style.space(48)
-                  width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
+                  readonly property real availableWidth: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
+                  visible: root.headsign !== "" && root.headsign !== root.destination && availableWidth > 0
+                    && (root.pillCount >= 2 || availableWidth >= Style.space(70))
+                  width: availableWidth
                   textFormat: Text.PlainText
                   text: root.headsign
                   color: root.muted
@@ -284,26 +330,22 @@ CursorSurface {
               spacing: Style.space(3)
 
               Repeater {
-                model: root.cancelled ? ["cancelled"]
-                  : root.dominated ? ["later arrival"]
-                  : (root.realtime ? ["RT"] : []).concat(root.changesText ? [root.changesText] : [])
+                model: root.pillItems
 
                 delegate: Rectangle {
                   required property string modelData
 
                   readonly property bool urgentPill: modelData === "cancelled"
-                  readonly property bool laterPill: modelData === "later arrival"
-
                   width: pillText.implicitWidth + Style.space(10)
                   height: pillText.implicitHeight + Style.space(4)
                   radius: Style.space(3)
                   color: urgentPill
                     ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.12)
-                    : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, laterPill ? 0.06 : 0.08)
+                    : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.08)
                   border.width: Style.space(1)
                   border.color: urgentPill
                     ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.32)
-                    : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, laterPill ? 0.14 : 0.18)
+                    : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.18)
 
                   Text {
                     id: pillText
@@ -311,8 +353,7 @@ CursorSurface {
                     anchors.centerIn: parent
                     textFormat: Text.PlainText
                     text: modelData
-                    color: urgentPill ? Color.urgent : laterPill ? root.muted
-                      : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
+                    color: urgentPill ? Color.urgent : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
                     font.family: root.family
                     font.pixelSize: Style.space(9)
                     font.weight: Font.Medium
@@ -343,17 +384,99 @@ CursorSurface {
             }
           }
 
-          Text {
+          Item {
+            id: chainLine
+
             width: parent.width
-            textFormat: Text.PlainText
-            text: (root.platform ? root.platformPrefix() + root.platform + " · " : "")
-              + root.status
-              + (root.arriveText ? " · " + (root.travelText ? root.travelText + " → " : "arrives ") + root.arriveText : "")
-            elide: Text.ElideRight
-            color: root.muted
-            font.family: root.family
-            font.pixelSize: Style.font.caption
-            font.weight: Font.Normal
+            height: Style.space(17)
+            clip: true
+
+            Row {
+              id: chainPieces
+
+              height: parent.height
+              spacing: Style.space(6)
+
+              Repeater {
+                model: root.chainModel()
+
+                delegate: Row {
+                  required property int index
+                  required property var modelData
+
+                  height: chainLine.height
+                  spacing: Style.space(6)
+
+                  Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: index > 0
+                    textFormat: Text.PlainText
+                    text: "›"
+                    color: root.muted
+                    font.family: root.family
+                    font.pixelSize: Style.space(10)
+                    font.weight: Font.Normal
+                  }
+
+                  Row {
+                    id: chainWalk
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: modelData.kind === "walk" || modelData.kind === "change"
+                    height: Style.space(12)
+                    spacing: Style.space(3)
+
+                    readonly property color itemColor: modelData.kind === "change" ? root.muted
+                      : Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.78)
+
+                    Text {
+                      width: Style.space(9)
+                      height: Style.space(12)
+                      textFormat: Text.PlainText
+                      text: "󰖃"
+                      horizontalAlignment: Text.AlignHCenter
+                      color: chainWalk.itemColor
+                      font.family: root.family
+                      font.pixelSize: Style.space(9)
+                    }
+
+                    Text {
+                      anchors.verticalCenter: parent.verticalCenter
+                      textFormat: Text.PlainText
+                      text: String(modelData.minutes || 0)
+                      color: chainWalk.itemColor
+                      font.family: root.family
+                      font.pixelSize: Style.space(10)
+                      font.weight: Font.Medium
+                    }
+                  }
+
+                  LineBadge {
+                    anchors.verticalCenter: parent.verticalCenter
+                    visible: modelData.kind === "ride"
+                    line: modelData.line || ""
+                    mode: modelData.mode || "other"
+                    family: root.family
+                    size: Style.space(17)
+                    minimumWidth: Style.space(22)
+                    fontSize: Style.space(9)
+                  }
+                }
+              }
+            }
+
+            Text {
+              x: chainPieces.width + (chainPieces.width > 0 && text !== "" ? Style.space(6) : 0)
+              width: Math.max(0, parent.width - x)
+              anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
+              text: root.chainCaption()
+              elide: Text.ElideRight
+              color: root.muted
+              font.family: root.family
+              font.pixelSize: Style.space(10)
+              font.weight: Font.Normal
+            }
           }
         }
       }
@@ -410,8 +533,8 @@ CursorSurface {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: collapsed.bottom
-    anchors.leftMargin: Style.space(14)
-    anchors.rightMargin: Style.space(14)
+    anchors.leftMargin: Style.space(73)
+    anchors.rightMargin: Style.space(12)
     visible: root.expanded
     implicitHeight: boardColumn.implicitHeight
     radius: Style.space(6)
@@ -424,91 +547,11 @@ CursorSurface {
 
       width: parent.width
 
-      Item {
-        width: parent.width
-        visible: root.legs && root.legs.length > 0
-        // The strip wraps onto a second line for long journeys instead of
-        // running off the edge; every segment is one fixed-height row so the
-        // change dots sit on the badges' centre line.
-        implicitHeight: visible ? strip.height + Style.space(12) : 0
-        clip: true
-
-        Flow {
-          id: strip
-
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.top: parent.top
-          anchors.topMargin: Style.space(6)
-          anchors.leftMargin: Style.space(11)
-          anchors.rightMargin: Style.space(11)
-          spacing: Style.space(8)
-
-          Repeater {
-            model: root.legs
-
-            delegate: Row {
-              required property var modelData
-
-              height: Style.space(19)
-              spacing: Style.space(5)
-
-              Rectangle {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: modelData.kind === "change"
-                width: Style.space(5)
-                height: width
-                radius: width / 2
-                color: root.muted
-              }
-
-              Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: modelData.kind === "walk"
-                textFormat: Text.PlainText
-                text: "󰖃  " + modelData.minutes + " min"
-                color: root.muted
-                font.family: root.family
-                font.pixelSize: Style.font.caption
-              }
-
-              LineBadge {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: modelData.kind === "ride"
-                line: modelData.line
-                mode: modelData.mode
-                family: root.family
-                size: Style.space(17)
-                minimumWidth: Style.space(21)
-                fontSize: Style.space(9)
-              }
-
-              Text {
-                anchors.verticalCenter: parent.verticalCenter
-                visible: modelData.kind === "ride"
-                textFormat: Text.PlainText
-                text: root.shortStopName(modelData.from) + " → " + root.shortStopName(modelData.to)
-                color: root.muted
-                font.family: root.family
-                font.pixelSize: Style.font.caption
-              }
-            }
-          }
-        }
-
-        Rectangle {
-          anchors.left: parent.left
-          anchors.right: parent.right
-          anchors.bottom: parent.bottom
-          height: Style.space(1)
-          color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
-        }
-      }
-
       Repeater {
         model: root.expanded ? root.legs : []
 
         delegate: Column {
+          required property int index
           required property var modelData
 
           width: boardColumn.width
@@ -520,6 +563,15 @@ CursorSurface {
             width: parent.width
             implicitHeight: visible ? Math.max(rideDetails.implicitHeight, rideFacts.implicitHeight) + Style.space(19) : 0
             height: implicitHeight
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              height: Style.space(1)
+              visible: index > 0 && root.legs[index - 1].kind === "walk"
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
+            }
 
             Column {
               id: rideDetails
@@ -559,16 +611,33 @@ CursorSurface {
                   size: Style.space(19)
                 }
 
-                Text {
+                Row {
                   anchors.verticalCenter: parent.verticalCenter
                   width: Math.max(0, parent.width - legGlyph.width - legBadge.width - parent.spacing * 2)
-                  textFormat: Text.PlainText
-                  text: modelData.headsign
-                  elide: Text.ElideRight
-                  color: root.fg
-                  font.family: root.family
-                  font.pixelSize: Style.font.bodySmall
-                  font.weight: Font.DemiBold
+                  spacing: Style.space(8)
+
+                  Text {
+                    width: Math.min(implicitWidth, Math.max(0, parent.width - legClock.implicitWidth - parent.spacing))
+                    textFormat: Text.PlainText
+                    text: modelData.headsign
+                    elide: Text.ElideRight
+                    color: root.fg
+                    font.family: root.family
+                    font.pixelSize: Style.space(11)
+                    font.weight: Font.DemiBold
+                  }
+
+                  Text {
+                    id: legClock
+
+                    anchors.baseline: parent.children[0].baseline
+                    textFormat: Text.PlainText
+                    text: modelData.departText
+                    color: root.muted
+                    font.family: root.family
+                    font.pixelSize: Style.space(10)
+                    font.weight: Font.Normal
+                  }
                 }
               }
 
@@ -681,9 +750,9 @@ CursorSurface {
               id: changeText
 
               anchors.left: parent.left
-              anchors.right: parent.right
+              anchors.right: changeTime.left
               anchors.leftMargin: Style.space(25)
-              anchors.rightMargin: Style.space(11)
+              anchors.rightMargin: Style.space(8)
               anchors.verticalCenter: parent.verticalCenter
               textFormat: Text.PlainText
               text: "change · " + modelData.minutes + " min at " + root.shortStopName(modelData.from)
@@ -692,6 +761,20 @@ CursorSurface {
               font.pixelSize: Style.font.caption
               font.weight: Font.Normal
               elide: Text.ElideRight
+            }
+
+            Text {
+              id: changeTime
+
+              anchors.right: parent.right
+              anchors.rightMargin: Style.space(11)
+              anchors.verticalCenter: parent.verticalCenter
+              textFormat: Text.PlainText
+              text: root.timeRange(modelData.departText, modelData.arriveText)
+              color: root.muted
+              font.family: root.family
+              font.pixelSize: Style.space(10)
+              font.weight: Font.Normal
             }
           }
 
@@ -706,6 +789,7 @@ CursorSurface {
               anchors.right: parent.right
               anchors.top: parent.top
               height: Style.space(1)
+              visible: index > 0
               color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
             }
 
@@ -741,7 +825,9 @@ CursorSurface {
               anchors.rightMargin: Style.space(11)
               anchors.verticalCenter: parent.verticalCenter
               textFormat: Text.PlainText
-              text: "arrive " + modelData.arriveText
+              text: index === 0 ? "leave " + modelData.departText
+                : index === root.legs.length - 1 ? "arrive " + modelData.arriveText
+                : root.timeRange(modelData.departText, modelData.arriveText)
               color: root.muted
               font.family: root.family
               font.pixelSize: Style.font.caption

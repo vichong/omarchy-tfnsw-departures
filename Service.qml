@@ -919,8 +919,9 @@ QtObject {
 
   function legsFor(depId) {
     var wanted = String(depId || "")
+    var place = activePlace
     for (var i = 0; i < board.length; i++) if (String(board[i].id) === wanted)
-      return Model.legRows(board[i], occupancy)
+      return Model.legRows(board[i], occupancy, place ? place.walkMinutes : 0)
 
     return []
   }
@@ -1236,7 +1237,7 @@ QtObject {
   function journeyLegsFor(depId) {
     var wanted = String(depId || "")
     for (var i = 0; i < journeyBoard.length; i++) if (String(journeyBoard[i].id) === wanted)
-      return Model.legRows(journeyBoard[i], occupancy)
+      return Model.legRows(journeyBoard[i], occupancy, journeyPlace ? journeyPlace.walkMinutes : 0)
 
     return []
   }

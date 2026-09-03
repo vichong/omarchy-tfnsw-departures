@@ -155,6 +155,9 @@ const legRows = Model.legRows(commuteBoard[0], legOccupancy)
 equal(legRows.map(r => r.kind), ["ride", "change", "ride"], "a transfer gap between adjacent rides becomes a change row")
 equal([legRows[0].line, legRows[0].headsign, legRows[0].from, legRows[0].to, legRows[0].realtime], ["L3", "Circular Quay", "Surry Hills Light Rail", "Central Chalmers Street Light Rail", true], "first ride keeps its direction, endpoints and realtime state")
 equal([legRows[1].minutes, legRows[1].from], [9, "Central Station"], "change row gives rounded gap and change stop")
+equal([legRows[1].departText, legRows[1].arriveText],
+  [Model.clockText(multi[0].legs[0].arriveMs), Model.clockText(multi[0].legs[1].departMs)],
+  "change row spans the previous arrival and next departure")
 equal([legRows[2].line, legRows[2].headsign, legRows[2].platform], ["M1", "Tallawong", "26"], "second ride keeps its own direction and platform")
 equal([legRows[0].tripId, legRows[0].crowding, legRows[2].tripId, legRows[2].crowding],
   [multi[0].legs[0].tripId, "", multi[0].legs[1].tripId, "standing"],
@@ -167,6 +170,13 @@ const noStops = { legs: [Object.assign({}, multi[0].legs[0], { stops: [] })] }
 equal(Model.legRows(noStops)[0].stopsText, "Surry Hills · Central Chalmers St", "ride without a stop sequence falls back to endpoints")
 const withWalk = { legs: [multi[0].legs[0], Object.assign({}, multi[0].legs[0], { kind: "walk", mode: "walk", line: "", destination: "", platform: "", from: multi[0].legs[0].to, to: multi[0].legs[1].from, departMs: multi[0].legs[0].arriveMs, arriveMs: multi[0].legs[1].departMs, durationSec: 510, realtime: false, infos: [] }), multi[0].legs[1]] }
 equal(Model.legRows(withWalk).map(r => r.kind), ["ride", "walk", "ride"], "an explicit walking leg suppresses the change pseudo-row")
+const leadingRows = Model.legRows(commuteBoard[0], legOccupancy, commute.walkMinutes)
+equal(leadingRows.map(r => r.kind), ["walk", "ride", "change", "ride"], "place walk is synthesised before a stop-to-stop plan")
+equal([leadingRows[0].minutes, leadingRows[0].departText, leadingRows[0].arriveText],
+  [commute.walkMinutes, Model.clockText(multi[0].legs[0].departMs - commute.walkMinutes * 60000), Model.clockText(multi[0].legs[0].departMs)],
+  "leading walk carries its duration and leave-to-ride clock range")
+const startsWithWalk = { legs: [Object.assign({}, withWalk.legs[1], { from: "Home", to: multi[0].legs[0].from }), multi[0].legs[0]] }
+equal(Model.legRows(startsWithWalk, {}, commute.walkMinutes).map(r => r.kind), ["walk", "ride"], "an API leading walk is not doubled")
 assert(/^L[23] · 9′ → /.test(Model.pillText(Model.boardFromJourneys(multi, commute, commuteNow), commute, commuteNow)), "pill leads with the first leg and ends with the arrival")
 const changeNotification = Model.notificationFor(commuteBoard, commute, multi[0].departMs - 4 * 60000, {})
 assert(changeNotification && / · change at Central$/.test(changeNotification.body), "multi-leg trip notification names the change stop")

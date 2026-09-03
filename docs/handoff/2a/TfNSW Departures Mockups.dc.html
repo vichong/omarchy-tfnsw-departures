@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0e0f16;font-family:'JetBrains Mono',ui-monospace,Menlo,monospace}
+a{color:#7aa2f7;text-decoration:none}a:hover{color:#9db8ff}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(192,202,245,.08);scroll-margin-top:16px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+.dv-tid{font:600 10px 'JetBrains Mono',monospace;padding:3px 7px;background:#7aa2f7;color:#16161e;border-radius:4px}
+.dv-tname{font:600 13px/1.2 'JetBrains Mono',monospace;color:#c0caf5}
+.dv-opts{display:flex;flex-wrap:wrap;gap:34px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px 'JetBrains Mono',monospace;padding:3px 7px;background:rgba(192,202,245,.1);color:#c0caf5;border-radius:5px}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'JetBrains Mono',monospace;color:#565f89}
+.dv-opt:target .dv-oid{background:#7aa2f7;color:#16161e}
+.dv-next{margin:26px 0 0;font:11px/1.6 'JetBrains Mono',monospace;color:#565f89}
+</style></helmet>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><span class="dv-tid">2</span><span class="dv-tname">Journey chain — collapsed-row variants (Google Maps inspo, countdown block kept)</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="2a"><div class="dv-olabel"><span class="dv-oid">2a</span>Destination first · chain replaces the caption · M1 row expanded as indicator board</div><div style="width:460px;background:#1a1b26;border:1px solid rgba(192,202,245,.4);border-radius:8px;overflow:hidden;color:#c0caf5"><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#005AA3;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">1</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><rect x="3" y="1.5" width="8" height="9" rx="2" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M3.4 8h7.2M4.6 10.6 3.4 12.5M9.4 10.6l1.2 1.9" stroke="#565f89" stroke-width="1.2" fill="none"></path></svg><div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div><div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Bondi Junction</div><div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a">RT</div></div><div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">6</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:22px;height:17px;padding:0 4px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 9px/1 'JetBrains Mono',monospace;color:#fff">T4</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">4</span></div><span style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#183; &#8594; 8:58 AM &#183; Platform 6</span></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:30<span style="color:#565f89;font-size:10px"> AM</span></div></div></div><div style="border-top:1px solid rgba(192,202,245,.12);background:rgba(122,162,247,.05)"><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#168388;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">13</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><path d="M1.6 12.5V7a5.4 5.4 0 0 1 10.8 0v5.5" fill="none" stroke="#565f89" stroke-width="1.2"></path><rect x="4.4" y="5.4" width="5.2" height="5.6" rx="1.4" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M4.6 8.6h4.8" stroke="#565f89" stroke-width="1.2"></path><circle cx="5.8" cy="9.9" r=".6" fill="#565f89"></circle><circle cx="8.2" cy="9.9" r=".6" fill="#565f89"></circle></svg><div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div><div style="flex:0 1 auto;min-width:0;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tallawong</div><div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a">RT</div><div style="flex:none;display:flex;gap:2px;align-items:flex-end;margin-left:2px"><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="rgba(192,202,245,.22)"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="rgba(192,202,245,.22)"></path></svg></div><svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true" style="flex:none;margin-left:auto;transform:rotate(180deg)"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#7aa2f7" stroke-width="1.4"></path></svg></div><div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">6</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:22px;height:17px;padding:0 4px;border-radius:4px;background:#168388;display:flex;align-items:center;justify-content:center;font:700 9px/1 'JetBrains Mono',monospace;color:#fff">M1</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#565f89"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#565f89" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#565f89">7</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:22px;height:17px;padding:0 4px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 9px/1 'JetBrains Mono',monospace;color:#fff">T4</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">4</span></div><span style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#183; &#8594; 9:13 AM &#183; Platform 1</span></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:42<span style="color:#565f89;font-size:10px"> AM</span></div></div></div><div style="margin:0 12px 12px 73px;border:1px solid rgba(192,202,245,.14);border-radius:6px;background:rgba(0,0,0,.28);overflow:hidden">
+<div style="display:flex;align-items:center;gap:8px;padding:7px 11px;"><svg width="10" height="13" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#565f89"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#565f89" stroke-width="1.6" stroke-linecap="round"></path></svg><div style="flex:1;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">walk 6 min</div><div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">leave 8:36 AM</div></div>
+<div style="border-top:1px solid rgba(192,202,245,.1)"><div style="display:flex;gap:9px;padding:10px 11px 9px;align-items:flex-start"><div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#168388;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">M1</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 11px/1.2 'JetBrains Mono',monospace;color:#c0caf5">Tallawong</span><span style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">8:42 AM</span></div><div style="font:400 10px/1.5 'JetBrains Mono',monospace;color:#565f89;margin-top:4px">Sydenham &#183; Marrickville &#183; Dulwich Hill &#183; Waterloo &#183; Central</div></div><div style="flex:none;text-align:right"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">PLATFORM</div><div style="font:600 12px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:5px">1</div></div></div></div>
+<div style="display:flex;align-items:center;gap:8px;padding:7px 11px;border-top:1px solid rgba(192,202,245,.1);border-bottom:1px solid rgba(192,202,245,.1)"><div style="width:5px;height:5px;border-radius:3px;border:1px solid #565f89"></div><div style="flex:1;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">change &#183; 7 min at Central</div><div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">8:51 &#8594; 8:58 AM</div></div>
+<div style="display:flex;gap:9px;padding:10px 11px 9px;align-items:flex-start"><div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T4</div><div style="flex:1;min-width:0"><div style="display:flex;align-items:baseline;gap:8px"><span style="font:600 11px/1.2 'JetBrains Mono',monospace;color:#c0caf5">Bondi Junction</span><span style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">8:58 AM</span></div><div style="font:400 10px/1.5 'JetBrains Mono',monospace;color:#565f89;margin-top:4px">Central &#183; Town Hall &#183; Wynyard</div></div><div style="flex:none;text-align:right"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">PLATFORM</div><div style="font:600 12px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:5px">18</div></div></div>
+<div style="display:flex;align-items:center;gap:8px;padding:7px 11px;border-top:1px solid rgba(192,202,245,.1)"><svg width="10" height="13" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#565f89"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#565f89" stroke-width="1.6" stroke-linecap="round"></path></svg><div style="flex:1;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">walk 4 min</div><div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">arrive 9:13 AM</div></div>
+</div></div><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;border-top:1px solid rgba(192,202,245,.12)"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#00B5EF;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#16161e">26</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#16161e">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(22,22,30,.8);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><rect x="2.6" y="2" width="8.8" height="8" rx="1.8" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M2.8 7.4h8.4" stroke="#565f89" stroke-width="1.2"></path><circle cx="4.8" cy="11" r="1.1" fill="#565f89"></circle><circle cx="9.2" cy="11" r="1.1" fill="#565f89"></circle></svg><div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div><div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Circular Quay</div><div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a">RT</div><div style="flex:none;display:flex;gap:2px;align-items:flex-end;margin-left:2px"><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg></div></div><div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">6</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:22px;height:17px;padding:0 4px;border-radius:4px;background:#00B5EF;display:flex;align-items:center;justify-content:center;font:700 9px/1 'JetBrains Mono',monospace;color:#16161e">333</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">2</span></div><span style="flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#183; Stand C &#183; &#8594; 9:29 AM</span></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:55<span style="color:#565f89;font-size:10px"> AM</span></div></div></div></div></div>
+<div class="dv-opt" id="2b"><div class="dv-olabel"><span class="dv-oid">2b</span>Chain first (Google order) · destination in the caption · total duration right</div><div style="width:460px;background:#1a1b26;border:1px solid rgba(192,202,245,.4);border-radius:8px;overflow:hidden;color:#c0caf5"><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#005AA3;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">1</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">6</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T4</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">4</span></div><span style="margin-left:auto;font:500 11px/1 'JetBrains Mono',monospace;color:#a9b1d6;white-space:nowrap">28 min</span></div><div style="display:flex;align-items:center;gap:6px;min-width:0"><span style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap"><b style="color:#c0caf5;font-weight:600">Wynyard</b> &#183; Platform 6 &#183; On time &#183; &#8594; 8:58 AM</span></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:30<span style="color:#565f89;font-size:10px"> AM</span></div></div></div><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;border-top:1px solid rgba(192,202,245,.12)"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#168388;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">13</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">6</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#168388;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">M1</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#565f89"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#565f89" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#565f89">7</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T4</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">4</span></div><div style="flex:none;display:flex;gap:2px;align-items:flex-end;margin-left:4px"><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="rgba(192,202,245,.22)"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="rgba(192,202,245,.22)"></path></svg></div><span style="margin-left:auto;font:500 11px/1 'JetBrains Mono',monospace;color:#a9b1d6;white-space:nowrap">31 min</span></div><div style="display:flex;align-items:center;gap:6px;min-width:0"><span style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap"><b style="color:#c0caf5;font-weight:600">Wynyard</b> &#183; Platform 1 &#183; On time &#183; &#8594; 9:13 AM</span></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:42<span style="color:#565f89;font-size:10px"> AM</span></div></div></div><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;border-top:1px solid rgba(192,202,245,.12)"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#00B5EF;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#16161e">26</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#16161e">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(22,22,30,.8);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">6</span></div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#00B5EF;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#16161e">333</div><span style="flex:none;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#8250;</span><div style="flex:none;display:flex;align-items:center;gap:3px"><svg width="9" height="12" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#a9b1d6"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#a9b1d6" stroke-width="1.6" stroke-linecap="round"></path></svg><span style="font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">2</span></div><div style="flex:none;display:flex;gap:2px;align-items:flex-end;margin-left:4px"><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg></div><span style="margin-left:auto;font:500 11px/1 'JetBrains Mono',monospace;color:#a9b1d6;white-space:nowrap">34 min</span></div><div style="display:flex;align-items:center;gap:6px;min-width:0"><span style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap"><b style="color:#c0caf5;font-weight:600">Wynyard</b> &#183; Stand C &#183; On time &#183; &#8594; 9:29 AM</span></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:55<span style="color:#565f89;font-size:10px"> AM</span></div></div></div></div></div>
+<div class="dv-opt" id="2c"><div class="dv-olabel"><span class="dv-oid">2c</span>Proportional timeline · leg lengths to scale, line-coloured</div><div style="width:460px;background:#1a1b26;border:1px solid rgba(192,202,245,.4);border-radius:8px;overflow:hidden;color:#c0caf5"><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#005AA3;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">1</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><rect x="3" y="1.5" width="8" height="9" rx="2" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M3.4 8h7.2M4.6 10.6 3.4 12.5M9.4 10.6l1.2 1.9" stroke="#565f89" stroke-width="1.2" fill="none"></path></svg><div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div><div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Bondi Junction</div><div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a">RT</div></div><div style="display:flex;gap:3px;align-items:flex-start;padding-top:1px"><div style="flex:6 6 0;min-width:40px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#565f89 0 3px,transparent 3px 6px)"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#8203;6 walk</div></div><div style="flex:18 18 0;min-width:14px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:#005AA3"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#a9b1d6;white-space:nowrap"><span style="color:#c0caf5;font-weight:700">T4</span> 18</div></div><div style="flex:4 4 0;min-width:40px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#565f89 0 3px,transparent 3px 6px)"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">4 walk</div></div><div style="flex:none;padding-left:4px;font:500 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#8594; 8:58</div></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:30<span style="color:#565f89;font-size:10px"> AM</span></div></div></div><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;border-top:1px solid rgba(192,202,245,.12)"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#168388;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">13</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><path d="M1.6 12.5V7a5.4 5.4 0 0 1 10.8 0v5.5" fill="none" stroke="#565f89" stroke-width="1.2"></path><rect x="4.4" y="5.4" width="5.2" height="5.6" rx="1.4" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M4.6 8.6h4.8" stroke="#565f89" stroke-width="1.2"></path><circle cx="5.8" cy="9.9" r=".6" fill="#565f89"></circle><circle cx="8.2" cy="9.9" r=".6" fill="#565f89"></circle></svg><div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div><div style="flex:0 1 auto;min-width:0;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tallawong</div><div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a">RT</div><div style="flex:none;display:flex;gap:2px;align-items:flex-end;margin-left:2px"><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="rgba(192,202,245,.22)"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="rgba(192,202,245,.22)"></path></svg></div></div><div style="display:flex;gap:3px;align-items:flex-start;padding-top:1px"><div style="flex:6 6 0;min-width:40px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#565f89 0 3px,transparent 3px 6px)"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#8203;6 walk</div></div><div style="flex:9 9 0;min-width:14px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:#168388"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#a9b1d6;white-space:nowrap"><span style="color:#c0caf5;font-weight:700">M1</span> 9</div></div><div style="flex:7 7 0;min-width:40px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#565f89 0 3px,transparent 3px 6px)"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">7 chg</div></div><div style="flex:8 8 0;min-width:14px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:#005AA3"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#a9b1d6;white-space:nowrap"><span style="color:#c0caf5;font-weight:700">T4</span> 8</div></div><div style="flex:4 4 0;min-width:40px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#565f89 0 3px,transparent 3px 6px)"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">4 walk</div></div><div style="flex:none;padding-left:4px;font:500 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#8594; 9:13</div></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:42<span style="color:#565f89;font-size:10px"> AM</span></div></div></div><div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;border-top:1px solid rgba(192,202,245,.12)"><div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#00B5EF;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#16161e">26</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#16161e">min</span></div><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(22,22,30,.8);margin-top:3px">LEAVE</div></div><div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px"><div style="display:flex;align-items:center;gap:6px;min-width:0"><svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><rect x="2.6" y="2" width="8.8" height="8" rx="1.8" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M2.8 7.4h8.4" stroke="#565f89" stroke-width="1.2"></path><circle cx="4.8" cy="11" r="1.1" fill="#565f89"></circle><circle cx="9.2" cy="11" r="1.1" fill="#565f89"></circle></svg><div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div><div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Circular Quay</div><div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a">RT</div><div style="flex:none;display:flex;gap:2px;align-items:flex-end;margin-left:2px"><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg><svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg></div></div><div style="display:flex;gap:3px;align-items:flex-start;padding-top:1px"><div style="flex:6 6 0;min-width:40px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#565f89 0 3px,transparent 3px 6px)"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#8203;6 walk</div></div><div style="flex:26 26 0;min-width:14px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:#00B5EF"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#a9b1d6;white-space:nowrap"><span style="color:#c0caf5;font-weight:700">333</span> 26</div></div><div style="flex:2 2 0;min-width:40px;display:flex;flex-direction:column;gap:4px"><div style="height:4px;border-radius:2px;background:repeating-linear-gradient(90deg,#565f89 0 3px,transparent 3px 6px)"></div><div style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">2 walk</div></div><div style="flex:none;padding-left:4px;font:500 10px/1 'JetBrains Mono',monospace;color:#565f89;white-space:nowrap">&#8594; 9:29</div></div></div><div style="flex:none;width:60px;text-align:right;padding-top:3px"><div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div><div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:55<span style="color:#565f89;font-size:10px"> AM</span></div></div></div></div></div>
+</div>
+<p class="dv-next">2a keeps the &ldquo;where am I going&rdquo; read first; 2b makes the shape of the trip the headline; 2c trades a few px of height for seeing how much of the trip is walking. Pick one and I&rsquo;ll roll it into <a href="#1a">1a</a>.</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><span class="dv-tid">1</span><span class="dv-tname">Transport NSW departures — Tokyo Night redesign</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><span class="dv-oid">1a</span>A · Popup panel — 460 px, anchored under the bar icon</div>
+
+<div style="width:460px;background:#1a1b26;border:1px solid rgba(192,202,245,.4);border-radius:8px;overflow:hidden;color:#c0caf5">
+
+  <div style="display:flex;align-items:flex-start;gap:11px;padding:14px 14px 12px">
+    <div style="flex:none;width:28px;height:36px;border:1px dashed rgba(192,202,245,.45);border-radius:3px;background:repeating-linear-gradient(135deg,rgba(192,202,245,.07) 0 3px,transparent 3px 6px);display:flex;align-items:center;justify-content:center;box-sizing:border-box" title="TransportMark — Transport for NSW swoosh, 28px tall"><span style="font:500 6px/1.2 'JetBrains Mono',monospace;color:#565f89;text-align:center;letter-spacing:.02em">Transport<br>Mark</span></div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px">
+      <div style="font:600 16px/1 'JetBrains Mono',monospace;color:#c0caf5">Home</div>
+      <div style="display:inline-flex;align-items:center;gap:8px;align-self:flex-start;padding:4px 8px;border:1px solid rgba(192,202,245,.4);border-radius:4px;background:rgba(192,202,245,.04)">
+        <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#a9b1d6">Sydenham</span>
+        <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#565f89">&#8594;</span>
+        <span style="font:400 11px/1 'JetBrains Mono',monospace;color:#a9b1d6">Wynyard</span>
+        <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#565f89" stroke-width="1.4"></path></svg>
+      </div>
+    </div>
+    <div style="flex:none;display:flex;gap:4px;padding-top:2px">
+      <div style="width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(192,202,245,.18)">
+        <svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><path d="M12 7a5 5 0 1 1-1.6-3.7" fill="none" stroke="#a9b1d6" stroke-width="1.4"></path><path d="M12 1v3.2H8.8" fill="none" stroke="#a9b1d6" stroke-width="1.4"></path></svg>
+      </div>
+      <div style="width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(192,202,245,.18)">
+        <svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><circle cx="7" cy="7" r="2.2" fill="none" stroke="#a9b1d6" stroke-width="1.4"></circle><circle cx="7" cy="7" r="5.3" fill="none" stroke="#a9b1d6" stroke-width="1.4" stroke-dasharray="2.1 2.1"></circle></svg>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:0 14px 13px;display:flex;flex-direction:column;gap:9px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <svg width="15" height="20" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#c0caf5"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#c0caf5" stroke-width="1.6" stroke-linecap="round"></path></svg>
+      <div style="flex:1;min-width:0">
+        <div style="font:700 15px/1.1 'JetBrains Mono',monospace;color:#c0caf5">{{ leaveLabel }}</div>
+        <div style="font:400 10px/1.4 'JetBrains Mono',monospace;color:#565f89;margin-top:3px">{{ walkLabel }} &#183; T4 to Bondi Junction</div>
+      </div>
+    </div>
+    <div style="height:3px;border-radius:2px;background:rgba(192,202,245,.12);overflow:hidden">
+      <div style="height:3px;background:#005AA3;width:{{ fillPct }}"></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-top:1px solid rgba(192,202,245,.12);border-bottom:1px solid rgba(192,202,245,.12);background:rgba(224,175,104,.05)">
+    <div style="width:6px;height:6px;border-radius:3px;background:#e0af68"></div>
+    <div style="flex:1;font:500 11px/1 'JetBrains Mono',monospace;color:#e0af68">2 alerts</div>
+    <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#e0af68" stroke-width="1.4"></path></svg>
+  </div>
+
+  <div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start">
+    <div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#005AA3;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">1</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div>
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0">
+        <svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><rect x="3" y="1.5" width="8" height="9" rx="2" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M3.4 8h7.2M4.6 10.6 3.4 12.5M9.4 10.6l1.2 1.9" stroke="#565f89" stroke-width="1.2" fill="none"></path></svg>
+        <div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T4</div>
+        <div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div>
+        <div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Bondi Junction</div>
+      
+        <div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a;white-space:nowrap">RT</div>
+      </div>
+      <div style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#565f89">Platform 6 &#183; On time &#183; 28 min &#8594; 8:58 AM</div>
+    </div>
+    <div style="flex:none;width:60px;text-align:right;padding-top:3px">
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div>
+      <div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:30<span style="color:#565f89;font-size:10px"> AM</span></div>
+    </div>
+  </div>
+
+  <div style="border-top:1px solid rgba(192,202,245,.12);border-bottom:1px solid rgba(192,202,245,.12);background:rgba(122,162,247,.05)">
+    <div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start">
+      <div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#168388;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">13</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div>
+        <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px">
+        <div style="display:flex;align-items:center;gap:6px;min-width:0">
+          <svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><path d="M1.6 12.5V7a5.4 5.4 0 0 1 10.8 0v5.5" fill="none" stroke="#565f89" stroke-width="1.2"></path><rect x="4.4" y="5.4" width="5.2" height="5.6" rx="1.4" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M4.6 8.6h4.8" stroke="#565f89" stroke-width="1.2"></path><circle cx="5.8" cy="9.9" r=".6" fill="#565f89"></circle><circle cx="8.2" cy="9.9" r=".6" fill="#565f89"></circle></svg>
+          <div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#168388;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">M1</div>
+          <div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div>
+          <div style="flex:0 1 auto;min-width:0;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Tallawong</div>
+        
+          <div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a;white-space:nowrap">RT</div>
+          <div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(192,202,245,.08);border:1px solid rgba(192,202,245,.18);font:500 9px/1.3 'JetBrains Mono',monospace;color:#a9b1d6">1 change</div>
+          <sc-if value="{{ showCrowding }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:2px;align-items:flex-end;margin-left:2px" title="Some seats available">
+              <svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg>
+              <svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#9ece6a"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#9ece6a"></path></svg>
+              <svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="rgba(192,202,245,.22)"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="rgba(192,202,245,.22)"></path></svg>
+            </div>
+          </sc-if>
+          <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true" style="flex:none;margin-left:auto;transform:rotate(180deg)"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#7aa2f7" stroke-width="1.4"></path></svg>
+        </div>
+        <div style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#565f89">Platform 1 &#183; On time &#183; 31 min &#8594; 9:13 AM</div>
+      </div>
+      <div style="flex:none;width:60px;text-align:right;padding-top:3px">
+        <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div>
+        <div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:42<span style="color:#565f89;font-size:10px"> AM</span></div>
+      </div>
+    </div>
+
+    <div style="margin:0 14px 12px;border:1px solid rgba(192,202,245,.14);border-radius:6px;background:rgba(0,0,0,.28)">
+      <div style="display:flex;gap:9px;padding:10px 11px 9px">
+        <div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#168388;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">M1</div>
+        <div style="flex:1;min-width:0">
+          <div style="font:600 11px/1.2 'JetBrains Mono',monospace;color:#c0caf5">Tallawong</div>
+          <div style="font:400 10px/1.5 'JetBrains Mono',monospace;color:#565f89;margin-top:4px">Sydenham &#183; Marrickville &#183; Dulwich Hill &#183; Waterloo &#183; Central</div>
+        </div>
+        <div style="flex:none;text-align:right">
+          <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#565f89">PLATFORM</div>
+          <div style="font:600 12px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:5px">1</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 11px;border-top:1px solid rgba(192,202,245,.1);border-bottom:1px solid rgba(192,202,245,.1)">
+        <div style="width:5px;height:5px;border-radius:3px;border:1px solid #565f89"></div>
+        <div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">change &#183; 7 min at Central</div>
+      </div>
+      <div style="display:flex;gap:9px;padding:10px 11px 9px">
+        <div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T4</div>
+        <div style="flex:1;min-width:0">
+          <div style="font:600 11px/1.2 'JetBrains Mono',monospace;color:#c0caf5">Bondi Junction</div>
+          <div style="font:400 10px/1.5 'JetBrains Mono',monospace;color:#565f89;margin-top:4px">Central &#183; Town Hall &#183; Wynyard</div>
+        </div>
+        <div style="flex:none;text-align:right">
+          <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#565f89">PLATFORM</div>
+          <div style="font:600 12px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:5px">18</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;padding:7px 11px;border-top:1px solid rgba(192,202,245,.1)">
+        <svg width="10" height="13" viewBox="0 0 15 20" aria-hidden="true"><circle cx="7.4" cy="2.6" r="2.1" fill="#565f89"></circle><path d="M7.4 5.4v5.2M7.4 10.6 4.4 18M7.4 10.6 10.6 16.4M7.4 7.2 3.2 8.8M7.4 7.2l4 2.4" fill="none" stroke="#565f89" stroke-width="1.6" stroke-linecap="round"></path></svg>
+        <div style="flex:1;font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">walk 4 min</div>
+        <div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">arrive 9:13 AM</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;opacity:.44">
+    <div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;border:1px solid rgba(192,202,245,.3);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#c0caf5">21</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#565f89">min</span></div>
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:#565f89;margin-top:3px">LEAVE</div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0">
+        <svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><rect x="3" y="1.5" width="8" height="9" rx="2" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M3.4 8h7.2M4.6 10.6 3.4 12.5M9.4 10.6l1.2 1.9" stroke="#565f89" stroke-width="1.2" fill="none"></path></svg>
+        <div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:rgba(0,149,76,.35);display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#c0caf5">T8</div>
+        <div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div>
+        <div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Macarthur</div>
+      
+        <div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(192,202,245,.08);border:1px solid rgba(192,202,245,.18);font:500 9px/1.3 'JetBrains Mono',monospace;color:#a9b1d6">1 change</div>
+      </div>
+      <div style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#565f89">Platform 2 &#183; later arrival &#183; 38 min &#8594; 9:28 AM</div>
+    </div>
+    <div style="flex:none;width:60px;text-align:right;padding-top:3px">
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div>
+      <div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#565f89;margin-top:6px">8:50 AM</div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;border-top:1px solid rgba(192,202,245,.12)">
+    <div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#00B5EF;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#16161e">26</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#16161e">min</span></div>
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(22,22,30,.8);margin-top:3px">LEAVE</div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0">
+        <svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><rect x="2.6" y="2" width="8.8" height="8" rx="1.8" fill="none" stroke="#565f89" stroke-width="1.2"></rect><path d="M2.8 7.4h8.4" stroke="#565f89" stroke-width="1.2"></path><circle cx="4.8" cy="11" r="1.1" fill="#565f89"></circle><circle cx="9.2" cy="11" r="1.1" fill="#565f89"></circle></svg>
+        <div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:#00B5EF;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#16161e">333</div>
+        <div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div>
+        <div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Circular Quay</div>
+      
+        <div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(158,206,106,.12);border:1px solid rgba(158,206,106,.3);font:500 9px/1.3 'JetBrains Mono',monospace;color:#9ece6a;white-space:nowrap">RT</div>
+        <sc-if value="{{ showCrowding }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;gap:2px;align-items:flex-end;margin-left:2px" title="Standing room only">
+            <svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg>
+            <svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg>
+            <svg width="7" height="11" viewBox="0 0 7 11" aria-hidden="true"><circle cx="3.5" cy="2.2" r="2" fill="#e0af68"></circle><path d="M.8 10.5c0-2 1.2-3.4 2.7-3.4s2.7 1.4 2.7 3.4z" fill="#e0af68"></path></svg>
+          </div>
+        </sc-if>
+      </div>
+      <div style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#565f89">Stand C &#183; 2 min late &#183; 34 min &#8594; 9:29 AM</div>
+    </div>
+    <div style="flex:none;width:60px;text-align:right;padding-top:3px">
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div>
+      <div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5;margin-top:6px">8:55<span style="color:#565f89;font-size:10px"> AM</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:9px;padding:10px 12px;align-items:flex-start;border-top:1px solid rgba(192,202,245,.12);opacity:.44">
+    <div style="flex:none;width:52px;height:46px;padding:0 5px;box-sizing:border-box;border:1px solid rgba(192,202,245,.3);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <div style="font:500 12px/1 'JetBrains Mono',monospace;color:#c0caf5;text-decoration:line-through;text-decoration-color:#f7768e">34</div>
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#f7768e;margin-top:5px">CANC</div>
+    </div>
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;padding-top:2px">
+      <div style="display:flex;align-items:center;gap:6px;min-width:0">
+        <svg width="20" height="20" viewBox="0 0 14 14" aria-hidden="true" style="flex:none"><path d="M2.4 5.6h9.2l-1.4 4.2H3.8z" fill="none" stroke="#565f89" stroke-width="1.2"></path><path d="M7 2.2v3.4M1.6 11.6c1.4 0 1.4 1 2.7 1s1.3-1 2.7-1 1.4 1 2.7 1 1.3-1 2.7-1" fill="none" stroke="#565f89" stroke-width="1.2"></path></svg>
+        <div style="flex:none;min-width:24px;height:19px;padding:0 4px;border-radius:4px;background:rgba(221,30,37,.35);display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#c0caf5">F1</div>
+        <div style="flex:none;font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard</div>
+        <div style="flex:0 1 auto;min-width:70px;font:400 11px/1 'JetBrains Mono',monospace;color:#565f89;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">Circular Quay</div>
+      
+        <div style="flex:none;white-space:nowrap;padding:2px 5px;border-radius:3px;background:rgba(247,118,142,.12);border:1px solid rgba(247,118,142,.32);font:500 9px/1.3 'JetBrains Mono',monospace;color:#f7768e">cancelled</div>
+      </div>
+      <div style="font:400 10px/1.3 'JetBrains Mono',monospace;color:#565f89">Wharf 4 &#183; Cancelled &#183; next ferry 9:33 AM</div>
+    </div>
+    <div style="flex:none;width:60px;text-align:right;padding-top:3px">
+      <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89">DEPARTS</div>
+      <div style="white-space:nowrap;font:600 13px/1 'JetBrains Mono',monospace;color:#565f89;margin-top:6px;text-decoration:line-through">9:03 AM</div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid rgba(192,202,245,.12);background:rgba(192,202,245,.03)">
+    <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">updated 12s ago &#183; realtime</div>
+    <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">Thu 3 Sep &#183; 8:29 AM</div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><span class="dv-oid">1b</span>B · Settings overlay — 600 px centred dialog</div>
+
+<div style="width:600px;background:#1a1b26;border:1px solid rgba(192,202,245,.4);border-radius:8px;overflow:hidden;color:#c0caf5">
+
+  <div style="display:flex;align-items:center;gap:11px;padding:15px 18px;border-bottom:1px solid rgba(192,202,245,.12)">
+    <div style="flex:none;width:28px;height:36px;border:1px dashed rgba(192,202,245,.45);border-radius:3px;background:repeating-linear-gradient(135deg,rgba(192,202,245,.07) 0 3px,transparent 3px 6px);display:flex;align-items:center;justify-content:center;box-sizing:border-box" title="TransportMark — Transport for NSW swoosh, 28px tall"><span style="font:500 6px/1.2 'JetBrains Mono',monospace;color:#565f89;text-align:center;letter-spacing:.02em">Transport<br>Mark</span></div>
+    <div style="flex:1;font:600 14px/1 'JetBrains Mono',monospace;color:#c0caf5">Transport NSW settings</div>
+    <div style="width:24px;height:24px;border-radius:4px;border:1px solid rgba(192,202,245,.18);display:flex;align-items:center;justify-content:center">
+      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><path d="M1 1l8 8M9 1l-8 8" stroke="#a9b1d6" stroke-width="1.3"></path></svg>
+    </div>
+  </div>
+
+  <div style="padding:16px 18px 18px;display:flex;flex-direction:column;gap:14px">
+
+    <div>
+      <div style="font:500 9px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#565f89;margin-bottom:8px">CONNECTION</div>
+      <div style="display:flex;align-items:center;gap:9px;padding:11px 12px;border:1px solid rgba(192,202,245,.18);border-radius:6px;background:rgba(192,202,245,.03)">
+        <div style="width:6px;height:6px;border-radius:3px;background:#9ece6a"></div>
+        <div style="flex:1;font:500 11px/1 'JetBrains Mono',monospace;color:#c0caf5">Connected <span style="color:#565f89">&#183; key in keyring</span></div>
+        <div style="flex:none;white-space:nowrap;padding:5px 9px;border-radius:4px;border:1px solid rgba(192,202,245,.18);font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">Remove</div>
+      </div>
+    </div>
+
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font:500 9px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#565f89">PLACES</div>
+        <div style="flex:none;white-space:nowrap;padding:5px 9px;border-radius:4px;border:1px solid rgba(192,202,245,.18);font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">Add place</div>
+      </div>
+      <div style="border:1px solid rgba(192,202,245,.18);border-radius:6px;overflow:hidden">
+
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 12px;background:rgba(122,162,247,.07)">
+          <div style="flex:1;min-width:0">
+            <div style="font:600 12px/1 'JetBrains Mono',monospace;color:#c0caf5">Home</div>
+            <div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;margin-top:5px">Sydenham &#8594; Wynyard &#183; 6 min walk &#183; T4, T8</div>
+          </div>
+          <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true" style="transform:rotate(180deg)"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#7aa2f7" stroke-width="1.4"></path></svg>
+        </div>
+
+        <div style="padding:4px 12px 14px;background:rgba(122,162,247,.04);display:flex;flex-direction:column;gap:11px">
+          <div style="display:flex;gap:10px">
+            <div style="flex:1">
+              <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Name</div>
+              <div style="height:30px;padding:0 9px;display:flex;align-items:center;border:1px solid rgba(192,202,245,.2);border-radius:4px;background:#16161e;font:400 11px/1 'JetBrains Mono',monospace;color:#c0caf5">Home</div>
+            </div>
+            <div style="width:112px">
+              <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Walk minutes</div>
+              <div style="height:30px;padding:0 9px;display:flex;align-items:center;justify-content:space-between;border:1px solid rgba(192,202,245,.2);border-radius:4px;background:#16161e;font:400 11px/1 'JetBrains Mono',monospace;color:#c0caf5">6<span style="color:#565f89">&#8722; +</span></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px">
+            <div style="flex:1">
+              <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Leaving from</div>
+              <div style="height:30px;padding:0 9px;display:flex;align-items:center;border:1px solid rgba(192,202,245,.2);border-radius:4px;background:#16161e;font:400 11px/1 'JetBrains Mono',monospace;color:#c0caf5">Sydenham Station</div>
+            </div>
+            <div style="flex:1">
+              <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Going to <span style="opacity:.7">(optional)</span></div>
+              <div style="height:30px;padding:0 9px;display:flex;align-items:center;border:1px solid rgba(192,202,245,.2);border-radius:4px;background:#16161e;font:400 11px/1 'JetBrains Mono',monospace;color:#c0caf5">Wynyard Station</div>
+            </div>
+          </div>
+          <div>
+            <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Wi-Fi SSID</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:1;height:30px;padding:0 9px;display:flex;align-items:center;border:1px solid rgba(192,202,245,.2);border-radius:4px;background:#16161e;font:300 11px/1 'JetBrains Mono',monospace;color:#3d4468;font-style:italic">e.g. home-5g &#8212; optional</div>
+              <div style="flex:none;white-space:nowrap;flex:none;height:30px;padding:0 11px;display:flex;align-items:center;border-radius:4px;border:1px solid rgba(192,202,245,.18);font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">Use current</div>
+            </div>
+          </div>
+
+          <div style="border:1px solid rgba(192,202,245,.14);border-radius:5px;overflow:hidden">
+            <div style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:rgba(192,202,245,.03)">
+              <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true" style="transform:rotate(180deg)"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#565f89" stroke-width="1.4"></path></svg>
+              <div style="flex:1;font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">Filter services</div>
+              <div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">2 lines &#183; all modes</div>
+            </div>
+            <div style="padding:11px 10px;display:flex;flex-direction:column;gap:10px;border-top:1px solid rgba(192,202,245,.1)">
+              <div style="display:flex;gap:10px">
+                <div style="flex:1">
+                  <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Lines</div>
+                  <div style="min-height:30px;padding:5px 7px;display:flex;align-items:center;gap:5px;border:1px solid rgba(192,202,245,.2);border-radius:4px;background:#16161e;box-sizing:border-box">
+                    <div style="display:flex;align-items:center;gap:4px;padding:2px 6px 2px 3px;border-radius:3px;background:rgba(192,202,245,.08)">
+                      <span style="min-width:20px;height:15px;padding:0 3px;border-radius:3px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 9px/1 'JetBrains Mono',monospace;color:#fff">T4</span>
+                      <span style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#215;</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:4px;padding:2px 6px 2px 3px;border-radius:3px;background:rgba(192,202,245,.08)">
+                      <span style="min-width:20px;height:15px;padding:0 3px;border-radius:3px;background:#00954C;display:flex;align-items:center;justify-content:center;font:700 9px/1 'JetBrains Mono',monospace;color:#fff">T8</span>
+                      <span style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">&#215;</span>
+                    </div>
+                    <div style="font:300 10px/1 'JetBrains Mono',monospace;color:#3d4468;font-style:italic">add a line&#8230;</div>
+                  </div>
+                </div>
+                <div style="flex:1">
+                  <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Destination contains</div>
+                  <div style="height:30px;padding:0 9px;display:flex;align-items:center;border:1px solid rgba(192,202,245,.2);border-radius:4px;background:#16161e;font:300 11px/1 'JetBrains Mono',monospace;color:#3d4468;font-style:italic">All</div>
+                </div>
+              </div>
+              <div>
+                <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;margin-bottom:5px">Modes</div>
+                <div style="display:flex;gap:6px;flex-wrap:wrap">
+                  <div style="padding:5px 9px;border-radius:4px;border:1px solid #7aa2f7;background:rgba(122,162,247,.14);font:500 10px/1 'JetBrains Mono',monospace;color:#c0caf5">All</div>
+                  <div style="padding:5px 9px;border-radius:4px;border:1px solid rgba(192,202,245,.16);font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">Train</div>
+                  <div style="padding:5px 9px;border-radius:4px;border:1px solid rgba(192,202,245,.16);font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">Metro</div>
+                  <div style="padding:5px 9px;border-radius:4px;border:1px solid rgba(192,202,245,.16);font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">Light rail</div>
+                  <div style="padding:5px 9px;border-radius:4px;border:1px solid rgba(192,202,245,.16);font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">Bus</div>
+                  <div style="padding:5px 9px;border-radius:4px;border:1px solid rgba(192,202,245,.16);font:400 10px/1 'JetBrains Mono',monospace;color:#565f89">Ferry</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:2px">
+            <div style="flex:none;white-space:nowrap;font:400 10px/1 'JetBrains Mono',monospace;color:#f7768e">Delete place</div>
+            <div style="display:flex;gap:8px">
+              <div style="flex:none;white-space:nowrap;padding:6px 11px;border-radius:4px;border:1px solid rgba(192,202,245,.18);font:500 10px/1 'JetBrains Mono',monospace;color:#a9b1d6">Cancel</div>
+              <div style="flex:none;white-space:nowrap;padding:6px 11px;border-radius:4px;background:#7aa2f7;font:600 10px/1 'JetBrains Mono',monospace;color:#16161e">Save place</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid rgba(192,202,245,.12)">
+          <div style="flex:1;min-width:0">
+            <div style="font:600 12px/1 'JetBrains Mono',monospace;color:#c0caf5">Work</div>
+            <div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;margin-top:5px">Wynyard &#8594; Sydenham &#183; 3 min walk &#183; All services</div>
+          </div>
+          <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#565f89" stroke-width="1.4"></path></svg>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid rgba(192,202,245,.12)">
+          <div style="flex:1;min-width:0">
+            <div style="font:600 12px/1 'JetBrains Mono',monospace;color:#c0caf5">Pool</div>
+            <div style="font:400 10px/1 'JetBrains Mono',monospace;color:#565f89;margin-top:5px">Marrickville &#183; departures only &#183; 8 min walk &#183; Bus</div>
+          </div>
+          <svg width="9" height="6" viewBox="0 0 9 6" aria-hidden="true"><path d="M1 1.5 L4.5 5 L8 1.5" fill="none" stroke="#565f89" stroke-width="1.4"></path></svg>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;padding:11px 12px;border:1px solid rgba(192,202,245,.18);border-radius:6px">
+      <div style="flex:1">
+        <div style="font:500 11px/1 'JetBrains Mono',monospace;color:#c0caf5">Demo mode</div>
+        <div style="font:400 10px/1.4 'JetBrains Mono',monospace;color:#565f89;margin-top:5px">A live-looking Sydenham board, no keyring or network calls.</div>
+      </div>
+      <div style="flex:none;width:34px;height:18px;border-radius:9px;background:rgba(192,202,245,.14);border:1px solid rgba(192,202,245,.2);display:flex;align-items:center;padding:0 2px;box-sizing:border-box">
+        <div style="width:12px;height:12px;border-radius:6px;background:#565f89"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+      <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">Transport NSW for Omarchy v0.5.2</div>
+      <a href="https://github.com/vichong/omarchy-tfnsw-departures" style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89;text-decoration:none" style-hover="text-decoration:underline;color:#565f89">github.com/vichong/omarchy-tfnsw-departures</a>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><span class="dv-oid">1c</span>C · Variants sheet — countdown states &amp; leave-window fill</div>
+
+<div style="width:392px;background:#1a1b26;border:1px solid rgba(192,202,245,.4);border-radius:8px;padding:16px;color:#c0caf5;box-sizing:border-box;display:flex;flex-direction:column;gap:18px">
+  <div>
+    <div style="font:500 9px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#565f89;margin-bottom:11px">COUNTDOWN BLOCK</div>
+    <div style="display:flex;gap:9px">
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#F99D1C;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#16161e">12</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#16161e">min</span></div>
+          <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(22,22,30,.8);margin-top:3px">LEAVE</div>
+        </div>
+        <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">12 min</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#005AA3;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="display:flex;align-items:baseline;gap:3px"><span style="font:700 20px/1 'JetBrains Mono',monospace;color:#fff">3</span><span style="font:500 9px/1 'JetBrains Mono',monospace;color:#fff">min</span></div>
+          <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:3px">LEAVE</div>
+        </div>
+        <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">3 min</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:52px;height:46px;padding:0 5px;box-sizing:border-box;background:#005AA3;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="font:700 16px/1 'JetBrains Mono',monospace;color:#fff">NOW</div>
+          <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.16em;color:rgba(255,255,255,.85);margin-top:5px">LEAVE</div>
+        </div>
+        <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">now</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:52px;height:46px;padding:0 5px;box-sizing:border-box;border:1px solid rgba(192,202,245,.3);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.5">
+          <div style="font:600 13px/1 'JetBrains Mono',monospace;color:#c0caf5">&#8212;</div>
+          <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#565f89;margin-top:6px">MISSED</div>
+        </div>
+        <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">missed</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px;align-items:center">
+        <div style="width:52px;height:46px;padding:0 5px;box-sizing:border-box;border:1px solid rgba(192,202,245,.3);border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:.5">
+          <div style="font:500 12px/1 'JetBrains Mono',monospace;color:#c0caf5;text-decoration:line-through;text-decoration-color:#f7768e">34</div>
+          <div style="font:500 8px/1 'JetBrains Mono',monospace;letter-spacing:.14em;color:#f7768e;margin-top:5px">CANC</div>
+        </div>
+        <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">cancelled</div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div style="font:500 9px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#565f89;margin-bottom:11px">LEAVE WINDOW &#183; 10 MIN</div>
+    <div style="display:flex;flex-direction:column;gap:13px">
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+          <div style="font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Leave in 10 min</div>
+          <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">0 %</div>
+        </div>
+        <div style="height:3px;border-radius:2px;background:rgba(192,202,245,.12);overflow:hidden"><div style="height:3px;width:0%;background:#005AA3"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+          <div style="font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Leave in 5 min</div>
+          <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">50 %</div>
+        </div>
+        <div style="height:3px;border-radius:2px;background:rgba(192,202,245,.12);overflow:hidden"><div style="height:3px;width:50%;background:#005AA3"></div></div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px">
+          <div style="font:700 13px/1 'JetBrains Mono',monospace;color:#c0caf5">Leave now</div>
+          <div style="font:400 9px/1 'JetBrains Mono',monospace;color:#565f89">100 %</div>
+        </div>
+        <div style="height:3px;border-radius:2px;background:rgba(192,202,245,.12);overflow:hidden"><div style="height:3px;width:100%;background:#005AA3"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div style="font:500 9px/1 'JetBrains Mono',monospace;letter-spacing:.18em;color:#565f89;margin-bottom:11px">LINE BADGES</div>
+    <div style="display:flex;gap:5px;flex-wrap:wrap">
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#F99D1C;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#16161e">T1</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#0098CD;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#16161e">T2</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#F37021;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#16161e">T3</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#005AA3;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T4</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#00954C;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T8</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#D11F2F;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">T9</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#168388;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">M1</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#BE1622;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">L1</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#DD1E25;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">L2</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#781140;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#fff">L3</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#00B5EF;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#16161e">333</div>
+      <div style="min-width:24px;height:20px;padding:0 5px;border-radius:4px;background:#5AB031;display:flex;align-items:center;justify-content:center;font:700 11px/1 'JetBrains Mono',monospace;color:#16161e">F1</div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: &ldquo;make the leave window the full hero, rows secondary&rdquo; &#183; &ldquo;drop the mode pictograms&rdquo; &#183; &ldquo;show the alerts line expanded&rdquo;</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;leaveMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:3,&quot;min&quot;:0,&quot;max&quot;:10,&quot;unit&quot;:&quot;min&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Leave window&quot;},&quot;walkMinutes&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6,&quot;min&quot;:0,&quot;max&quot;:30,&quot;unit&quot;:&quot;min&quot;,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Leave window&quot;},&quot;showCrowding&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Rows&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const leave = this.props.leaveMinutes ?? 3;
+    const walk = this.props.walkMinutes ?? 6;
+    const pct = Math.max(0, Math.min(100, Math.round(((10 - leave) / 10) * 100)));
+    return {
+      leaveLabel: leave <= 0 ? "Leave now" : "Leave in " + leave + " min",
+      walkLabel: walk + " min walk",
+      fillPct: pct + "%",
+      showCrowding: this.props.showCrowding ?? true
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -508,3 +508,93 @@ Flow (one screen, steps reveal top-down):
   would add an external host).
 - Entry points: Here tab button (renamed "Somewhere else") and the popup
   selector's last option "Somewhere else…".
+
+## v0.6.2: pixel transcription of the Claude Design mockup
+Source: the mockup HTML "TfNSW Departures Mockups.dc.html" (project
+210233fd…), read via DesignSync on 2026-09-03. The mockup is 460 CSS px wide
+= our 460 units, so **1 CSS px = 1 unit**: every number below is
+`Style.space(n)` for sizes/padding/radii and, for text, the nearest token
+(caption 10, bodySmall 11, body 12, subtitle 13, title 14, heading 16,
+display 24) or `Style.space(n)` when no token matches (8, 9, 15, 20).
+Colours stay theme tokens: fg = `Color.foreground`, muted = fg at ~55%
+(mockup #565f89), accent = `Color.accent`, urgent = `Color.urgent`. Alpha
+fills below are `Qt.rgba(fg.r, fg.g, fg.b, a)`. Font family: bar family.
+
+### Popup (460)
+- Panel: 1-unit border fg 40%, radius 8, clip.
+- **Hero** row: padding 14 14 12, gap 11, align top. Mark 28 wide 36 tall
+  (our TransportMark at iconSize 28). Column gap 6: title 600 16 (heading);
+  selector chip inline (self-start): padding 4 8, border 1 fg 40%, radius
+  4, fill fg 4%, text 11 (bodySmall) with the stop names in fg-ish
+  (#a9b1d6 → fg at 85%) and the arrow in muted, chevron 9×6 muted. Action
+  buttons 24×24, radius 4, border fg 18%, glyph 17.
+- **Leave window**: padding 0 14 13, column gap 9. Row gap 10: walk
+  pictogram 15×20 fg; heading 700 15 (`Style.space(15)`) line-height 1.1;
+  caption 400 10 muted margin-top 3 ("6 min walk · T4 to Bondi Junction").
+  Track 3 high, radius 2, fill fg 12%; bar in line colour.
+- **Alerts band**: padding 9 14, gap 8, border top+bottom 1 fg 12%, fill
+  amber 5% where amber = `Color.accent`… no: the mockup uses #e0af68 (Tokyo
+  Night yellow). Use `Color.accent` for both dot and text unless the theme
+  exposes a warning colour; disruption → `Color.urgent`. Dot 6 round; text
+  500 11; chevron 9×6 same colour.
+- **Row**: padding 10 12, gap 9, align top; divider 1 fg 12% between rows
+  (top border on all but the first).
+  - Countdown block 52×46, padding 0 5, radius 6, fill line colour; number
+    700 20 (`Style.space(20)`) + "min" 500 9 baseline-aligned gap 3; "LEAVE"
+    500 8 letter-spacing 0.16em, text colour at 85% alpha; margin-top 3.
+    NOW: 700 16. Missed/cancelled: no fill, border 1 fg 30%, row opacity
+    0.44; missed shows "—" 600 13 + "MISSED" 8 muted; cancelled shows the
+    minutes 500 12 struck through (strike in urgent) + "CANC" 8 in urgent.
+  - Middle column: gap 6, padding-top 2. Line 1 gap 6: pictogram 17 muted;
+    badge min-width 24, height 19, padding 0 4, radius 4, text 700 11;
+    destination 700 13 (subtitle) no shrink; headsign 400 11 muted,
+    min-width 70, elides; pills padding 2 5, radius 3, text 500 9: RT =
+    fill fg 8% border fg 18% text fg 85% (our muted-outline decision),
+    "1 change" same, "later arrival" fill fg 6% border 14% text muted,
+    "cancelled" fill urgent 12% border urgent 32% text urgent; crowding
+    glyphs 7×11 (hidden until v2); expand chevron 9×6 accent at the end
+    (margin-left auto) only when expanded. Line 2: 400 10 muted.
+  - Right column: width 60, padding-top 3, right-aligned: "DEPARTS" 500 8
+    letter-spacing 0.14em muted; time 600 13 margin-top 6 with the period
+    10 muted.
+- **Expanded row**: row fill accent 5%, borders top+bottom fg 12%. Board
+  card margin 0 14 12, border 1 fg 14%, radius 6, fill black 28%. Leg:
+  padding 10 11 9, gap 9: badge as above; headsign 600 11; stops 400 10
+  line-height 1.5 muted margin-top 4; right: "PLATFORM" 500 8 ls 0.16em
+  muted over number 600 12 margin-top 5. Change row: padding 7 11, borders
+  top+bottom fg 10%, ring 5 with 1 border muted, text 400 10 muted. Walk
+  row: padding 7 11, border-top fg 10%, walk glyph 10×13 muted, "walk 4
+  min" left, "arrive 9:13 AM" right, both 400 10 muted.
+- **Footer**: padding 8 14, border-top fg 12%, fill fg 3%, both texts 400
+  9 muted.
+
+### Settings (600)
+- Header: padding 15 18, gap 11, border-bottom fg 12%; mark 28; title 600
+  14 (title); close 24×24 radius 4 border fg 18%. Keep our Settings/Here
+  tabs in this row.
+- Body: padding 16 18 18, column gap 14. Section label 500 9 letter-spacing
+  0.18em muted, margin-bottom 8.
+- Cards: border 1 fg 18%, radius 6, fill fg 3%, padding 11 12. Buttons:
+  padding 5 9, radius 4, border fg 18%, text 500 10 fg 85%. Primary
+  (Save place): fill accent, text 600 10 background colour, padding 6 11.
+- Connection card: dot 6 green (`Color.accent` if no success token),
+  "Connected" 500 11 + " · key in keyring" muted, Remove button right.
+- Places list: one bordered container radius 6; card header padding 11 12,
+  name 600 12, summary 400 10 muted margin-top 5, chevron 9×6 (accent when
+  expanded); expanded header fill accent 7%, editor fill accent 4%,
+  padding 4 12 14, gap 11; row gap 10; field label 400 9 muted
+  margin-bottom 5; inputs height 30, padding 0 9, border fg 20%, radius 4,
+  fill `Color.background`-ish (#16161e → background darkened 1.1), text 11;
+  placeholder italic weight 300 at fg 25%; Walk minutes width 112 with
+  "− +"; Filter services: border fg 14% radius 5, header padding 9 10 fill
+  fg 3% (chevron, "Filter services" 500 10, summary right 400 10 muted),
+  body padding 11 10 gap 10 border-top fg 10%; Lines field min-height 30
+  padding 5 7 with chips (badge 20×15 text 700 9 + × muted, chip fill fg
+  8% radius 3 padding 2 6 2 3) and italic "add a line…"; Modes chips
+  padding 5 9 radius 4 (selected: border accent, fill accent 14%, text fg;
+  others border fg 16% text muted); footer row: "Delete place" 400 10
+  urgent left, Cancel/Save right gap 8, padding-top 2. Collapsed cards:
+  border-top fg 12%.
+- Demo card: padding 11 12, border fg 18%, radius 6; title 500 11,
+  description 400 10 muted margin-top 5; toggle 34×18.
+- Footer row: space-between, both 400 9 muted; link underline on hover.

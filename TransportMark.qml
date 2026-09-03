@@ -17,6 +17,8 @@ Item {
   property color color: Color.foreground
   property bool colorful: false
   property real dim: 1.0
+  // Mono dot: a dark circle on the arc's end (blue-on-orange in the colour mark).
+  property color dotColor: Color.background
 
   // Both artworks share the mark's 4:3 aspect; width follows the height.
   readonly property real aspect: 1.3293
@@ -25,9 +27,9 @@ Item {
   implicitWidth: width
   implicitHeight: height
 
-  // --- monochrome: the four pieces of the mark in one colour at graded
-  // opacities (arc, swoosh, leg, dot), so it reads as tones rather than a
-  // silhouette in the bar — the same treatment as the sibling Gorelo mark.
+  // --- monochrome: the four pieces of the mark in graded tones (swoosh
+  // 38%, arc 62%, leg 100%, dot as a dark circle) so it reads as shades
+  // rather than a silhouette in the bar — the same treatment as Gorelo.
   readonly property real monoScale: iconSize / 33.4
   Shape {
     visible: !root.colorful
@@ -41,12 +43,12 @@ Item {
 
     ShapePath {
       strokeWidth: -1
-      fillColor: Qt.rgba(root.color.r, root.color.g, root.color.b, root.color.a * 0.72)
+      fillColor: Qt.rgba(root.color.r, root.color.g, root.color.b, root.color.a * 0.62)
       PathSvg { path: "M67.9316 34.7935C67.8782 34.8454 67.8462 34.9174 67.8462 34.996V34.9987C67.8462 35.1546 67.973 35.2825 68.1304 35.2825C68.1825 35.2825 68.2305 35.2692 68.2719 35.2452L68.2959 35.2239C72.2243 31.6939 78.6706 26.7728 87.1078 27.1952C90.3824 27.3578 93.3514 28.3905 96.0575 29.9363C98.845 31.5287 104.08 36.8096 104.08 36.8096C104.927 37.6745 106.116 38.2182 107.412 38.2262C107.412 38.2262 108.162 38.2115 108.805 38.005C108.993 37.945 109.076 37.9103 109.076 37.9103C109.441 37.7571 111.592 36.711 111.275 33.9993C111.145 32.8972 110.598 31.7805 109.564 30.7851C109.337 30.5666 101.831 22.0955 87.5322 23.424C78.1489 24.7033 71.6145 30.4773 67.9316 34.7935Z" }
     }
     ShapePath {
       strokeWidth: -1
-      fillColor: Qt.rgba(root.color.r, root.color.g, root.color.b, root.color.a * 0.5)
+      fillColor: Qt.rgba(root.color.r, root.color.g, root.color.b, root.color.a * 0.38)
       PathSvg { path: "M68.408 35.056C68.3813 35.1852 68.2665 35.2825 68.1304 35.2825C67.9743 35.2825 67.8462 35.1559 67.8462 34.9987C67.8462 34.9987 67.8462 34.9747 67.8489 34.9627C68.0063 32.8039 71.7466 12.497 75.7817 37.8144C75.7817 37.8144 75.787 37.8637 75.7897 37.8983C75.7937 37.9636 75.775 38.0249 75.775 38.0249C75.7337 38.1862 75.5735 38.2315 75.4428 38.2008C75.3347 38.1755 75.2466 38.0982 75.2226 37.9823C75.2226 37.9823 73.2517 28.2785 71.0874 28.3865C70.1587 28.4518 69.4848 30.1441 68.4173 35.0147C68.4146 35.028 68.4093 35.056 68.4093 35.056H68.408Z" }
     }
     ShapePath {
@@ -56,7 +58,7 @@ Item {
     }
     ShapePath {
       strokeWidth: -1
-      fillColor: Qt.rgba(root.color.r, root.color.g, root.color.b, root.color.a * 0.85)
+      fillColor: Qt.rgba(root.dotColor.r, root.dotColor.g, root.dotColor.b, root.color.a * 0.9)
       PathSvg { path: "M110.864 33.5396C110.855 35.4598 109.29 37.0069 107.367 36.9989C105.444 36.9883 103.895 35.4252 103.904 33.5076C103.914 31.5874 105.479 30.0376 107.4 30.0483C109.325 30.0563 110.874 31.6207 110.863 33.5396H110.864Z" }
     }
   }

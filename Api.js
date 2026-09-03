@@ -343,6 +343,15 @@ function nearbyName(value) {
 
 // coord → nearby public-transport stops. Platform records are folded into
 // their parent stop and the nearest platform supplies the walking distance.
+// The coord lookup does not say what serves a platform; the name does.
+function nearbyModes(name) {
+  var n = String(name || "")
+  if (/light rail/i.test(n)) return ["lightrail"]
+  if (/\bwharf\b/i.test(n)) return ["ferry"]
+  if (/\bstation\b/i.test(n)) return ["train"]
+  return ["bus"]
+}
+
 function parseNearby(data) {
   var list = data && Array.isArray(data.locations) ? data.locations : []
   var byId = {}
@@ -361,7 +370,7 @@ function parseNearby(data) {
       name: name,
       metres: Math.round(metres),
       walkMinutes: Math.max(0, Math.round(metres / 80)),
-      modes: []
+      modes: nearbyModes(parent.name || loc.name)
     }
   }
   var out = []

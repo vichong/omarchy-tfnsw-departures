@@ -42,6 +42,9 @@ Item {
   property var nearbyStops: []
   property bool nearbyExpanded: false
   property bool nearbyFallback: false
+  // The chosen origin stop had nothing within the horizon: replanned from the address.
+  property bool originFallback: false
+  property string originFallbackStop: ""
   // Destination chips: the planner's own end stop by default; a click overrides it.
   property bool destinationOverride: false
   property var newTripOrigin: null
@@ -522,6 +525,7 @@ Item {
     newTripResults = []
     nearbyExpanded = false
     nearbyFallback = false
+    originFallback = false
     nearbyStops = loc.isStop ? [] : Model.nearestStops(service.stops, loc.lat, loc.lon, 8, 3000)
     newTripOrigin = loc.isStop ? loc : (nearbyStops.length ? nearbyStops[0] : null)
     newTripDestinationOptions = Model.destinationOptions(service.effectivePlaces)
@@ -554,6 +558,7 @@ Item {
     nearbyStops = []
     nearbyExpanded = false
     nearbyFallback = false
+    originFallback = false
     newTripOrigin = null
     newTripDestination = null
     newTripDestinationStops = []
@@ -572,8 +577,16 @@ Item {
   }
 
   function selectNearbyStop(stop) {
+    originFallback = false
     newTripOrigin = stop
     planNewTrip()
+  }
+
+  // Mode pictogram in front of a nearby-stop chip: station, light rail, wharf or bus.
+  function chipGlyph(stop) {
+    var modes = stop && stop.modes && isFinite(stop.modes.length) ? stop.modes : []
+    var mode = modes.length ? String(modes[0]) : "bus"
+    return Model.glyphFor(mode) + "  "
   }
 
   function selectDestinationStop(stop) {
@@ -712,7 +725,7 @@ Item {
     expandedJourneyId = ""
     // Plan from the chosen stop so the chips mean what they say; the address
     // only decides the walk estimate.
-    var origin = nearbyFallback ? newTripLocation
+    var origin = (nearbyFallback || originFallback) ? newTripLocation
       : { "isStop": true, "id": String(newTripOrigin.id), "name": String(newTripOrigin.name || "") }
     var selectedDestination = newTripDestination
     var selectedLocation = newTripLocation
@@ -733,6 +746,15 @@ Item {
       if (root.newTripDestination !== selectedDestination || root.newTripLocation !== selectedLocation)
         return
       root.lastJourneys = journeys
+      // Nothing catchable from the chosen stop (e.g. a bus route that has
+      // finished for the day): plan from the address once and say so.
+      if (root.service.journeyRows.count === 0 && !root.nearbyFallback && !root.originFallback
+          && root.newTripLocation && !root.newTripLocation.isStop && origin.isStop) {
+        root.originFallbackStop = root.newTripOrigin ? Model.boardStopName(root.newTripOrigin.name) : ""
+        root.originFallback = true
+        root.planNewTrip()
+        return
+      }
       if (toAddress && !root.destinationOverride) {
         var end = root.actualEndStop(journeys)
         if (end) {
@@ -744,7 +766,7 @@ Item {
             root.newTripDestinationStops = [end].concat(root.newTripDestinationStops)
         }
       }
-      if (root.nearbyFallback && root.nearbyStops.length === 0) {
+      if ((root.nearbyFallback && root.nearbyStops.length === 0) || root.originFallback) {
         var first = root.actualFirstStop(journeys)
         if (first) {
           root.nearbyStops = [first]
@@ -1157,7 +1179,7 @@ Item {
                 required property var modelData
 
                 selected: !modelData.isMore && root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
-                text: modelData.isMore ? "More…" : modelData.name + " · " + modelData.walkMinutes + " min walk"
+                text: modelData.isMore ? "More…" : root.chipGlyph(modelData) + modelData.name + " · " + modelData.walkMinutes + " min walk"
                 onClicked: {
                   if (modelData.isMore) root.nearbyExpanded = true
                   else root.selectNearbyStop(modelData)
@@ -1167,8 +1189,9 @@ Item {
           }
 
           Caption {
-            visible: root.nearbyFallback
-            text: "No stops within 3 km — planned from your address"
+            visible: root.nearbyFallback || root.originFallback
+            text: root.nearbyFallback ? "No stops within 3 km — planned from your address"
+              : "No services soon from " + root.originFallbackStop + " — planned from your address"
           }
         }
 
@@ -1270,7 +1293,7 @@ Item {
                   selected: !modelData.isMore && root.newTripDestinationStop
                     && String(root.newTripDestinationStop.id) === String(modelData.id)
                   text: modelData.isMore ? "More…"
-                    : modelData.name + " · " + modelData.walkMinutes + " min walk"
+                    : root.chipGlyph(modelData) + modelData.name + " · " + modelData.walkMinutes + " min walk"
                   onClicked: {
                     if (modelData.isMore) root.destinationNearbyExpanded = true
                     else root.selectDestinationStop(modelData)
@@ -1295,6 +1318,18 @@ Item {
               font.pixelSize: Style.font.caption
             }
           }
+        }
+
+        Text {
+          width: parent.width
+          visible: root.service && root.service.journeyRows.count === 0 && root.newTripOrigin !== null
+            && root.newTripDestination !== null && root.service.journeyError === "" && root.lastJourneys.length >= 0
+            && root.service.lastPlanNote.indexOf("parsed=") !== -1
+          textFormat: Text.PlainText
+          text: root.lastJourneys.length ? "No trips in the next 3 hours" : "No trips found"
+          color: root.muted
+          font.family: root.family
+          font.pixelSize: Style.font.caption
         }
 
         Column {

@@ -1183,7 +1183,7 @@ QtObject {
         return
       }
       var list = Model.appendEndWalk(result.data.slice(0, Api.MAX_JOURNEYS), endWalk, endWalkTo)
-      lastPlanNote += " parsed=" + result.data.length
+      lastPlanNote += " parsed=" + result.data.length + (result.data.length ? " first=" + Math.round((Number(result.data[0].departMs) - Date.now()) / 60000) + "m" : "")
       // Walk = the caller's estimate to the chosen stop; only when planning
       // from a coordinate does the journey's own first walking leg apply.
       journeyWalkMinutes = walkEstimate > 0 ? walkEstimate : (list.length ? walkMinutesOf(list[0]) : 0)

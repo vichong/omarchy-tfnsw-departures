@@ -78,8 +78,8 @@ const nearbySample = { locations: [
   { id: "bad", name: "Ignored", type: "platform", properties: { distance: 10 } }
 ] }
 equal(Api.parseNearby(nearbySample), [
-  { id: "200014", name: "The Star, Pyrmont", metres: 130, walkMinutes: 2, modes: [] },
-  { id: "200099", name: "Town Hall, Sydney", metres: 401, walkMinutes: 5, modes: [] }
+  { id: "200014", name: "The Star, Pyrmont", metres: 130, walkMinutes: 2, modes: ["bus"] },
+  { id: "200099", name: "Town Hall, Sydney", metres: 401, walkMinutes: 5, modes: ["bus"] }
 ], "nearby platforms are deduplicated, named, ranked and walk-timed")
 
 // --- departures
@@ -129,5 +129,7 @@ assert(Api.lightTextOn("#005AA3") && Api.lightTextOn("#781140") && Api.lightText
 assert(!Api.lightTextOn("#F99D1C") && !Api.lightTextOn("#00B5EF") && !Api.lightTextOn("#5AB031"), "dark text on T1, bus and ferry")
 assert(Math.abs(Api.contrastRatio("#FFFFFF", "#000000") - 21) < 0.01, "contrast ratio of black on white is 21")
 equal(Api.luminance("bogus"), 0, "bad colours have zero luminance")
+
+equal([Api.nearbyModes("Crown St at Rainford St, Surry Hills"), Api.nearbyModes("The Star Light Rail, Pyrmont"), Api.nearbyModes("Circular Quay Wharf 2"), Api.nearbyModes("Martin Place Station, Elizabeth St")], [["bus"], ["lightrail"], ["ferry"], ["train"]], "nearby modes inferred from the platform name")
 
 done("test_api")

@@ -2,6 +2,21 @@
 
 ![Transport NSW × Omarchy — your next train, bus, ferry or light rail in the Omarchy bar](docs/banner.png)
 
+Your next catchable Transport for NSW train, metro, bus, ferry or light rail in
+the Omarchy bar, counted down as **leave in** time.
+
+A Quickshell plugin for **Omarchy 4**. You bring your own free
+[TfNSW Open Data](https://opendata.transport.nsw.gov.au/) API key; nothing is
+hosted by this project.
+
+> Not affiliated with, endorsed by or related to Transport for NSW or Omarchy.
+> The Transport for NSW and Omarchy marks belong to their respective owners
+> and are used here only to identify what this plugin connects to. Transport
+> data comes from TfNSW Open Data under the
+> [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) licence. This is
+> an independent community project, provided as-is under the
+> [MIT license](LICENSE).
+
 A shell plugin that puts the next catchable Transport for NSW service or trip in
 the Omarchy bar. Everything counts down in **leave in** time: departure time
 minus your walk to the stop. The bar shows just the Transport mark; the popup

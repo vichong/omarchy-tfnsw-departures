@@ -24,14 +24,18 @@ function displayStopName(name) {
 
 function listCopy(value) {
   var out = []
-  var n = value && isFinite(value.length) ? Number(value.length) : 0
+  var n = value && typeof value !== "string" && isFinite(value.length) ? Number(value.length) : 0
   for (var i = 0; i < n; i++) out.push(String(value[i]))
   return out
 }
 
+function listValue(value) {
+  return value && typeof value !== "string" && isFinite(value.length) ? value : []
+}
+
 function matchStops(list, text, limit) {
   var query = String(text || "").trim().toLowerCase()
-  if (!query || !Array.isArray(list)) return []
+  if (!query || !list || typeof list === "string" || !isFinite(list.length)) return []
   var maximum = isFinite(limit) ? Math.max(0, Math.floor(Number(limit))) : 8
   var matches = []
   for (var i = 0; i < list.length; i++) {
@@ -66,7 +70,7 @@ function matchStops(list, text, limit) {
       name: matches[m].name,
       shortName: displayStopName(matches[m].name),
       isStop: true,
-      // Arrays that crossed a QML `property var` may not satisfy Array.isArray.
+      // Arrays that crossed a QML `property var` may not retain native-array identity.
       modes: listCopy(stop.modes),
       type: "stop",
       lat: typeof stop.lat === "number" && isFinite(stop.lat) ? stop.lat : null,
@@ -79,7 +83,8 @@ function matchStops(list, text, limit) {
 // Nearby bundled stops for an address pick. Distance is the great-circle
 // distance so the result is deterministic without a map or routing service.
 function nearestStops(list, lat, lon, limit, maxMetres) {
-  if (!Array.isArray(list) || typeof lat !== "number" || typeof lon !== "number"
+  if (!list || typeof list === "string" || !isFinite(list.length)
+      || typeof lat !== "number" || typeof lon !== "number"
       || !isFinite(lat) || !isFinite(lon)) return []
   var maximum = isFinite(limit) ? Math.max(0, Math.floor(Number(limit))) : 3
   var radius = isFinite(maxMetres) ? Math.max(0, Number(maxMetres)) : 1500
@@ -118,7 +123,7 @@ function nearestStops(list, lat, lon, limit, maxMetres) {
       lat: Number(item.lat),
       lon: Number(item.lon),
       distanceMetres: Math.round(ranked[r].metres),
-      walkMinutes: Math.max(0, Math.round(ranked[r].metres / 80))
+      walkMinutes: walkEstimate({ lat: lat, lon: lon }, item)
     })
   }
   return out
@@ -152,8 +157,8 @@ function mergeNearby(bundled, api) {
     positions[normalized.id] = out.length
     out.push(normalized)
   }
-  var local = Array.isArray(bundled) ? bundled : []
-  var remote = Array.isArray(api) ? api : []
+  var local = listValue(bundled)
+  var remote = listValue(api)
   for (var i = 0; i < local.length; i++) add(local[i], true)
   for (var r = 0; r < remote.length; r++) add(remote[r], false)
   out.sort(function(a, b) { return a.metres - b.metres || a.name.localeCompare(b.name) || a.id.localeCompare(b.id) })
@@ -163,7 +168,7 @@ function mergeNearby(bundled, api) {
 // Saved origin and destination stops become a compact destination chooser.
 // The first place mentioning a stop supplies its contextual label.
 function destinationOptions(places) {
-  var list = Array.isArray(places) ? places : []
+  var list = listValue(places)
   var seen = {}
   var out = []
   function add(id, name, place) {
@@ -201,16 +206,48 @@ function tempPlaceFrom(location, firstStop, destStop, walkMinutes, destinationLo
     destStopId: String(destStop.id || ""),
     destStopName: String(destStop.name || destStop.shortName || ""),
     walkMinutes: Math.max(0, Math.round(Number(walkMinutes) || 0)),
+    walkEstimated: !!(location && !location.isStop),
+    destWalkMinutes: 0,
+    destWalkEstimated: false,
     lines: [],
     modes: []
   }
-  if (destinationLocation && !destinationLocation.isStop && isFinite(destinationLocation.lat) && isFinite(destinationLocation.lon)) {
+  if (!location.isStop) {
+    place.address = String(location.name || location.shortName || "").trim()
+    if (isFinite(location.lat) && isFinite(location.lon)) {
+      place.lat = Number(location.lat)
+      place.lon = Number(location.lon)
+    }
+  }
+  if (destinationLocation && !destinationLocation.isStop) {
     place.destAddress = String(destinationLocation.name || destinationLocation.shortName || "").trim()
-    place.destLat = Number(destinationLocation.lat)
-    place.destLon = Number(destinationLocation.lon)
+    if (isFinite(destinationLocation.lat) && isFinite(destinationLocation.lon)) {
+      place.destLat = Number(destinationLocation.lat)
+      place.destLon = Number(destinationLocation.lon)
+    }
     place.destWalkMinutes = Math.max(0, Math.round(Number(destStop.walkMinutes) || 0))
+    place.destWalkEstimated = true
   }
   return place
+}
+
+// Straight-line walking estimate shared by either address end.
+function walkEstimate(fromLatLon, stop) {
+  if (!fromLatLon || !stop || typeof fromLatLon.lat !== "number" || typeof fromLatLon.lon !== "number"
+      || typeof stop.lat !== "number" || typeof stop.lon !== "number"
+      || !isFinite(fromLatLon.lat) || !isFinite(fromLatLon.lon)
+      || !isFinite(stop.lat) || !isFinite(stop.lon)) return 0
+  var earth = 6371000
+  var fromLat = Number(fromLatLon.lat) * Math.PI / 180
+  var fromLon = Number(fromLatLon.lon) * Math.PI / 180
+  var stopLat = Number(stop.lat) * Math.PI / 180
+  var stopLon = Number(stop.lon) * Math.PI / 180
+  var dLat = stopLat - fromLat
+  var dLon = stopLon - fromLon
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+    + Math.cos(fromLat) * Math.cos(stopLat) * Math.sin(dLon / 2) * Math.sin(dLon / 2)
+  var metres = earth * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(Math.max(0, 1 - a)))
+  return Math.max(0, Math.round(metres / 80))
 }
 
 function boardStopName(name) {
@@ -224,7 +261,7 @@ function boardStopName(name) {
 // A bounded stop sequence for the mini indicator board. Parsed stops are
 // objects, but accepting strings keeps the helper useful and easy to test.
 function stopListText(stops, max) {
-  var list = Array.isArray(stops) ? stops : []
+  var list = listValue(stops)
   var limit = isFinite(max) ? Math.max(1, Math.floor(Number(max))) : 6
   var names = []
   for (var i = 0; i < list.length && names.length < limit; i++) {
@@ -269,7 +306,7 @@ function delaySec(dep) {
 // horizon, matching the place. Cancelled ones stay (struck through) so a
 // gap is explained rather than silent.
 function boardFor(departures, place, nowMs) {
-  var list = Array.isArray(departures) ? departures : []
+  var list = listValue(departures)
   var out = []
   for (var i = 0; i < list.length && out.length < MAX_ROWS; i++) {
     var dep = list[i]
@@ -287,7 +324,7 @@ function boardFor(departures, place, nowMs) {
 // arrival, travel time and changes. The line/mode/platform come from the
 // first ride; a journey with no ride (walk only) is skipped.
 function boardFromJourneys(journeys, place, nowMs) {
-  // Length-based: arrays that crossed a QML `property var` fail Array.isArray.
+  // Length-based: arrays that crossed a QML `property var` may lose native-array identity.
   var list = journeys && isFinite(journeys.length) ? journeys : []
   var entries = []
   for (var i = 0; i < list.length; i++) {
@@ -341,7 +378,7 @@ function boardFromJourneys(journeys, place, nowMs) {
 // later reaches the destination no later. Cancellations do not participate in
 // the comparison and plain departures have no arrival, so remain untouched.
 function markDominated(board) {
-  var list = Array.isArray(board) ? board : []
+  var list = listValue(board)
   for (var i = 0; i < list.length; i++) {
     var entry = list[i]
     if (!entry || !entry.arriveMs || entry.cancelled) {
@@ -366,7 +403,7 @@ function markDominated(board) {
 // omits a walking leg between two rides, make the transfer time explicit.
 function legRows(entry, occupancy, walkMinutes) {
   var shownAlerts = {}
-  // Length-based: arrays that crossed a QML `property var` fail Array.isArray.
+  // Length-based: arrays that crossed a QML `property var` may lose native-array identity.
   var legs = entry && entry.legs && isFinite(entry.legs.length) ? entry.legs : []
   var rows = []
   var leadingWalk = Math.max(0, Math.round(Number(walkMinutes) || 0))
@@ -462,7 +499,7 @@ function appendEndWalk(journeys, minutes, toName) {
   var out = []
   for (var i = 0; i < list.length; i++) {
     var journey = list[i]
-    // Arrays that crossed a QML `property var` fail Array.isArray: copy by length.
+    // Arrays that crossed a QML `property var` are copied by length.
     var legs = []
     var source = journey.legs && isFinite(journey.legs.length) ? journey.legs : []
     for (var l = 0; l < source.length; l++) legs.push(source[l])
@@ -501,35 +538,60 @@ function featureNearby(list, preferredId, maxStationWalk) {
 }
 
 function finalWalkMinutes(entry) {
-  var legs = entry && Array.isArray(entry.legs) ? entry.legs : []
+  var legs = entry ? listValue(entry.legs) : []
   if (!legs.length || legs[legs.length - 1].kind !== "walk") return 0
   return Math.max(0, Math.round(Number(legs[legs.length - 1].durationSec || 0) / 60))
 }
 
-// "From Home" / "Home → Wynyard": what the place selector says.
-function placeLabel(place) {
-  if (!place) return ""
-  if (!hasDestination(place)) return "From " + place.name
-  return place.name + " → " + firstWord(place.destAddress || place.destStopName || "destination")
+function endKind(place, end) {
+  if (!place) return "stop"
+  return String(end || "origin") === "dest"
+    ? (String(place.destAddress || "").trim() ? "address" : "stop")
+    : (String(place.address || "").trim() ? "address" : "stop")
 }
 
-// Selector text under the place name: the route, since the title already
-// says which place it is. "Surry Hills → Chatswood" / "From Sydenham".
+function endLabel(place, end) {
+  var destination = String(end || "origin") === "dest"
+  var text = destination
+    ? (endKind(place, "dest") === "address" ? place.destAddress : place.destStopName)
+    : (endKind(place, "origin") === "address" ? place.address : place.stopName)
+  return boardStopName(text)
+}
+
+// Route text never repeats the trip nickname: it names only its two ends.
 function routeLabel(place) {
   if (!place) return ""
-  if (String(place.id || "") === "temp")
-    return "New trip · " + String(place.name || "New trip") + (hasDestination(place)
-      ? " → " + (boardStopName(place.destAddress || place.destStopName) || "destination") : "")
-  var from = boardStopName(place.stopName) || place.name
-  if (!hasDestination(place)) return "From " + from
-  return from + " → " + (boardStopName(place.destAddress || place.destStopName) || "destination")
+  var from = endLabel(place, "origin") || "Unknown stop"
+  if (!hasDestination(place)) return from + " departures"
+  return from + " → " + (endLabel(place, "dest") || "destination")
 }
+
+function tripName(place) {
+  if (!place) return ""
+  var name = String(place.name || "").trim()
+  return String(place.id || "") === "temp" || !name ? routeLabel(place) : name
+}
+
+function routeCaption(place) {
+  if (!place) return ""
+  var text = routeLabel(place)
+  var originWalk = Math.max(0, Math.round(Number(place.walkMinutes) || 0))
+  var destWalk = Math.max(0, Math.round(Number(place.destWalkMinutes) || 0))
+  if (originWalk > 0) text += " · " + originWalk + " min walk"
+  if (destWalk > 0) text += " · then " + destWalk + " min walk"
+  return text
+}
+
+// Part B still has callers using the old name; keep this as a thin alias.
+function placeLabel(place) { return tripName(place) }
 
 function placeTooltip(place) {
   if (!place) return ""
-  var text = String(place.stopName || place.name || "")
+  var text = String(endKind(place, "origin") === "address" ? place.address : (place.stopName || ""))
   if (hasDestination(place))
-    text += " → " + String(place.destAddress || place.destStopName || "destination")
+    text += " → " + String(endKind(place, "dest") === "address" ? place.destAddress : (place.destStopName || "destination"))
+  else
+    text += " departures"
   var walk = isFinite(place.walkMinutes) ? Math.max(0, Math.round(Number(place.walkMinutes))) : 0
   if (walk > 0) text += " · " + walk + " min walk"
   return text
@@ -601,7 +663,7 @@ function clockFormatFromShellConfig(text) {
   if (!layout || typeof layout !== "object") return ""
   var sections = ["left", "center", "right"]
   for (var s = 0; s < sections.length; s++) {
-    var list = Array.isArray(layout[sections[s]]) ? layout[sections[s]] : []
+    var list = listValue(layout[sections[s]])
     for (var i = 0; i < list.length; i++) {
       var entry = list[i]
       if (entry && entry.id === "omarchy.clock") return typeof entry.format === "string" ? entry.format : "dddd HH:mm"
@@ -761,7 +823,7 @@ function notificationFor(board, place, nowMs, sent) {
   var key = String(next.id)
   if (sent && sent[key]) return null
   var changeAt = ""
-  var legs = next && Array.isArray(next.legs) ? next.legs : []
+  var legs = next ? listValue(next.legs) : []
   var ridesSeen = 0
   for (var i = 0; i < legs.length; i++) if (legs[i].kind === "ride") {
     ridesSeen++

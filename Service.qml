@@ -382,6 +382,9 @@ QtObject {
   property string lastNearbyNote: ""
   property var lastNewTripLocation: null
   property var lastNewTripDestination: null
+  property int lastNewTripWalkMinutes: 0
+  property int lastNewTripEndWalkMinutes: 0
+  property string lastNewTripEndWalkTo: ""
   property bool newTripOpen: false
   property Timer newTripTimer
 
@@ -391,7 +394,8 @@ QtObject {
     running: root.newTripOpen && root.connected
     onTriggered: {
       if (root.lastNewTripLocation && root.lastNewTripDestination) {
-        root.planFrom(root.lastNewTripLocation, root.lastNewTripDestination, null)
+        root.planFrom(root.lastNewTripLocation, root.lastNewTripDestination, null,
+          root.lastNewTripWalkMinutes, root.lastNewTripEndWalkMinutes, root.lastNewTripEndWalkTo)
       }
     }
   }
@@ -790,8 +794,7 @@ QtObject {
     var stopId = String(activePlace.stopId || "")
     var destStopId = String(activePlace.destStopId || "")
     var destAddress = String(activePlace.destAddress || "")
-    var destLat = activePlace.destLat
-    var destLon = activePlace.destLon
+    var destWalkMinutes = Math.max(0, Math.round(Number(activePlace.destWalkMinutes) || 0))
     function complete(result) {
       if (token !== generation)
         return
@@ -801,7 +804,7 @@ QtObject {
           || String(root.activePlace.stopId || "") !== stopId
           || String(root.activePlace.destStopId || "") !== destStopId
           || String(root.activePlace.destAddress || "") !== destAddress
-          || root.activePlace.destLat !== destLat || root.activePlace.destLon !== destLon) {
+          || Math.max(0, Math.round(Number(root.activePlace.destWalkMinutes) || 0)) !== destWalkMinutes) {
         // The place or either endpoint changed under this request; its board
         // belongs to the old source.
         if (pollRequested) {
@@ -816,7 +819,10 @@ QtObject {
         if (result.kind === "network" || result.kind === "ratelimit")
           pollBackoff = Math.min(5, pollBackoff + 1)
       } else {
-        departures = result.data.slice(0, Api.MAX_STOP_EVENTS)
+        departures = trip
+          ? Model.appendEndWalk(result.data.slice(0, Api.MAX_JOURNEYS), destWalkMinutes,
+              Model.boardStopName(destAddress || activePlace.destStopName || ""))
+          : result.data.slice(0, Api.MAX_STOP_EVENTS)
         pollBackoff = 0
         phase = "connected"
         clearError()
@@ -842,12 +848,10 @@ QtObject {
       var path = trip
         ? Api.tripPath(activePlace.stopId, activePlace.destStopId, 6)
         : Api.departuresPath(activePlace.stopId, excludedModes(activePlace))
-      var endWalkMinutes = trip && activePlace.destAddress ? Number(activePlace.destWalkMinutes || 0) : 0
-      var endWalkTo = trip ? Model.boardStopName(activePlace.destAddress || "") : ""
       liveBackend.request(path, function(response) {
         if (response.ok)
           response.data = trip
-            ? Model.appendEndWalk(Api.parseJourneys(response.data), endWalkMinutes, endWalkTo)
+            ? Api.parseJourneys(response.data)
             : Api.parseDepartures(response.data)
 
         complete(response)
@@ -1143,9 +1147,18 @@ QtObject {
 
       return
     }
-    lastPlanNote = "planning " + (location.isStop ? location.id : "coord") + " → " + (destinationIsCoord ? "coord" : destination.id) + " endWalk=" + endWalk
+    var arriveVia = destination && destination.arriveVia && Api.isStopId(destination.arriveVia.id)
+      ? destination.arriveVia : null
+    var destinationSpec = destinationIsCoord && arriveVia ? arriveVia.id
+      : (destinationIsCoord ? { "lat": destination.lat, "lon": destination.lon } : destination.id)
+    lastPlanNote = "planning " + (location.isStop ? location.id : "coord") + " → "
+      + (destinationIsCoord ? (arriveVia ? arriveVia.id : "coord fallback (no chosen destination stop)") : destination.id)
+      + " endWalk=" + endWalk
     lastNewTripLocation = location
     lastNewTripDestination = destination
+    lastNewTripWalkMinutes = walkEstimate
+    lastNewTripEndWalkMinutes = endWalk
+    lastNewTripEndWalkTo = String(endWalkTo || "")
     journeyError = ""
     journeyBoard = []
     journeyPlace = null
@@ -1166,12 +1179,7 @@ QtObject {
       "lat": location.lat,
       "lon": location.lon
     }
-    var arriveVia = destination.arriveVia && Api.isStopId(destination.arriveVia.id)
-      ? destination.arriveVia : destination
-    var destinationSpec = destinationIsCoord ? {
-      "lat": destination.lat,
-      "lon": destination.lon
-    } : destination.id
+    var chosenDestination = arriveVia || (!destinationIsCoord ? destination : null)
     function complete(result) {
       journeyRequest = null
       noteRateLimit(result)
@@ -1198,11 +1206,17 @@ QtObject {
         "name": String(location.name || "New trip").split(",")[0],
         "stopId": location.isStop ? String(location.id || "") : "",
         "stopName": firstRide ? firstRide.from : String(location.name || ""),
-        "destStopId": String(arriveVia.id || ""),
-        "destStopName": String(arriveVia.name || arriveVia.shortName || ""),
+        "address": !location.isStop ? String(location.name || location.shortName || "") : "",
+        "lat": !location.isStop ? Number(location.lat) : null,
+        "lon": !location.isStop ? Number(location.lon) : null,
+        "walkEstimated": !location.isStop,
+        "destStopId": chosenDestination ? String(chosenDestination.id || "") : "",
+        "destStopName": chosenDestination ? String(chosenDestination.name || chosenDestination.shortName || "") : "",
         "destAddress": destinationIsCoord ? String(destination.name || destination.shortName || "") : "",
         "destLat": destinationIsCoord ? Number(destination.lat) : null,
         "destLon": destinationIsCoord ? Number(destination.lon) : null,
+        "destWalkMinutes": destinationIsCoord && arriveVia ? endWalk : 0,
+        "destWalkEstimated": destinationIsCoord && !!arriveVia,
         "lines": [],
         "destination": "",
         "modes": [],
@@ -1251,7 +1265,8 @@ QtObject {
     if (newTripOpen) {
       refreshCrowding()
       if (lastNewTripLocation && lastNewTripDestination)
-        planFrom(lastNewTripLocation, lastNewTripDestination, null)
+        planFrom(lastNewTripLocation, lastNewTripDestination, null,
+          lastNewTripWalkMinutes, lastNewTripEndWalkMinutes, lastNewTripEndWalkTo)
     }
   }
 

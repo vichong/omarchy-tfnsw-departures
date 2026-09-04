@@ -699,3 +699,123 @@ radius 6, bg background at 0.28. Rows mirror the chain top to bottom:
 already match 1a/1b and stay as they are. TransportMark stays ours.
 Tests: extend `tests/test_model.js` for the leading-walk synthesis (no
 double walk when the first leg is a walk) and change-row times.
+
+## v0.10: trips, named selector, address-or-stop ends, walk overrides (Vic, 2026-09-04)
+Vic's three asks rolled into one round. Vocabulary from here on: **trip**
+(the saved thing, formerly "place"), **address** (a door), **stop** (a
+platform). Internal config key stays `places`; the `place` IPC stays as an
+alias. Only words and the end model change.
+
+### Part A — data model, labels, planning (ConfigStore.js, Model.js, Service.qml, tests)
+
+**Per-end config.** Each trip has two ends. Fields, all optional except
+`stopId`:
+- origin: `stopId`, `stopName` (as now), **new** `address` (≤120), `lat`,
+  `lon` (only kept together with a non-empty address, bounds-checked as for
+  dest), `walkMinutes` (0–60, as now), **new** `walkEstimated` (bool; default
+  `false` for existing configs, `true` when the app computed it).
+- destination: `destStopId`, `destStopName`, `destAddress`, `destLat`,
+  `destLon`, `destWalkMinutes` (as now), **new** `destWalkEstimated` (bool).
+- Derived, in Model: `endKind(place, "origin"|"dest")` → `"address"` when
+  the address is non-empty, else `"stop"`. Missing `walkEstimated` on load →
+  `false` (migration rule: whatever Vic saved is his number now).
+- `walkMinutes` is allowed on a stop end too (someone who knows their walk),
+  so no field is gated on kind except lat/lon on address.
+
+**Labels (Model.js).**
+- `tripName(place)`: the nickname; for the temp New trip place (id `temp`)
+  or an empty name, fall back to `routeLabel`.
+- `routeLabel(place)`: "Sydenham → Wynyard" for stop ends, the address's
+  first segment for address ends ("Home" is never repeated here: the route
+  uses stop/address names, not the nickname). No destination → "Sydenham
+  departures". Drop the "From X" and "New trip · " forms everywhere.
+- `routeCaption(place)`: `routeLabel` + " · N min walk" when origin walk >
+  0, + " · then M min walk" when dest walk > 0 (the hero caption).
+- `placeLabel` is retired; `placeTooltip` keeps its shape but uses
+  "departures" instead of "From".
+- Settings list summary: `routeCaption` + filter summary as now.
+
+**Planning (Service.qml).** Always stop to stop. The active-place poll
+plans `tripPath(stopId, destStopId)` and appends the end walk from
+`destWalkMinutes` whenever it is > 0 (not only when there is an address).
+`planFrom` for New trip: origin is the chosen origin stop, destination is
+the chosen destination stop; the coordinate-destination path and
+`actualEndStop`-driven chip prepending go away. Keep `originFallback`
+(replan from the origin coordinate once when the chosen stop has nothing in
+the horizon; caption as now). `legsFor` / `journeyLegsFor` keep passing the
+origin walk. The leave window uses origin `walkMinutes` as now.
+
+**Walk estimate helper.** `Model.walkEstimate(fromLatLon, stop)` → minutes
+(`round(metres/80)`), reused by both ends; the nearby lookups already
+return `walkMinutes` per stop, so this is just the shared naming.
+
+**Tests.** `test_config`: new fields round-trip, lat/lon dropped without an
+address, `walkEstimated` defaults false, legacy place (only `walkMinutes`,
+`destAddress`, `destWalkMinutes`) loads unchanged with both estimated flags
+false. `test_model`: `tripName`/`routeLabel`/`routeCaption` for the four
+combinations (stop/address × with/without destination) and for `temp`.
+
+### Part B — UI (Overlay.qml, SettingsPane.qml, Panel.qml)
+
+**Hero (Panel.qml).** The selector chip shows `Model.tripName` in
+`Style.font.title` weight 600 with the chevron; it replaces the "Home"
+title Text (delete the title; the chip is the first line beside the
+TransportMark). Under the chip: `Model.routeCaption` in `Style.font.caption`
+muted, elided. Dropdown options: label = `tripName`, with `routeLabel` as
+the secondary text — the kit `Dropdown` only takes `label`, so compose
+`tripName + "  " + routeLabel` with the route part after two spaces (the
+list is a plain string per row; keep it one line, elide). "New trip…"
+stays last. Hero height may grow by the caption line; check the popup
+still fits with six rows + one expanded (≈ 900 units).
+
+**Settings wording (SettingsPane.qml).** Section "TRIPS"; buttons "Add
+trip", "Save trip", "Delete trip"; empty state "Add your first trip."; the
+SSID help text and any other "place" copy say "trip". Row title =
+`tripName`, summary = `routeCaption` + filters.
+
+**End editor, shared by New trip and the Settings editor.** Both "Leaving
+from" and "Going to (optional)" become an **EndEditor** component
+(`EndEditor.qml`, new file) so the two screens cannot drift:
+- Row 1: label ("Leaving from" / "Going to (optional)") and, right-aligned,
+  a two-way segmented toggle **Address | Stop** (same chip styling as the
+  Modes chips: selected = accent border + accent 0.14 fill + fg; unselected
+  = fg 0.16 border, muted). Default: Address when the end has an address,
+  else Stop; for a brand-new end default Address on origin (the "where are
+  you" question) and Stop on destination.
+- Row 2: the search field. Stop mode: bundled station type-ahead as now
+  (`Dropdown` of matches). Address mode: address search as now (stop_finder
+  `type_sf=any`), then the nearby-stop chips with the mode filter row and
+  the chosen chip highlighted (reuse the existing `NearbyChips` / New trip
+  chip code; move it into the component).
+- Row 3: **walk line**. Address mode: `󰖃  [ 6 ] min walk to <chosen stop>
+  · [✓] estimate`. The number is a `NumberField` (0–60). While the estimate
+  box is ticked the field is read-only-looking (muted) and follows the
+  chosen chip; unticking makes it editable and the value is kept (also when
+  the chip changes) until re-ticked, which snaps back to the estimate.
+  Stop mode: `󰖃  [ 0 ] min walk to this stop` with no estimate box (walk
+  is the user's number, default 0). Destination end says "walk from
+  <chosen stop>" / "walk from this stop".
+- The old "Walk minutes" stepper next to Name is removed. The old
+  `WalkStrip` in New trip is replaced by the two walk lines.
+- Values exposed by the component: `kind`, `stopId`, `stopName`, `address`,
+  `lat`, `lon`, `walkMinutes`, `walkEstimated`, plus `nearby` (for the New
+  trip caption "Get off at X · N min walk to <address>", which stays).
+
+**New trip pane.** Uses two EndEditors ("Where are you?" keeps its heading
+above the origin editor; "Going to" above the destination). "Use now" and
+"Save as trip" build the temp/saved place from both editors' values. The
+save dialog asks for the nickname as now (default: origin stop's board
+name).
+
+**Settings editor.** Name | Wi-Fi SSID on the top row (the stepper's slot
+is freed), then the two EndEditors stacked full-width, then Filter
+services, then the footer row. Save writes all per-end fields.
+
+**Hard rules.** No new IPC needed except that `newtripFrom`/`newtripTo`
+keep working (they act on the editors). Never write the API key anywhere.
+Keep `Array.isArray` out of model helpers (length test). One property
+assignment per property. Inline components can't see outer ids: pass
+widths in. Kit `Dropdown` face is hidden with `opacity: 0` where a custom
+chip is drawn. Heights: buttons `Style.space(30)`, inputs `Style.space(30)`,
+chips `Style.space(24)`, as the Gorelo plugin. Run all tests and
+`omarchy plugin validate .` before finishing; no restart, no commit.

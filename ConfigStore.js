@@ -21,6 +21,13 @@ function finiteNumber(value) {
   return typeof value === "number" && isFinite(value) ? Number(value) : null
 }
 
+function coordinatePair(address, latValue, lonValue) {
+  var lat = finiteNumber(latValue), lon = finiteNumber(lonValue)
+  var valid = address !== "" && lat !== null && lon !== null
+    && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+  return valid ? { lat: lat, lon: lon } : { lat: null, lon: null }
+}
+
 function clampPoll(value) {
   return Math.max(POLL_MIN, Math.min(POLL_MAX, intOr(value, POLL_DEFAULT)))
 }
@@ -60,25 +67,30 @@ function parsePlace(raw, index) {
   if (!Api.isStopId(raw.stopId)) return null
   // A destination makes the place a trip; it needs a valid stop id or is dropped.
   var hasDestination = Api.isStopId(raw.destStopId) && String(raw.destStopId) !== String(raw.stopId)
+  var address = cleanText(raw.address, 120)
+  var originCoord = coordinatePair(address, raw.lat, raw.lon)
   var destAddress = hasDestination ? cleanText(raw.destAddress, 120) : ""
-  var destLat = finiteNumber(raw.destLat), destLon = finiteNumber(raw.destLon)
-  var hasDestCoord = destAddress !== "" && destLat !== null && destLon !== null
-    && destLat >= -90 && destLat <= 90 && destLon >= -180 && destLon <= 180
+  var destCoord = coordinatePair(destAddress, raw.destLat, raw.destLon)
   return {
     id: placeId(raw.id, index),
-    name: cleanText(raw.name, 40) || ("Place " + (index + 1)),
+    name: cleanText(raw.name, 40),
     stopId: String(raw.stopId),
     stopName: cleanText(raw.stopName, 80),
+    address: address,
+    lat: originCoord.lat,
+    lon: originCoord.lon,
+    walkMinutes: Math.max(0, Math.min(MAX_WALK_MINUTES, intOr(raw.walkMinutes, 0))),
+    walkEstimated: raw.walkEstimated === true,
     destStopId: hasDestination ? String(raw.destStopId) : "",
     destStopName: hasDestination ? cleanText(raw.destStopName, 80) : "",
-    destAddress: hasDestCoord ? destAddress : "",
-    destLat: hasDestCoord ? destLat : null,
-    destLon: hasDestCoord ? destLon : null,
-    destWalkMinutes: hasDestCoord ? Math.max(0, Math.min(MAX_WALK_MINUTES, intOr(raw.destWalkMinutes, 0))) : 0,
+    destAddress: destAddress,
+    destLat: destCoord.lat,
+    destLon: destCoord.lon,
+    destWalkMinutes: hasDestination ? Math.max(0, Math.min(MAX_WALK_MINUTES, intOr(raw.destWalkMinutes, 0))) : 0,
+    destWalkEstimated: hasDestination && raw.destWalkEstimated === true,
     lines: lineList(raw.lines),
     destination: cleanText(raw.destination, 60),
     modes: modeList(raw.modes),
-    walkMinutes: Math.max(0, Math.min(MAX_WALK_MINUTES, intOr(raw.walkMinutes, 0))),
     ssid: cleanText(raw.ssid, 64)
   }
 }

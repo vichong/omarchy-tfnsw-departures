@@ -180,27 +180,39 @@ equal(Model.legRows(startsWithWalk, {}, commute.walkMinutes).map(r => r.kind), [
 assert(/^L[23] · 9′ → /.test(Model.pillText(Model.boardFromJourneys(multi, commute, commuteNow), commute, commuteNow)), "pill leads with the first leg and ends with the arrival")
 const changeNotification = Model.notificationFor(commuteBoard, commute, multi[0].departMs - 4 * 60000, {})
 assert(changeNotification && / · change at Central$/.test(changeNotification.body), "multi-leg trip notification names the change stop")
-equal(Model.placeLabel(home), "From Home", "place without destination reads as an origin")
-equal(Model.routeLabel(home), "From Sydenham", "route label names the stop, not the place")
+equal(Model.tripName(home), "Home", "trip name is the saved nickname")
+equal(Model.routeLabel(home), "Sydenham departures", "route label names stop departures, not the nickname")
+equal(Model.routeCaption(home), "Sydenham departures · 5 min walk", "departure caption includes the origin walk")
 equal(Model.routeLabel(commute), "Surry Hills → Chatswood", "route label shows both stops short")
+equal(Model.routeCaption(Object.assign({}, commute, { destWalkMinutes: 7 })),
+  "Surry Hills → Chatswood · 3 min walk · then 7 min walk", "trip caption includes both end walks")
 const destinationChoices = Model.destinationOptions([home, tripPlace, commute])
 equal(destinationChoices.map(x => x.id), ["204420", "200080", "201029", "206710"], "destination stops derive from every saved endpoint and deduplicate")
 equal(destinationChoices[1].label, "Wynyard Station · Home", "destination choices include place context")
 const tempPlace = Model.tempPlaceFrom({ name: "123 George St, Sydney" }, { id: "201029", name: "Surry Hills Light Rail" }, { id: "206710", name: "Chatswood Station" }, 5.6)
-equal(tempPlace, { id: "temp", name: "123 George St", stopId: "201029", stopName: "Surry Hills Light Rail", destStopId: "206710", destStopName: "Chatswood Station", walkMinutes: 6, lines: [], modes: [] }, "temporary place has the unsaved trip shape")
+equal(tempPlace, { id: "temp", name: "123 George St", stopId: "201029", stopName: "Surry Hills Light Rail",
+  destStopId: "206710", destStopName: "Chatswood Station", walkMinutes: 6, walkEstimated: true,
+  destWalkMinutes: 0, destWalkEstimated: false, lines: [], modes: [], address: "123 George St, Sydney" }, "temporary place has the unsaved trip shape")
 const addressPlace = Model.tempPlaceFrom({ name: "123 George St, Sydney" },
   { id: "201029", name: "Surry Hills Light Rail" }, { id: "206710", name: "Chatswood Station" }, 6,
   { name: "1 Help St, Chatswood", isStop: false, lat: -33.796, lon: 151.181 })
 equal([addressPlace.destAddress, addressPlace.destLat, addressPlace.destLon],
   ["1 Help St, Chatswood", -33.796, 151.181], "temporary trip retains its destination address coordinates")
-equal(Model.routeLabel(addressPlace), "New trip · 123 George St → 1 Help St",
+equal(Model.routeLabel(addressPlace), "123 George St → 1 Help St",
   "address trip route names the door destination")
 equal(Model.finalWalkMinutes({ legs: [{ kind: "ride", durationSec: 600 }, { kind: "walk", durationSec: 350 }] }), 6,
   "final walking leg is rounded for the leave-window caption")
-equal(Model.routeLabel(tempPlace), "New trip · 123 George St → Chatswood", "temporary place is identified in the popup selector")
-equal(Model.placeLabel(tripPlace), "Home → Wynyard", "trip label shows the destination's short name")
+equal(Model.tripName(tempPlace), "123 George St → Chatswood", "temporary trip name falls back to its route")
+equal(Model.tripName(Object.assign({}, tripPlace, { name: "" })), "Sydenham → Wynyard", "empty nickname falls back to the route")
+equal(Model.placeLabel(tripPlace), "Home", "placeLabel remains a temporary alias for tripName")
 equal(Model.placeTooltip(commute), "Surry Hills Light Rail → Chatswood Station · 3 min walk", "place tooltip shows full stops and walk allocation")
-equal(Model.placeTooltip(Object.assign({}, home, { walkMinutes: 0 })), "Sydenham Station", "zero walk is omitted from the place tooltip")
+equal(Model.placeTooltip(Object.assign({}, home, { walkMinutes: 0 })), "Sydenham Station departures", "departure tooltip uses the new vocabulary")
+const originAddress = Object.assign({}, home, { address: "4 Railway Rd, Sydenham" })
+equal([Model.endKind(home, "origin"), Model.endKind(originAddress, "origin"), Model.routeLabel(originAddress)],
+  ["stop", "address", "4 Railway Rd departures"], "origin end kind selects the stop or address label")
+equal([Model.endKind(tripPlace, "dest"), Model.endKind(addressPlace, "dest")], ["stop", "address"], "destination end kind follows its address")
+equal(Model.walkEstimate({ lat: -33.8680, lon: 151.2070 }, { lat: -33.8700, lon: 151.2070 }), 3,
+  "walk estimate uses the shared 80 metres per minute rule")
 equal(Model.firstWord("Circular Quay Wharf, Sydney"), "Circular Quay", "short destination name")
 assert(!Model.hasDestination(home) && Model.hasDestination(tripPlace), "hasDestination")
 equal(Model.projectRow(board[0], home, now).arriveText, "", "plain departures have no arrival")

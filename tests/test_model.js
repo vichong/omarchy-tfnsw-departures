@@ -168,6 +168,12 @@ equal(Model.stopListText(["One", "Two", "Three"], 2), "One · Two · … +1", "s
 assert(Object.keys(legRows[0]).sort().join(",") === ["alertTitle", "arriveText", "crowding", "departText", "disruption", "from", "headsign", "kind", "line", "minutes", "mode", "platform", "realtime", "stopsText", "to", "tripId"].sort().join(","), "leg rows have the documented shape")
 const noStops = { legs: [Object.assign({}, multi[0].legs[0], { stops: [] })] }
 equal(Model.legRows(noStops)[0].stopsText, "Surry Hills · Central Chalmers St", "ride without a stop sequence falls back to endpoints")
+const walkedOnce = Model.appendEndWalk(multi, 5, "1 Bligh St")
+const walkedTwice = Model.appendEndWalk(walkedOnce, 5, "1 Bligh St")
+equal(walkedTwice[0].legs.length, walkedOnce[0].legs.length, "appending the same end walk twice adds it once")
+const twoRides = multi[0]
+const oneRide = Object.assign({}, twoRides, { legs: [Object.assign({}, twoRides.legs[0], { line: "L3", to: twoRides.legs[twoRides.legs.length - 1].to, arriveMs: twoRides.arriveMs })] })
+equal(Model.boardFromJourneys([twoRides, oneRide], commute, commuteNow).map(e => e.line), ["L3", twoRides.legs[0].line], "same departure and arrival: fewer changes first")
 const withWalk = { legs: [multi[0].legs[0], Object.assign({}, multi[0].legs[0], { kind: "walk", mode: "walk", line: "", destination: "", platform: "", from: multi[0].legs[0].to, to: multi[0].legs[1].from, departMs: multi[0].legs[0].arriveMs, arriveMs: multi[0].legs[1].departMs, durationSec: 510, realtime: false, infos: [] }), multi[0].legs[1]] }
 equal(Model.legRows(withWalk).map(r => r.kind), ["ride", "walk", "ride"], "an explicit walking leg suppresses the change pseudo-row")
 const leadingRows = Model.legRows(commuteBoard[0], legOccupancy, commute.walkMinutes)

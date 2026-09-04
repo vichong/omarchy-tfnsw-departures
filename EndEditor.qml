@@ -159,6 +159,9 @@ Column {
         return
       }
     }
+    // No bundled stop by that name: a leading number reads as an address.
+    if (/^\d/.test(query) && kind !== "address")
+      setKind("address")
     scriptedPickPending = true
     search(text)
   }

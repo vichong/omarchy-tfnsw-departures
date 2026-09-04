@@ -376,6 +376,11 @@ function boardFromJourneys(journeys, place, nowMs) {
       legs: legs
     })
   }
+  // Departure order; when two options leave together, the earlier arrival
+  // first, and at equal arrival the one with fewer changes.
+  entries.sort(function(a, b) {
+    return (a.plannedMs - b.plannedMs) || (a.arriveMs - b.arriveMs) || (a.changes - b.changes)
+  })
   return boardFor(entries, place, nowMs)
 }
 
@@ -509,6 +514,13 @@ function appendEndWalk(journeys, minutes, toName) {
     var source = journey.legs && isFinite(journey.legs.length) ? journey.legs : []
     for (var l = 0; l < source.length; l++) legs.push(source[l])
     var last = legs.length ? legs[legs.length - 1] : null
+    // Idempotent: a walk we already appended (same length, same door) is not
+    // appended again, whichever path brought the journey back here.
+    if (last && last.kind === "walk" && String(last.to || "") === String(toName || "")
+        && Math.round(Number(last.durationSec || 0) / 60) === walk && !last.tripId && String(last.fromId || "") === "") {
+      out.push(journey)
+      continue
+    }
     var startMs = Number(last ? last.arriveMs : journey.arriveMs) || 0
     legs.push({ kind: "walk", mode: "walk", line: "", destination: "", headsign: "", platform: "",
                 from: last ? String(last.to || "") : "", to: String(toName || ""), fromId: "", toId: "",

@@ -108,9 +108,9 @@ CursorSurface {
     return result
   }
 
-  function chainCaption() {
+  function chainCaptionParts() {
     if (cancelled)
-      return status
+      return status ? [status] : []
     var parts = []
     if (arriveText)
       parts.push("→ " + arriveText)
@@ -120,7 +120,21 @@ CursorSurface {
       parts.push(platformPrefix() + platform)
     if (dominated)
       parts.push("later arrival")
-    return parts.length ? "· " + parts.join(" · ") : ""
+    return parts
+  }
+
+  // The caption drops whole items from the end until it fits: "Platform 1"
+  // is either there or not, never "P…".
+  function chainCaptionFitting(parts, available, measure) {
+    var list = parts ? parts.slice() : []
+    while (list.length) {
+      var text = "· " + list.join(" · ")
+      measure.text = text
+      if (measure.width <= available || list.length === 1)
+        return text
+      list.pop()
+    }
+    return ""
   }
 
   function timeRange(fromText, toText) {
@@ -482,12 +496,23 @@ CursorSurface {
               }
             }
 
+            TextMetrics {
+              id: captionMetrics
+
+              font.family: root.family
+              font.pixelSize: Style.space(10)
+              font.weight: Font.Normal
+            }
+
             Text {
+              readonly property real available: Math.max(0, chainLine.width - chainPieces.width
+                - (chainPieces.width > 0 ? Style.space(6) : 0))
+
               x: chainPieces.width + (chainPieces.width > 0 && text !== "" ? Style.space(6) : 0)
               width: Math.max(0, parent.width - x)
               anchors.verticalCenter: parent.verticalCenter
               textFormat: Text.PlainText
-              text: root.chainCaption()
+              text: root.chainCaptionFitting(root.chainCaptionParts(), available, captionMetrics)
               elide: Text.ElideRight
               color: root.muted
               font.family: root.family

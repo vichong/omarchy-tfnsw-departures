@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+<defs>
+  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#171a21"/><stop offset="1" stop-color="#0f1116"/>
+  </linearGradient>
+  <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#E41F2E"/><stop offset="0.3" stop-color="#F9B916"/><stop offset="0.6" stop-color="#009E4C"/><stop offset="1" stop-color="#036AB4"/>
+  </linearGradient>
+  <linearGradient id="arc" gradientUnits="userSpaceOnUse" x1="67.8462" y1="30.7545" x2="111.308" y2="30.7545">
+    <stop offset="0" stop-color="#E41F2E"/><stop offset="0.22" stop-color="#E74628"/><stop offset="0.39" stop-color="#EA5F25"/><stop offset="0.5" stop-color="#EB6824"/><stop offset="1" stop-color="#F9B916"/>
+  </linearGradient>
+  <linearGradient id="swoosh" gradientUnits="userSpaceOnUse" x1="67.8462" y1="31.7139" x2="75.7897" y2="31.7139">
+    <stop offset="0" stop-color="#95C13D"/><stop offset="0.13" stop-color="#8CBE3D"/><stop offset="0.33" stop-color="#73B940"/><stop offset="0.59" stop-color="#4BAF44"/><stop offset="0.89" stop-color="#15A349"/><stop offset="1" stop-color="#009E4C"/>
+  </linearGradient>
+  <linearGradient id="leg" gradientUnits="userSpaceOnUse" x1="75.2199" y1="23.1136" x2="112.109" y2="23.1136">
+    <stop offset="0" stop-color="#21A6DF"/><stop offset="0.22" stop-color="#158FCE"/><stop offset="0.48" stop-color="#0B7ABF"/><stop offset="0.75" stop-color="#056EB6"/><stop offset="1" stop-color="#036AB4"/>
+  </linearGradient>
+</defs>
+<rect width="1280" height="640" fill="url(#bg)"/>
+<rect x="0" y="0" width="1280" height="6" fill="url(#rule)"/>
+<!-- Transport for NSW mark, as drawn by TransportMark.qml -->
+<g transform="translate(-150,60) scale(4.6)">
+  <path d="M67.9316 34.7935C67.8782 34.8454 67.8462 34.9174 67.8462 34.996V34.9987C67.8462 35.1546 67.973 35.2825 68.1304 35.2825C68.1825 35.2825 68.2305 35.2692 68.2719 35.2452L68.2959 35.2239C72.2243 31.6939 78.6706 26.7728 87.1078 27.1952C90.3824 27.3578 93.3514 28.3905 96.0575 29.9363C98.845 31.5287 104.08 36.8096 104.08 36.8096C104.927 37.6745 106.116 38.2182 107.412 38.2262C107.412 38.2262 108.162 38.2115 108.805 38.005C108.993 37.945 109.076 37.9103 109.076 37.9103C109.441 37.7571 111.592 36.711 111.275 33.9993C111.145 32.8972 110.598 31.7805 109.564 30.7851C109.337 30.5666 101.831 22.0955 87.5322 23.424C78.1489 24.7033 71.6145 30.4773 67.9316 34.7935Z" fill="url(#arc)"/>
+  <path d="M68.408 35.056C68.3813 35.1852 68.2665 35.2825 68.1304 35.2825C67.9743 35.2825 67.8462 35.1559 67.8462 34.9987C67.8462 34.9987 67.8462 34.9747 67.8489 34.9627C68.0063 32.8039 71.7466 12.497 75.7817 37.8144C75.7817 37.8144 75.787 37.8637 75.7897 37.8983C75.7937 37.9636 75.775 38.0249 75.775 38.0249C75.7337 38.1862 75.5735 38.2315 75.4428 38.2008C75.3347 38.1755 75.2466 38.0982 75.2226 37.9823C75.2226 37.9823 73.2517 28.2785 71.0874 28.3865C70.1587 28.4518 69.4848 30.1441 68.4173 35.0147C68.4146 35.028 68.4093 35.056 68.4093 35.056H68.408Z" fill="url(#swoosh)"/>
+  <path d="M111.923 31.9631C111.654 30.8131 105.849 4.90008 92.0303 8.30878C88.8812 9.08433 86.4473 11.8054 84.4644 14.4412C79.1269 21.5451 75.9778 34.9214 75.2319 37.8544C75.1839 38.0396 75.2973 38.1689 75.4427 38.2022C75.5735 38.2329 75.7323 38.1876 75.775 38.0263C76.1833 36.4552 77.3162 32.6334 77.8606 31.125C79.6326 26.0332 84.9248 16.6959 90.6692 16.7519C98.2498 16.8239 101.886 30.8465 102.917 34.7549C103.414 36.7284 105.266 38.2155 107.414 38.2275C109.994 38.2369 112.098 36.1607 112.11 33.5809C112.11 33.365 112.089 32.6614 111.924 31.9631H111.923Z" fill="url(#leg)"/>
+  <path d="M110.864 33.5396C110.855 35.4598 109.29 37.0069 107.367 36.9989C105.444 36.9883 103.895 35.4252 103.904 33.5076C103.914 31.5874 105.479 30.0376 107.4 30.0483C109.325 30.0563 110.874 31.6207 110.863 33.5396H110.864Z" fill="#21A6DF"/>
+</g>
+<text x="372" y="245" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="52" font-weight="700" fill="#e6e8ec">Transport</text>
+<text x="372" y="305" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="52" font-weight="700" fill="#e6e8ec">NSW</text>
+<text x="700" y="288" text-anchor="middle" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="64" fill="#5c6270">×</text>
+<g transform="translate(760,214) scale(0.40)" fill="#e6e8ec"><path clip-rule="evenodd" d="m720 120h-15v15h-14.998v14.999l-60.002.001v15.002l90-.002v.002h.002l-.002 89.998h-15v15h-13v15h-17v-89.998h-45v90l-45-.002v-89.998h-14.998v-30h14.998v-15.002h-14.998v-30.001h14.998v-75h15v-14.997h15v-15.002h105.002zm-90-.001h45v-74.997h-45z" fill-rule="evenodd"/><path clip-rule="evenodd" d="m105 30.002h15v14.997h15v180.001h-15v15h-15v15.002h-75v-15.002h-15v-15h-15v-180.001h15v-14.997h15v-15.002h75zm-60 194.998h45v-179.998h-45z" fill-rule="evenodd"/><path d="m300 15h60v15h15v14.999h15v180.001h-15v15h-15v15h-15l-.004-209.998h-44.994v-.002h-.002v210.002h-45v-210h-44.998v179.997h-.002v30.003h-15v-15.002h-15v-15h-14.998v-180.001h14.998v-14.999h15v-15h60v-15h45z"/><path clip-rule="evenodd" d="m555 225h-15v15h-15v15h-15v-105.001l-44.998.001v105.002h-45.002v-105.002h-15v-30.001h15v-75h15.002v-14.997h15v-15.002h105zm-89.998-105.001h44.998v-74.997h-44.998z" fill-rule="evenodd"/><path d="m885 75h-15v15h-15v15h-15v-59.998h-45v179.998h45v-59.998h15v14.997h15v15.001h15v30h-15v15h-15v15.002l-105-.002v-210.001h14.998v-14.997h15.002v-15.002h105z"/><path d="m960 119.999h45v-104.999h15v15h15v14.999h15v75.001h15v15h-15v90h-15v15h-15v15h-15v-105h-45v105.002l-45-.002v-105h-30v-15h15v-15.001h15v-75h15v-14.997h15v-15.002h15z"/><path d="m1125 119.999h45v-104.999h15v15h15v15h15v180h-15v15h-15v15.002l-75-.002v-15h-15v-15h-15v-45.001h15v-14.997-.002h30v60h45v-75h-90v-105.001h15v-14.997h15v-15.002h15z"/></g>
+<text x="640" y="430" text-anchor="middle" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="30" fill="#e6e8ec">Your next train, bus, ferry or light rail in the Omarchy bar</text>
+<text x="640" y="478" text-anchor="middle" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="22" fill="#8a919e">leave-in countdown · live departures · trips with changes · crowding</text>
+<text x="640" y="580" text-anchor="middle" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="16" fill="#4f5563">community plugin · omarchy plugin add https://github.com/vichong/omarchy-tfnsw-departures.git</text>
+<text x="640" y="606" text-anchor="middle" font-family="JetBrainsMono Nerd Font, JetBrains Mono, monospace" font-size="16" fill="#4f5563">not affiliated with, endorsed by or related to Transport for NSW or Omarchy · data: TfNSW Open Data, CC BY 4.0</text>
+</svg>

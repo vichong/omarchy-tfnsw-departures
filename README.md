@@ -1,5 +1,7 @@
 # Transport NSW departures for Omarchy
 
+![Transport NSW × Omarchy — your next train, bus, ferry or light rail in the Omarchy bar](docs/banner.png)
+
 A shell plugin that puts the next catchable Transport for NSW service or trip in
 the Omarchy bar. Everything counts down in **leave in** time: departure time
 minus your walk to the stop. The bar shows just the Transport mark; the popup

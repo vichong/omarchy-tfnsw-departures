@@ -275,10 +275,24 @@ Column {
     return glyphs.length ? name + "  ·  " + glyphs.join(" ") : name
   }
 
-  function chipText(stop) {
+  function chipMode(stop) {
     var modes = stop && stop.modes && isFinite(stop.modes.length) ? stop.modes : []
-    var glyph = Model.glyphFor(modes.length ? String(modes[0]) : "bus")
-    return glyph + "  " + Model.boardStopName(stop.name)
+    return modes.length ? String(modes[0]) : "bus"
+  }
+
+  function chipText(stop) {
+    return Model.boardStopName(stop.name)
+  }
+
+  // "Crown St at Rainford St · Bus stop · 6 min walk": the chip label is
+  // shortened, so the hover carries the whole story.
+  function chipTooltip(stop) {
+    var mode = chipMode(stop)
+    var kind = mode === "train" || mode === "metro" ? "station"
+      : mode === "ferry" ? "wharf" : "stop"
+    var walk = Math.max(0, Math.round(Number(stop.walkMinutes) || 0))
+    return String(stop.name || "") + " · " + Api.modeById(mode).label + " " + kind
+      + (walk > 0 ? " · " + walk + " min walk" : "")
   }
 
   function focusField() {
@@ -450,17 +464,13 @@ Column {
         model: root.nearbyExpanded ? featured.slice(0, 8)
           : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
 
-        delegate: Ui.Button {
+        delegate: StopChip {
           required property var modelData
-          height: Style.space(24)
           text: modelData.isMore ? "More…" : root.chipText(modelData)
+          glyph: modelData.isMore ? "" : Model.glyphFor(root.chipMode(modelData))
+          glyphColor: modelData.isMore ? root.foreground : Api.lineColor("", root.chipMode(modelData))
+          tooltip: modelData.isMore ? "" : root.chipTooltip(modelData)
           selected: !modelData.isMore && String(modelData.id) === String(root.stopId)
-          bordered: true
-          foreground: root.foreground
-          fontFamily: root.fontFamily
-          fontSize: Style.font.caption
-          horizontalPadding: Style.space(8)
-          verticalPadding: Style.space(3)
           onClicked: {
             if (modelData.isMore) root.nearbyExpanded = true
             else root.chooseNearby(modelData, false)
@@ -533,6 +543,74 @@ Column {
           root.walkMinutes = root.estimateFor(root.chosenStop)
         root.edited()
       }
+    }
+  }
+
+  // A nearby-stop chip: the mode pictogram in its Transport NSW colour at a
+  // size that reads (14 units), the shortened stop name, and a hover tooltip
+  // with the full name, mode and walk.
+  component StopChip: Ui.BorderSurface {
+    id: chip
+
+    property string text: ""
+    property string glyph: ""
+    property color glyphColor: root.foreground
+    property string tooltip: ""
+    property bool selected: false
+    signal clicked()
+
+    radius: Style.space(4)
+    implicitWidth: chipRow.implicitWidth + Style.space(16)
+    implicitHeight: Style.space(24)
+    width: implicitWidth
+    height: implicitHeight
+    color: selected ? Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.14)
+      : chipHover.hovered ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.06)
+      : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0)
+    borderSpec: Border.flat(selected ? Color.accent
+      : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18), Style.space(1))
+
+    Row {
+      id: chipRow
+
+      anchors.centerIn: parent
+      spacing: Style.space(6)
+
+      Text {
+        anchors.verticalCenter: parent.verticalCenter
+        visible: chip.glyph !== ""
+        textFormat: Text.PlainText
+        text: chip.glyph
+        color: chip.glyphColor
+        font.family: root.fontFamily
+        font.pixelSize: Style.space(14)
+      }
+
+      Text {
+        anchors.verticalCenter: parent.verticalCenter
+        textFormat: Text.PlainText
+        text: chip.text
+        color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.85)
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        font.weight: Font.Medium
+      }
+    }
+
+    HoverHandler {
+      id: chipHover
+
+      cursorShape: Qt.PointingHandCursor
+    }
+
+    TapHandler {
+      onTapped: chip.clicked()
+    }
+
+    Ui.PanelToolTip {
+      visible: chipHover.hovered && chip.tooltip !== ""
+      text: chip.tooltip
+      fontFamily: root.fontFamily
     }
   }
 }

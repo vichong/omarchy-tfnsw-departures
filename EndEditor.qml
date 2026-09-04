@@ -302,13 +302,24 @@ Column {
 
   // "Crown St at Rainford St · Bus stop · 6 min walk": the chip label is
   // shortened, so the hover carries the whole story.
+  // Sydney usage: stations for train and metro, wharves for ferries, and
+  // "stop" for bus and light rail, where the word is implied and left out.
   function chipTooltip(stop) {
     var mode = chipMode(stop)
-    var kind = mode === "train" || mode === "metro" ? "station"
-      : mode === "ferry" ? "wharf" : "stop"
+    var kind = mode === "train" || mode === "metro" ? " station"
+      : mode === "ferry" ? " wharf" : ""
     var walk = Math.max(0, Math.round(Number(stop.walkMinutes) || 0))
-    return String(stop.name || "") + " · " + Api.modeById(mode).label + " " + kind
+    return String(stop.name || "") + " · " + Api.modeById(mode).label + kind
       + (walk > 0 ? " · " + walk + " min walk" : "")
+  }
+
+  // The noun for the chosen place on the walk line: "this station", "this
+  // wharf", otherwise "this stop".
+  function placeNoun(name) {
+    var n = String(name || "").split(",")[0]
+    if (/\bstation\b/i.test(n)) return "station"
+    if (/\bwharf\b/i.test(n)) return "wharf"
+    return "stop"
   }
 
   function focusField() {
@@ -537,7 +548,8 @@ Column {
         - (estimateToggle.visible ? estimateToggle.width + parent.spacing : 0) - parent.spacing * 2)
       textFormat: Text.PlainText
       text: "min walk " + (root.destination ? "from " : "to ")
-        + (root.kind === "stop" ? "this stop" : Model.boardStopName(root.stopName))
+        + (root.kind === "stop" ? "this " + root.placeNoun(root.stopName)
+          : String(root.stopName || "").split(",")[0].trim())
       color: root.muted
       font.family: root.fontFamily
       font.pixelSize: Style.font.caption

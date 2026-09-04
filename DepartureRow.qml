@@ -48,8 +48,8 @@ CursorSurface {
   readonly property color darkThemeToken: tokenLuminance(Color.foreground) < tokenLuminance(Color.background) ? Color.foreground : Color.background
   readonly property color countdownFg: Api.lightTextOn(lineColor) ? lightThemeToken : darkThemeToken
   readonly property int countdownMinutes: Math.max(0, Math.floor(Math.max(0, leaveMs) / 60000))
-  // From 100 minutes the block reads "1h40": hours and minutes, no unit word.
-  readonly property bool countdownHours: countdownMinutes >= 100
+  // From an hour the block reads "1h10": hours and minutes, no unit word.
+  readonly property bool countdownHours: countdownMinutes >= 60
   readonly property string countdownText: missed ? "—"
     : cancelled ? String(Math.min(99, countdownMinutes))
     : leaveMs < 60 * 1000 ? "NOW"

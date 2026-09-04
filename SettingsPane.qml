@@ -21,6 +21,16 @@ Flickable {
   contentHeight: settingsColumn.height
   boundsBehavior: Flickable.StopAtBounds
 
+  function scriptedOrigin(text) {
+    for (var i = 0; i < placeRepeater.count; i++) {
+      var card = placeRepeater.itemAt(i)
+      if (card && card.expanded) {
+        card.scriptedOrigin(text)
+        return
+      }
+    }
+  }
+
   Column {
     id: settingsColumn
 
@@ -175,7 +185,7 @@ Flickable {
       width: settingsColumn.width
 
       SectionLabel {
-        text: "PLACES"
+        text: "TRIPS"
         topPadding: Style.space(6)
       }
 
@@ -188,7 +198,7 @@ Flickable {
         id: addPlaceButton
 
         bordered: true
-        text: "Add place"
+        text: "Add trip"
         fontFamily: page.family
         fontSize: Style.font.caption
         horizontalPadding: Style.space(9)
@@ -214,7 +224,7 @@ Flickable {
           width: parent.width
           visible: page.service && page.service.places.length === 0 && !page.host.selectedPlaceId
           textFormat: Text.PlainText
-          text: "Add your first station or stop."
+          text: "Add your first trip."
           color: page.muted
           font.family: page.family
           font.pixelSize: Style.font.caption
@@ -226,6 +236,7 @@ Flickable {
         }
 
         Repeater {
+          id: placeRepeater
           model: page.host.placeCards()
 
           delegate: PlaceCard {
@@ -395,7 +406,7 @@ Flickable {
       Text {
         width: parent.width * 0.42
         textFormat: Text.PlainText
-        text: "Transport NSW for Omarchy v" + (page.host && page.host.version ? page.host.version : "0.8.1")
+        text: "Transport NSW for Omarchy v" + (page.host && page.host.version ? page.host.version : "0.10.0")
         color: page.muted
         font.family: page.family
         font.pixelSize: Style.space(9)
@@ -568,6 +579,36 @@ Flickable {
     property int itemIndex: 0
     readonly property bool expanded: page.host.selectedPlaceId === String(place.id)
 
+    function loadEditors() {
+      originEditor.loadEnd({
+        "kind": page.host.placeOriginKind,
+        "stopId": page.host.placeStopId,
+        "stopName": page.host.placeStopName,
+        "address": page.host.placeAddress,
+        "lat": page.host.placeLat,
+        "lon": page.host.placeLon,
+        "walkMinutes": page.host.placeWalk,
+        "walkEstimated": page.host.placeWalkEstimated
+      }, "address")
+      destinationEditor.loadEnd({
+        "kind": page.host.placeDestKind,
+        "stopId": page.host.placeDestStopId,
+        "stopName": page.host.placeDestStopName,
+        "address": page.host.placeDestAddress,
+        "lat": page.host.placeDestLat,
+        "lon": page.host.placeDestLon,
+        "walkMinutes": page.host.placeDestWalk,
+        "walkEstimated": page.host.placeDestWalkEstimated
+      }, "stop")
+    }
+
+    function scriptedOrigin(text) {
+      originEditor.scriptedPick(text)
+    }
+
+    onExpandedChanged: if (expanded) Qt.callLater(loadEditors)
+    Component.onCompleted: if (expanded) Qt.callLater(loadEditors)
+
     implicitHeight: cardColumn.implicitHeight
     color: placeCard.expanded
       ? Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.04)
@@ -609,7 +650,7 @@ Flickable {
           Text {
             width: parent.width
             textFormat: Text.PlainText
-            text: placeCard.place.name || "New place"
+            text: Model.tripName(placeCard.place) || "New trip"
             color: page.foreground
             font.family: page.family
             font.pixelSize: Style.font.body
@@ -678,7 +719,7 @@ Flickable {
           spacing: Style.space(10)
 
           Column {
-            width: Math.max(0, parent.width - walkField.width - parent.spacing)
+            width: (parent.width - parent.spacing) / 2
             spacing: Style.space(5)
 
             Text {
@@ -700,85 +741,73 @@ Flickable {
             }
           }
 
-          NumberField {
-            id: walkField
-
-            label: "Walk minutes"
+          Column {
+            width: (parent.width - parent.spacing) / 2
             spacing: Style.space(5)
-            fieldWidth: Style.space(112)
-            fontSize: Style.font.bodySmall
-            field.height: Style.space(30)
-            value: page.host.placeWalk
-            from: 0
-            to: 60
-            foreground: page.foreground
-            fontFamily: page.family
-            onModified: function(value) { page.host.placeWalk = value }
+
+            Text {
+              textFormat: Text.PlainText
+              text: "Wi-Fi SSID"
+              color: page.muted
+              font.family: page.family
+              font.pixelSize: Style.space(9)
+            }
+
+            Row {
+              width: parent.width
+              spacing: Style.space(6)
+
+              PixelField {
+                width: Math.max(0, parent.width - useCurrent.width - parent.spacing)
+                height: page.host.controlHeight
+                text: page.host.placeSsid
+                placeholderText: "Optional"
+                font.italic: text === ""
+                foreground: page.foreground
+                onTextChanged: page.host.placeSsid = text
+              }
+
+              PixelButton {
+                id: useCurrent
+                bordered: true
+                text: "Use current"
+                fontFamily: page.family
+                fontSize: Style.font.caption
+                horizontalPadding: Style.space(7)
+                verticalPadding: Style.space(5)
+                onClicked: if (page.service) page.host.placeSsid = page.service.lastSsid
+              }
+            }
           }
         }
 
-        Row {
+        EndEditor {
+          id: originEditor
           width: editorColumn.innerWidth
-          spacing: Style.space(10)
-
-          EndpointField {
-            width: (parent.width - parent.spacing) / 2
-            destination: false
-          }
-
-          EndpointField {
-            width: (parent.width - parent.spacing) / 2
-            destination: true
-          }
-        }
-
-        NearbyChips {
-          width: editorColumn.innerWidth
+          service: page.service
           destination: false
-        }
-
-        NearbyChips {
-          width: editorColumn.innerWidth
-          destination: true
-        }
-
-        Column {
-          width: editorColumn.innerWidth
-          spacing: Style.space(5)
-
-          Text {
-            textFormat: Text.PlainText
-            text: "Wi-Fi SSID"
-            color: page.muted
-            font.family: page.family
-            font.pixelSize: Style.space(9)
+          excludedStopId: destinationEditor.stopId
+          foreground: page.foreground
+          muted: page.muted
+          fontFamily: page.family
+          onEdited: {
+            var end = endpoint()
+            page.host.applyPlaceEnd(false, end)
           }
+        }
 
-          Row {
-            width: parent.width
-            spacing: Style.space(10)
-
-            PixelField {
-              width: Math.max(0, parent.width - useCurrent.width - parent.spacing)
-              height: page.host.controlHeight
-              text: page.host.placeSsid
-              placeholderText: "Optional"
-              font.italic: text === ""
-              foreground: page.foreground
-              onTextChanged: page.host.placeSsid = text
-            }
-
-            PixelButton {
-              id: useCurrent
-
-              bordered: true
-              text: "Use current"
-              fontFamily: page.family
-              fontSize: Style.font.caption
-              horizontalPadding: Style.space(9)
-              verticalPadding: Style.space(5)
-              onClicked: if (page.service) page.host.placeSsid = page.service.lastSsid
-            }
+        EndEditor {
+          id: destinationEditor
+          width: editorColumn.innerWidth
+          service: page.service
+          destination: true
+          excludedStopId: originEditor.stopId
+          foreground: page.foreground
+          muted: page.muted
+          fontFamily: page.family
+          onEdited: {
+            var end = endpoint()
+            page.host.applyPlaceEnd(true, end)
           }
         }
 
@@ -1043,7 +1072,7 @@ Flickable {
             visible: page.host.placeById(page.host.selectedPlaceId) !== null
             bordered: false
             borderless: true
-            text: "Delete place"
+            text: "Delete trip"
             foreground: Color.urgent
             fontFamily: page.family
             fontSize: Style.font.caption
@@ -1077,7 +1106,7 @@ Flickable {
             primary: true
             active: false
             background: Color.accent
-            text: "Save place"
+            text: "Save trip"
             opacity: Api.isStopId(page.host.placeStopId) ? 1 : 0.45
             foreground: Color.background
             accent: Color.accent
@@ -1092,154 +1121,4 @@ Flickable {
     }
   }
 
-  // An address was picked: the stops around it, nearest first, with the
-  // station-class one promoted — pick the stop the trip starts or ends at.
-component NearbyChips: Column {
-  id: nearbyChips
-
-  property bool destination: false
-
-    readonly property var nearby: nearbyChips.destination ? page.host.destNearby : page.host.placeNearby
-    readonly property string chosenId: nearbyChips.destination ? page.host.placeDestStopId : page.host.placeStopId
-
-    width: editorColumn.innerWidth
-    visible: nearby.length > 0
-    spacing: Style.space(6)
-
-    Text {
-      textFormat: Text.PlainText
-      text: nearbyChips.destination ? "Arrive via" : "Nearest stops"
-      color: page.muted
-      font.family: page.family
-      font.pixelSize: Style.space(9)
-    }
-
-    Flow {
-      id: nearbyFlow
-
-      width: nearbyChips.width
-      spacing: Style.space(6)
-
-      Repeater {
-        model: Model.featureNearby(nearbyChips.nearby, nearbyChips.chosenId, 15).slice(0, 6)
-
-        delegate: PixelButton {
-          required property var modelData
-
-          width: implicitWidth
-          bordered: true
-          selected: String(modelData.id) === nearbyChips.chosenId
-          text: page.host.chipGlyph(modelData) + Model.boardStopName(modelData.name) + " · " + modelData.walkMinutes + " min walk"
-          fontFamily: page.family
-          fontSize: Style.font.caption
-          horizontalPadding: Style.space(9)
-          verticalPadding: Style.space(5)
-          onClicked: {
-            if (nearbyChips.destination) page.host.pickDestNearby(modelData)
-            else page.host.pickPlaceNearby(modelData)
-          }
-        }
-      }
-    }
-  }
-
-  component EndpointField: Column {
-    id: endpoint
-
-    property bool destination: false
-    readonly property var results: destination ? page.host.destinationResults : page.host.stopResults
-
-    width: parent.width
-    spacing: Style.space(5)
-
-    Text {
-      textFormat: Text.PlainText
-      text: endpoint.destination ? "Going to (optional)" : "Leaving from"
-      color: page.muted
-      font.family: page.family
-      font.pixelSize: Style.space(9)
-    }
-
-    Row {
-      width: parent.width
-      spacing: Style.space(10)
-
-      PixelField {
-        width: Math.max(0, parent.width - (clearEndpoint.visible ? clearEndpoint.width + parent.spacing : 0))
-        height: page.host.controlHeight
-        text: endpoint.destination ? (page.host.placeDestAddress || page.host.placeDestStopName) : page.host.placeStopName
-        placeholderText: endpoint.destination ? "Search stops or addresses…" : "Search stations and stops…"
-        font.italic: text === ""
-        foreground: page.foreground
-        onTextEdited: {
-          if (endpoint.destination) page.host.searchDestinationStops(text)
-          else page.host.searchPlaceStops(text)
-        }
-        onAccepted: {
-          var first = page.host.firstSearchResult(endpoint.results)
-          if (!first)
-            return
-
-          if (endpoint.destination) page.host.pickDestination(first)
-          else page.host.pickStop(first)
-        }
-      }
-
-      PixelButton {
-        id: clearEndpoint
-
-        visible: endpoint.destination
-        bordered: true
-        text: "Clear"
-        fontFamily: page.family
-        fontSize: Style.font.caption
-        horizontalPadding: Style.space(9)
-        verticalPadding: Style.space(5)
-        onClicked: page.host.clearDestination()
-      }
-    }
-
-    Repeater {
-      model: endpoint.results
-
-      delegate: Item {
-        required property var modelData
-
-        width: endpoint.width
-        implicitHeight: modelData.isDivider ? moreLabel.implicitHeight : resultButton.implicitHeight
-
-        Text {
-          id: moreLabel
-
-          anchors.left: parent.left
-          anchors.verticalCenter: parent.verticalCenter
-          visible: modelData.isDivider === true
-          textFormat: Text.PlainText
-          text: "More"
-          color: page.muted
-          font.family: page.family
-          font.pixelSize: Style.space(9)
-        }
-
-        PixelButton {
-          id: resultButton
-
-          width: parent.width
-          visible: modelData.isDivider !== true
-          leftAlign: true
-          bordered: true
-          text: page.host.searchResultText(modelData)
-          fontFamily: page.family
-          fontSize: Style.font.caption
-          horizontalPadding: Style.space(9)
-          verticalPadding: Style.space(5)
-          onClicked: {
-            if (endpoint.destination) page.host.pickDestination(modelData)
-            else page.host.pickStop(modelData)
-          }
-        }
-      }
-    }
-
-  }
 }

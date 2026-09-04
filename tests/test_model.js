@@ -204,7 +204,6 @@ equal(Model.finalWalkMinutes({ legs: [{ kind: "ride", durationSec: 600 }, { kind
   "final walking leg is rounded for the leave-window caption")
 equal(Model.tripName(tempPlace), "123 George St → Chatswood", "temporary trip name falls back to its route")
 equal(Model.tripName(Object.assign({}, tripPlace, { name: "" })), "Sydenham → Wynyard", "empty nickname falls back to the route")
-equal(Model.placeLabel(tripPlace), "Home", "placeLabel remains a temporary alias for tripName")
 equal(Model.placeTooltip(commute), "Surry Hills Light Rail → Chatswood Station · 3 min walk", "place tooltip shows full stops and walk allocation")
 equal(Model.placeTooltip(Object.assign({}, home, { walkMinutes: 0 })), "Sydenham Station departures", "departure tooltip uses the new vocabulary")
 const originAddress = Object.assign({}, home, { address: "4 Railway Rd, Sydenham" })

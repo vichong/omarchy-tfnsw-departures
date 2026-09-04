@@ -12,7 +12,7 @@ walk to the door.
 The popup follows a station indicator-board layout: line-colour badges lead each
 destination, compact pills show realtime and change status, and expanded trips
 become mini boards with per-leg platforms, clocks and bounded stop sequences.
-The hero's place selector keeps the active route immediately available, while
+The hero's trip selector keeps the active route immediately available, while
 the leave-window strip shows the allocated walk and next line without competing
 with the countdown.
 
@@ -41,7 +41,7 @@ enabling it.
 All present on a stock Omarchy install: `curl` (HTTPS calls to
 `api.transport.nsw.gov.au` only, no redirects), `secret-tool` from libsecret
 (stores the API key in the system keyring), `nmcli` from NetworkManager
-(optional, reads the current Wi-Fi SSID for automatic place switching) and
+(optional, reads the current Wi-Fi SSID for automatic trip switching) and
 Omarchy's own `omarchy-notification-send`. Child processes run through
 `scripts/tfnsw-bounded`, which caps their output. No sudo or pkexec, no
 installer, no bundled binaries, no writes outside
@@ -64,13 +64,13 @@ Stations, light rail stops and ferry wharves are suggested as you type from a
 bundled list, while addresses, landmarks and bus stops come from the live stop
 finder once at least three characters have been entered.
 
-Add a place and search for its origin stop. Leave **Going to** empty for a live
-departure board, or choose a destination stop or address to turn the place into
-a trip. Address trips retain the nearest arrival stop and plan the final walk
-to the door.
-The place selector makes the distinction explicit: `From Home` is a departure
-board, while `Home → Wynyard` is a planned trip. Trip rows lead with your saved
-destination, keep the vehicle headsign secondary, and read the journey as a
+Add a trip and choose **Address** or **Stop** independently for each end. Address
+ends show nearby stops and an estimated walk; untick **estimate** to keep and
+edit your own walking time. Leave **Going to** empty for a live departure board,
+or choose a destination to plan a trip through the selected stops and any final
+walk to the door.
+The trip selector shows the saved nickname with its route underneath. Trip rows
+lead with your saved destination, keep the vehicle headsign secondary, and read the journey as a
 chain underneath: walk › line › walk, then the arrival time and platform.
 Expanding a row opens an indicator board that mirrors the chain: when to
 leave, each leg with its departure and platform, and the change in between.
@@ -83,7 +83,7 @@ expanded at a time. Per-leg platforms, realtime status and disruption alerts
 remain attached to the service they affect.
 
 You can optionally filter lines, destination text and modes, then set the walking
-time. Each place is edited in its own card, with service filters behind a compact
+time. Each trip is edited in its own card, with service filters behind a compact
 disclosure; empty line, destination and mode filters display as **All**.
 The bar mark can remain monochrome with the rest of Omarchy or use the TfNSW
 gradient. Leave-now notifications and polling (30–600 seconds) are configurable.
@@ -104,10 +104,13 @@ Configuration lives at
     "destAddress": "1 Martin Pl, Sydney",
     "destLat": -33.8675,
     "destLon": 151.2078,
+    "destWalkMinutes": 4,
+    "destWalkEstimated": true,
     "lines": ["T4", "T8"],
     "destination": "City",
     "modes": ["train", "metro"],
     "walkMinutes": 5,
+    "walkEstimated": false,
     "ssid": "Home Wi-Fi"
   }],
   "activePlaceId": "home",
@@ -118,14 +121,14 @@ Configuration lives at
 }
 ```
 
-With Wi-Fi auto-switch enabled, an exact SSID match selects that place unless
-you manually selected a place in the previous 30 minutes.
+With Wi-Fi auto-switch enabled, an exact SSID match selects that trip unless
+you manually selected a trip in the previous 30 minutes.
 
 ## Bar widget
 
 The bar shows only the Transport mark, flat and static like the stock widgets,
 plus a warning glyph while a disruption alert is active. Hover for the full
-countdown, arrival time and place. Open the popup and the **leave window**
+countdown, arrival time and trip. Open the popup and the **leave window**
 under the hero shows how much of your ten-minute window is gone, as a track in
 the next service's line colour with “Leave in 4 min” above “6 min walk · L2 to
 Circular Quay”.
@@ -140,7 +143,7 @@ To show the countdown text in the bar instead, set it on the widget entry in
 ## Keyboard
 
 In the popup, `↑`/`↓` or `j`/`k` moves through departures, `←`/`→` changes
-place, Enter expands or collapses the selected trip, `Esc` closes, and `Tab`
+trip, Enter expands or collapses the selected journey, `Esc` closes, and `Tab`
 moves to the next panel.
 
 ## IPC scripting

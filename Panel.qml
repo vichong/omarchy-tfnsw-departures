@@ -325,23 +325,8 @@ Ui.Panel {
             anchors.topMargin: Style.space(14)
             spacing: Style.space(6)
 
-            Text {
-              width: parent.width
-              textFormat: Text.PlainText
-              text: root.ready && root.service.activePlace ? root.service.activePlace.name : "Transport NSW for Omarchy"
-              color: root.fg
-              font.family: root.family
-              font.pixelSize: Style.font.heading
-              font.weight: Font.DemiBold
-              elide: Text.ElideRight
-            }
-
             Item {
               id: placeSelectorSlot
-
-              readonly property string selectorLabel: root.ready && root.service.activePlace
-                ? Model.routeLabel(root.service.activePlace) : ""
-              readonly property var selectorParts: selectorLabel.split(" → ")
 
               visible: root.ready && root.service.activePlace !== null
               width: parent.width
@@ -360,7 +345,7 @@ Ui.Panel {
                 foreground: root.fg
                 fontFamily: root.family
                 options: root.ready ? root.service.effectivePlaces.map(function(p) {
-                  return { "value": p.id, "label": Model.routeLabel(p) }
+                  return { "value": p.id, "label": Model.tripName(p) + "  " + Model.routeLabel(p) }
                 }).concat([{ "value": "newtrip", "label": "New trip…" }]) : []
                 value: root.ready && root.service.activePlace ? root.service.activePlace.id : ""
                 onChanged: function(value) {
@@ -377,9 +362,11 @@ Ui.Panel {
               Rectangle {
                 id: selectorChip
 
+                // Size from the name's natural width: the anchored Text's own
+                // implicitWidth is already clamped by the chip.
                 implicitWidth: Math.min(placeSelectorSlot.width,
-                  selectorCopy.implicitWidth + Style.space(16) + Style.space(6) + Style.space(9))
-                implicitHeight: selectorCopy.implicitHeight + Style.space(8) + Style.space(2)
+                  Math.ceil(selectorNameMetrics.implicitWidth) + Style.space(8) * 2 + Style.space(6) + Style.space(9) + 1)
+                implicitHeight: Math.max(Style.space(30), selectorName.implicitHeight + Style.space(8))
                 width: implicitWidth
                 height: implicitHeight
                 radius: Style.space(4)
@@ -387,64 +374,46 @@ Ui.Panel {
                 border.width: Style.space(1)
                 border.color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.40)
 
-                Row {
-                  id: selectorCopy
+                // Unanchored twin of the name: its implicitWidth is the natural
+                // width the chip should take.
+                Text {
+                  id: selectorNameMetrics
+                  visible: false
+                  textFormat: Text.PlainText
+                  text: selectorName.text
+                  font.family: root.family
+                  font.pixelSize: Style.font.title
+                  font.weight: Font.DemiBold
+                }
 
+                Text {
+                  id: selectorName
                   anchors.left: parent.left
-                  anchors.right: parent.right
+                  anchors.right: selectorChevron.left
                   anchors.verticalCenter: parent.verticalCenter
                   anchors.leftMargin: Style.space(8)
+                  anchors.rightMargin: Style.space(6)
+                  textFormat: Text.PlainText
+                  text: root.ready && root.service.activePlace ? Model.tripName(root.service.activePlace) : ""
+                  color: root.fg
+                  font.family: root.family
+                  font.pixelSize: Style.font.title
+                  font.weight: Font.DemiBold
+                  elide: Text.ElideRight
+                }
+
+                Text {
+                  id: selectorChevron
+                  anchors.right: parent.right
                   anchors.rightMargin: Style.space(8)
-                  spacing: Style.space(6)
-
-                  Text {
-                    width: Math.min(implicitWidth, Math.max(0, parent.width - selectorArrow.width
-                      - selectorTo.width - selectorChevron.width - parent.spacing * 3))
-                    textFormat: Text.PlainText
-                    text: placeSelectorSlot.selectorParts[0] || ""
-                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
-                    font.family: root.family
-                    font.pixelSize: Style.font.bodySmall
-                    elide: Text.ElideRight
-                  }
-
-                  Text {
-                    id: selectorArrow
-
-                    visible: placeSelectorSlot.selectorParts.length > 1
-                    textFormat: Text.PlainText
-                    text: "→"
-                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
-                    font.family: root.family
-                    font.pixelSize: Style.font.bodySmall
-                  }
-
-                  Text {
-                    id: selectorTo
-
-                    visible: selectorArrow.visible
-                    width: Math.min(implicitWidth, Math.max(0, parent.width - parent.children[0].width
-                      - selectorArrow.width - selectorChevron.width - parent.spacing * 3))
-                    textFormat: Text.PlainText
-                    text: placeSelectorSlot.selectorParts.length > 1 ? placeSelectorSlot.selectorParts[1] : ""
-                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
-                    font.family: root.family
-                    font.pixelSize: Style.font.bodySmall
-                    elide: Text.ElideRight
-                  }
-
-                  Text {
-                    id: selectorChevron
-
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Style.space(9)
-                    height: Style.space(6)
-                    textFormat: Text.PlainText
-                    text: "󰅀"
-                    color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
-                    font.family: root.family
-                    font.pixelSize: Style.space(9)
-                  }
+                  anchors.verticalCenter: parent.verticalCenter
+                  width: Style.space(9)
+                  height: Style.space(6)
+                  textFormat: Text.PlainText
+                  text: "󰅀"
+                  color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
+                  font.family: root.family
+                  font.pixelSize: Style.space(9)
                 }
 
                 MouseArea {
@@ -453,6 +422,16 @@ Ui.Panel {
                   onClicked: placeDropdown.toggle()
                 }
               }
+            }
+
+            Text {
+              width: parent.width
+              textFormat: Text.PlainText
+              text: root.ready && root.service.activePlace ? Model.routeCaption(root.service.activePlace) : ""
+              color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
+              font.family: root.family
+              font.pixelSize: Style.font.caption
+              elide: Text.ElideRight
             }
           }
 
@@ -779,7 +758,7 @@ Ui.Panel {
 
           Text {
             textFormat: Text.PlainText
-            text: "Add a place"
+            text: "Add a trip"
             color: root.fg
             font.family: root.family
             font.pixelSize: Style.font.body

@@ -582,9 +582,6 @@ function routeCaption(place) {
   return text
 }
 
-// Part B still has callers using the old name; keep this as a thin alias.
-function placeLabel(place) { return tripName(place) }
-
 function placeTooltip(place) {
   if (!place) return ""
   var text = String(endKind(place, "origin") === "address" ? place.address : (place.stopName || ""))

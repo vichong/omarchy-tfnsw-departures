@@ -16,7 +16,7 @@ Item {
   property var shell: null
   property var manifest: null
   property var service: null
-  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.8.1"
+  readonly property string version: manifest && manifest.version ? String(manifest.version) : "0.10.0"
 
   property bool opened: false
   property string tab: "settings"
@@ -72,8 +72,14 @@ Item {
   property string expandedJourneyId: ""
   property var lastJourneys: []
   property string placeName: ""
+  property string placeOriginKind: "address"
   property string placeStopId: ""
   property string placeStopName: ""
+  property string placeAddress: ""
+  property var placeLat: null
+  property var placeLon: null
+  property bool placeWalkEstimated: false
+  property string placeDestKind: "stop"
   property string placeDestStopId: ""
   property string placeDestStopName: ""
   property string placeDestAddress: ""
@@ -88,12 +94,13 @@ Item {
   property string placeNearbyAddress: ""
   property var destNearby: []
   property int placeDestWalk: 0
+  property bool placeDestWalkEstimated: false
   property string placeSsid: ""
   property bool placeFilterOpen: false
   // The kit's controls have different natural heights. Measure one bordered
   // button once so fields, dropdowns and adjacent buttons line up.
   readonly property int controlHeight: Style.space(30)
-  readonly property int chipHeight: Style.space(26)
+  readonly property int chipHeight: Style.space(24)
   readonly property string family: Style.font.family
   readonly property color background: Color.background
   readonly property color foreground: Color.foreground
@@ -162,8 +169,14 @@ Item {
     destinationResults = []
     if (!p) {
       placeName = ""
+      placeOriginKind = "address"
       placeStopId = ""
       placeStopName = ""
+      placeAddress = ""
+      placeLat = null
+      placeLon = null
+      placeWalkEstimated = false
+      placeDestKind = "stop"
       placeDestStopId = ""
       placeDestStopName = ""
       placeDestAddress = ""
@@ -173,13 +186,21 @@ Item {
       placeDestination = ""
       placeModes = []
       placeWalk = 0
+      placeDestWalk = 0
+      placeDestWalkEstimated = false
       placeSsid = ""
       selectedStop = null
       return
     }
     placeName = p.name
+    placeOriginKind = Model.endKind(p, "origin")
     placeStopId = p.stopId
     placeStopName = p.stopName
+    placeAddress = p.address || ""
+    placeLat = p.lat
+    placeLon = p.lon
+    placeWalkEstimated = p.walkEstimated === true
+    placeDestKind = Model.endKind(p, "dest")
     placeDestStopId = p.destStopId || ""
     placeDestStopName = p.destStopName || ""
     placeDestAddress = p.destAddress || ""
@@ -189,6 +210,8 @@ Item {
     placeDestination = p.destination
     placeModes = p.modes.slice()
     placeWalk = p.walkMinutes
+    placeDestWalk = p.destWalkMinutes || 0
+    placeDestWalkEstimated = p.destWalkEstimated === true
     placeSsid = p.ssid
     selectedStop = {
       "id": p.stopId,
@@ -210,9 +233,15 @@ Item {
 
     selectedPlaceId = ConfigStore.newPlaceId(service.places)
     loadPlace("")
-    placeName = place.name || "New trip"
+    placeName = place.name || ""
+    placeOriginKind = Model.endKind(place, "origin")
     placeStopId = String(place.stopId || "")
     placeStopName = String(place.stopName || "")
+    placeAddress = String(place.address || "")
+    placeLat = place.lat
+    placeLon = place.lon
+    placeWalkEstimated = place.walkEstimated === true
+    placeDestKind = Model.endKind(place, "dest")
     placeDestStopId = String(place.destStopId || "")
     placeDestStopName = String(place.destStopName || "")
     placeDestAddress = String(place.destAddress || "")
@@ -222,6 +251,8 @@ Item {
     placeDestination = ""
     placeModes = []
     placeWalk = Math.max(0, Math.round(Number(place.walkMinutes) || 0))
+    placeDestWalk = Math.max(0, Math.round(Number(place.destWalkMinutes) || 0))
+    placeDestWalkEstimated = place.destWalkEstimated === true
     placeSsid = ""
     selectedStop = {
       "id": placeStopId,
@@ -240,7 +271,7 @@ Item {
   function placeCards() {
     var list = service ? service.places.slice() : []
     if (selectedPlaceId && !placeById(selectedPlaceId))
-      list.push({ "id": selectedPlaceId, "name": "New place", "stopName": "", "destStopName": "", "lines": [], "modes": [], "walkMinutes": 0 })
+      list.push({ "id": selectedPlaceId, "name": "", "stopName": "", "destStopName": "", "lines": [], "modes": [], "walkMinutes": 0 })
     return list
   }
 
@@ -295,14 +326,32 @@ Item {
     if (!place)
       return "All services"
 
-    var parts = []
-    var from = Model.boardStopName(place.stopName)
-    if (from) parts.push(from + (place.destStopName
-      ? " → " + Model.boardStopName(place.destAddress || place.destStopName) : ""))
-    if (place.walkMinutes > 0) parts.push(place.walkMinutes + " min walk")
+    var parts = [Model.routeCaption(place)]
     var filter = filterSummary(place.lines || [], place.modes || [], place.destination)
     parts.push(place.lines && place.lines.length ? place.lines.join(", ") : filter)
     return parts.join(" · ")
+  }
+
+  function applyPlaceEnd(destination, end) {
+    if (destination) {
+      placeDestKind = end.kind
+      placeDestStopId = end.stopId
+      placeDestStopName = end.stopName
+      placeDestAddress = end.address
+      placeDestLat = end.lat
+      placeDestLon = end.lon
+      placeDestWalk = end.walkMinutes
+      placeDestWalkEstimated = end.walkEstimated
+      return
+    }
+    placeOriginKind = end.kind
+    placeStopId = end.stopId
+    placeStopName = end.stopName
+    placeAddress = end.address
+    placeLat = end.lat
+    placeLon = end.lon
+    placeWalk = end.walkMinutes
+    placeWalkEstimated = end.walkEstimated
   }
 
   function savePlaceDraft() {
@@ -311,15 +360,20 @@ Item {
 
     var item = {
       "id": selectedPlaceId || ConfigStore.newPlaceId(service.places),
-      "name": placeName || placeStopName || "Place",
+      "name": placeName,
       "stopId": placeStopId,
       "stopName": placeStopName,
+      "address": placeOriginKind === "address" ? placeAddress : "",
+      "lat": placeOriginKind === "address" ? placeLat : null,
+      "lon": placeOriginKind === "address" ? placeLon : null,
+      "walkEstimated": placeOriginKind === "address" && placeWalkEstimated,
       "destStopId": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopId : "",
       "destStopName": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopName : "",
       "destAddress": placeDestAddress,
       "destLat": placeDestLat,
       "destLon": placeDestLon,
       "destWalkMinutes": placeDestWalk,
+      "destWalkEstimated": placeDestKind === "address" && placeDestWalkEstimated,
       "lines": placeLines.split(","),
       "destination": placeDestination,
       "modes": placeModes,
@@ -775,80 +829,82 @@ Item {
       "distanceMetres": walk * 80, "walkMinutes": walk }
   }
 
-  // Walk from the address to the chosen nearby stop (distance estimate);
-  // zero when the start is itself a stop.
-  readonly property int newTripWalk: newTripLocation && !newTripLocation.isStop && newTripOrigin
-    ? Math.max(0, Math.round(Number(newTripOrigin.walkMinutes) || 0)) : 0
+  property int newTripWalk: 0
+
+  function newTripEndpoint(destination) {
+    if (!paneLoader.item)
+      return null
+    var method = destination ? "destinationEnd" : "originEnd"
+    return typeof paneLoader.item[method] === "function" ? paneLoader.item[method]() : null
+  }
+
+  function newTripEdited() {
+    originFallback = false
+    originFallbackStop = ""
+    planNewTrip()
+  }
 
   function planNewTrip() {
-    if (!service || !newTripLocation || !newTripOrigin || !newTripDestination)
+    var from = newTripEndpoint(false)
+    var to = newTripEndpoint(true)
+    if (!service || !from || !to || !Api.isStopId(from.stopId) || !Api.isStopId(to.stopId)) {
+      lastJourneys = []
+      if (service) {
+        service.journeyRows.clear()
+        service.journeyBoard = []
+      }
       return
+    }
     expandedJourneyId = ""
-    // Plan from the chosen stop so the chips mean what they say; the address
-    // only decides the walk estimate.
-    var origin = (nearbyFallback || originFallback) ? newTripLocation
-      : { "isStop": true, "id": String(newTripOrigin.id), "name": String(newTripOrigin.name || "") }
-    var selectedDestination = newTripDestination
-    var selectedLocation = newTripLocation
-    // An address destination is planned to the chosen arrive-via stop and the
-    // walk from there to the door is appended, so the board ends where the
-    // chip says it does.
-    // Address destination: by default the planner picks the end stop and the
-    // final walk (planned to the coordinate) and the chips show that choice;
-    // a clicked chip overrides it (planned to that stop, walk appended).
-    var toAddress = !newTripDestination.isStop
-    var override = toAddress && destinationOverride && newTripDestinationStop
-    var destination = override
-      ? { "isStop": true, "id": String(newTripDestinationStop.id), "name": String(newTripDestinationStop.name || "") }
-      : newTripDestination
-    var endWalk = override ? Number(newTripDestinationStop.walkMinutes || 0) : 0
-    var endWalkTo = override ? Model.boardStopName(newTripDestination.name) : ""
+    newTripWalk = from.walkMinutes
+    var fromId = from.stopId
+    var toId = to.stopId
+    var canFallback = from.kind === "address" && isFinite(from.lat) && isFinite(from.lon)
+    var origin = originFallback && canFallback
+      ? { "isStop": false, "lat": Number(from.lat), "lon": Number(from.lon), "name": from.address }
+      : { "isStop": true, "id": from.stopId, "name": from.stopName }
+    var destination = { "isStop": true, "id": to.stopId, "name": to.stopName }
     service.planFrom(origin, destination, function(journeys) {
-      if (root.newTripDestination !== selectedDestination || root.newTripLocation !== selectedLocation)
+      var currentFrom = root.newTripEndpoint(false)
+      var currentTo = root.newTripEndpoint(true)
+      if (!currentFrom || !currentTo || currentFrom.stopId !== fromId || currentTo.stopId !== toId)
         return
       root.lastJourneys = journeys
-      // Nothing catchable from the chosen stop (e.g. a bus route that has
-      // finished for the day): plan from the address once and say so.
-      if (root.service.journeyRows.count === 0 && !root.nearbyFallback && !root.originFallback
-          && root.newTripLocation && !root.newTripLocation.isStop && origin.isStop) {
-        root.originFallbackStop = root.newTripOrigin ? Model.boardStopName(root.newTripOrigin.name) : ""
+      if (root.service.journeyRows.count === 0 && origin.isStop && canFallback) {
+        root.originFallbackStop = Model.boardStopName(from.stopName)
         root.originFallback = true
         root.planNewTrip()
-        return
       }
-      if (toAddress && !root.destinationOverride) {
-        var end = root.actualEndStop(journeys)
-        if (end) {
-          root.newTripDestinationStop = end
-          var present = false
-          for (var d = 0; d < root.newTripDestinationStops.length; d++)
-            if (String(root.newTripDestinationStops[d].id) === String(end.id)) present = true
-          if (!present)
-            root.newTripDestinationStops = [end].concat(root.newTripDestinationStops)
-        }
-      }
-      if ((root.nearbyFallback && root.nearbyStops.length === 0) || root.originFallback) {
-        var first = root.actualFirstStop(journeys)
-        if (first) {
-          root.nearbyStops = [first]
-          root.newTripOrigin = first
-        }
-      }
-      if (!root.newTripDestination.isStop && root.newTripDestinationStops.length === 0) {
-        var last = root.actualLastStop(journeys)
-        if (last) {
-          root.newTripDestinationStops = [last]
-          root.newTripDestinationStop = last
-        }
-      }
-    }, newTripWalk, endWalk, endWalkTo)
+    }, from.walkMinutes, to.walkMinutes, to.kind === "address" ? Model.boardStopName(to.address) : "")
   }
 
   function newTripDraft() {
-    if (!service || !newTripLocation || !newTripOrigin || !newTripDestination || !newTripDestinationStop)
+    var from = newTripEndpoint(false)
+    var to = newTripEndpoint(true)
+    if (!service || !from || !to || !Api.isStopId(from.stopId) || !Api.isStopId(to.stopId))
       return null
-    return Model.tempPlaceFrom(newTripLocation, newTripOrigin, newTripDestinationStop, newTripWalk,
-      newTripDestination.isStop ? null : newTripDestination)
+    return {
+      "id": "temp",
+      "name": Model.boardStopName(from.stopName),
+      "stopId": from.stopId,
+      "stopName": from.stopName,
+      "address": from.kind === "address" ? from.address : "",
+      "lat": from.kind === "address" ? from.lat : null,
+      "lon": from.kind === "address" ? from.lon : null,
+      "walkMinutes": from.walkMinutes,
+      "walkEstimated": from.kind === "address" && from.walkEstimated,
+      "destStopId": to.stopId,
+      "destStopName": to.stopName,
+      "destAddress": to.kind === "address" ? to.address : "",
+      "destLat": to.kind === "address" ? to.lat : null,
+      "destLon": to.kind === "address" ? to.lon : null,
+      "destWalkMinutes": to.walkMinutes,
+      "destWalkEstimated": to.kind === "address" && to.walkEstimated,
+      "lines": [],
+      "destination": "",
+      "modes": [],
+      "ssid": ""
+    }
   }
 
   Connections {
@@ -858,8 +914,8 @@ Item {
       if (name.indexOf("placeFrom:") === 0) {
         // Scripted place editor search (omarchy-shell tfnsw placeFrom "<text>").
         if (!root.opened || root.tab !== "settings") return
-        root.pendingScriptedPick = "placeFrom"
-        root.searchPlaceStops(name.slice(10))
+        if (paneLoader.item && typeof paneLoader.item.scriptedOrigin === "function")
+          paneLoader.item.scriptedOrigin(name.slice(10))
         return
       }
       if (!root.opened || root.tab !== "newtrip")
@@ -869,12 +925,11 @@ Item {
       else if (name === "save")
         root.saveNewTrip()
       else if (name.indexOf("from:") === 0) {
-        root.pendingScriptedPick = "from"
-        root.searchNewTrip(name.slice(5))
+        if (paneLoader.item && typeof paneLoader.item.scriptedFrom === "function")
+          paneLoader.item.scriptedFrom(name.slice(5))
       } else if (name.indexOf("to:") === 0) {
-        root.pendingScriptedPick = "to"
-        root.otherDestinationOpen = true
-        root.searchOtherDestination(name.slice(3))
+        if (paneLoader.item && typeof paneLoader.item.scriptedTo === "function")
+          paneLoader.item.scriptedTo(name.slice(3))
       }
     }
   }
@@ -1032,7 +1087,7 @@ Item {
 
               Text {
                 textFormat: Text.PlainText
-                text: root.tab === "newtrip" ? "New trip" : "Transport NSW for Omarchy"
+                text: root.tab === "newtrip" ? "New trip" : "Transport NSW settings"
                 color: root.foreground
                 font.family: root.family
                 font.pixelSize: Style.font.title
@@ -1151,8 +1206,26 @@ Item {
 
     Flickable {
       function focusField() {
-        if (!root.newTripLocation) whereField.forceActiveFocus()
+        originEditor.focusField()
       }
+
+      function originEnd() {
+        return originEditor.endpoint()
+      }
+
+      function destinationEnd() {
+        return destinationEditor.endpoint()
+      }
+
+      function scriptedFrom(text) {
+        originEditor.scriptedPick(text)
+      }
+
+      function scriptedTo(text) {
+        destinationEditor.scriptedPick(text)
+      }
+
+      Component.onCompleted: Qt.callLater(root.planNewTrip)
 
       clip: true
       contentWidth: width
@@ -1167,269 +1240,59 @@ Item {
 
         Column {
           width: parent.width
-          spacing: Style.space(5)
-
-          FieldLabel {
-            text: "Where are you?"
-          }
-
-          NewTripField {
-            id: whereField
-
-            visible: root.newTripLocation === null
-            width: parent.width
-            text: root.newTripSearchText
-            placeholderText: "Address, landmark or stop…"
-            onTextEdited: root.searchNewTrip(text)
-            onAccepted: {
-              var first = root.firstSearchResult(root.newTripResults)
-              if (first)
-                root.pickNewTripLocation(first)
-            }
-          }
-
-          Repeater {
-            model: root.newTripLocation === null ? root.newTripResults : []
-
-            delegate: Item {
-              required property var modelData
-
-              width: newTripColumn.width
-              implicitHeight: modelData.isDivider ? moreLabel.implicitHeight : resultButton.implicitHeight
-
-              Text {
-                id: moreLabel
-
-                anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
-                visible: modelData.isDivider === true
-                textFormat: Text.PlainText
-                text: "More"
-                color: root.muted
-                font.family: root.family
-                font.pixelSize: Style.font.caption
-              }
-
-              NewTripButton {
-                id: resultButton
-
-                width: parent.width
-                visible: modelData.isDivider !== true
-                leftAlign: true
-                text: root.searchResultText(modelData)
-                onClicked: root.pickNewTripLocation(modelData)
-              }
-            }
-          }
-
-          NewTripButton {
-            visible: root.newTripLocation !== null
-            width: parent.width
-            leftAlign: true
-            selected: true
-            text: root.newTripLocation ? root.newTripLocation.name + "   ×" : ""
-            onClicked: root.clearNewTripLocation()
-          }
-        }
-
-        Column {
-          width: parent.width
-          visible: root.newTripLocation !== null && root.newTripLocation && !root.newTripLocation.isStop
           spacing: Style.space(6)
 
-          Row {
+          EndEditor {
+            id: originEditor
             width: parent.width
-            spacing: Style.space(8)
-
-            FieldLabel {
-              anchors.verticalCenter: parent.verticalCenter
-              text: "Nearest stops"
-            }
-
-            // Same mode filter as the place editor's Modes control; applies to
-            // both ends' chips.
-            Row {
-              anchors.verticalCenter: parent.verticalCenter
-              spacing: Style.space(4)
-
-              Repeater {
-                model: root.nearbyModeOptions
-
-                delegate: NewTripButton {
-                  required property var modelData
-
-                  chip: true
-                  selected: root.nearbyModeFilter === modelData.id
-                  text: modelData.label
-                  onClicked: root.nearbyModeFilter = modelData.id
-                }
-              }
-            }
-          }
-
-          Flow {
-            width: parent.width
-            spacing: Style.space(6)
-
-            Repeater {
-              readonly property var featured: Model.featureNearby(root.filteredNearby(root.nearbyStops), root.newTripOrigin ? root.newTripOrigin.id : "", 15)
-              model: root.nearbyExpanded ? featured.slice(0, 8)
-                : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
-
-              delegate: NewTripButton {
-                required property var modelData
-
-                chip: true
-                selected: !modelData.isMore && root.newTripOrigin && String(root.newTripOrigin.id) === String(modelData.id)
-                text: modelData.isMore ? "More…" : root.chipGlyph(modelData) + Model.boardStopName(modelData.name) + " · " + modelData.walkMinutes + " min walk"
-                onClicked: {
-                  if (modelData.isMore) root.nearbyExpanded = true
-                  else root.selectNearbyStop(modelData)
-                }
-              }
-            }
-          }
-
-          WalkStrip {
-            visible: root.newTripLocation !== null && !root.newTripLocation.isStop && root.newTripOrigin !== null
-            startText: root.newTripLocation ? Model.boardStopName(root.newTripLocation.name) : ""
-            startBold: true
-            walk: root.newTripWalk
-            endGlyph: root.newTripOrigin ? root.chipGlyph(root.newTripOrigin).trim() : ""
-            endText: root.newTripOrigin ? Model.boardStopName(root.newTripOrigin.name) : ""
+            label: "Where are you?"
+            service: root.service
+            destination: false
+            excludedStopId: destinationEditor.stopId
+            foreground: root.foreground
+            muted: root.muted
+            fontFamily: root.family
+            onEdited: root.newTripEdited()
+            Component.onCompleted: loadEnd({}, "address")
           }
 
           Caption {
-            visible: root.nearbyFallback || root.originFallback
-            text: root.nearbyFallback ? "No stops within 3 km — planned from your address"
-              : "No services soon from " + root.originFallbackStop + " — planned from your address"
+            width: parent.width
+            visible: root.originFallback
+            text: "No services soon from " + root.originFallbackStop + " — planned from your address"
           }
         }
 
         Column {
           width: parent.width
-          visible: root.newTripOrigin !== null
           spacing: Style.space(6)
 
-          FieldLabel {
-            text: "Going to"
-          }
-
-          Dropdown {
+          EndEditor {
+            id: destinationEditor
             width: parent.width
-            showLabel: false
+            label: "Going to"
+            service: root.service
+            destination: true
+            excludedStopId: originEditor.stopId
             foreground: root.foreground
+            muted: root.muted
             fontFamily: root.family
-            options: {
-              var out = root.newTripDestinationOptions.map(function(stop) {
-                return { "value": stop.id, "label": stop.label }
-              })
-              var found = false
-              for (var i = 0; i < out.length; i++) if (root.newTripDestination
-                  && String(out[i].value) === String(root.newTripDestination.id)) found = true
-              if (root.newTripDestination && !found)
-                out.push({ "value": root.newTripDestination.id, "label": root.newTripDestination.name + " · New trip" })
-              out.push({ "value": "search", "label": "Search…" })
-              return out
-            }
-            value: root.otherDestinationOpen ? "search" : (root.newTripDestination ? root.newTripDestination.id : "")
-            onChanged: function(value) { root.chooseNewTripDestination(value) }
+            onEdited: root.newTripEdited()
+            Component.onCompleted: loadEnd({}, "stop")
           }
 
-          NewTripField {
-            visible: root.otherDestinationOpen
+          Caption {
             width: parent.width
-            text: root.otherDestinationSearchText
-            placeholderText: "Search stops or addresses…"
-            onTextEdited: root.searchOtherDestination(text)
-            onAccepted: {
-              var first = root.firstSearchResult(root.otherDestinationResults)
-              if (first) root.pickOtherDestination(first)
-            }
-          }
-
-          Repeater {
-            model: root.otherDestinationOpen ? root.otherDestinationResults : []
-
-            delegate: Item {
-              required property var modelData
-
-              width: newTripColumn.width
-              implicitHeight: modelData.isDivider ? otherMore.implicitHeight : otherResult.implicitHeight
-
-              Text {
-                id: otherMore
-
-                visible: modelData.isDivider === true
-                textFormat: Text.PlainText
-                text: "More"
-                color: root.muted
-                font.family: root.family
-                font.pixelSize: Style.font.caption
-              }
-
-              NewTripButton {
-                id: otherResult
-
-                width: parent.width
-                visible: modelData.isDivider !== true
-                leftAlign: true
-                text: root.searchResultText(modelData)
-                onClicked: root.pickOtherDestination(modelData)
-              }
-            }
-          }
-
-          Column {
-            width: parent.width
-            visible: root.newTripDestination && !root.newTripDestination.isStop
-            spacing: Style.space(6)
-
-            FieldLabel {
-              text: "Arrive via"
-            }
-
-            Flow {
-              width: parent.width
-              spacing: Style.space(6)
-
-              Repeater {
-                readonly property var featured: Model.featureNearby(root.filteredNearby(root.newTripDestinationStops), root.newTripDestinationStop ? root.newTripDestinationStop.id : "", 15)
-                model: root.destinationNearbyExpanded ? featured.slice(0, 8)
-                  : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
-
-                delegate: NewTripButton {
-                  required property var modelData
-
-                  chip: true
-                  selected: !modelData.isMore && root.newTripDestinationStop
-                    && String(root.newTripDestinationStop.id) === String(modelData.id)
-                  text: modelData.isMore ? "More…"
-                    : root.chipGlyph(modelData) + Model.boardStopName(modelData.name) + " · " + modelData.walkMinutes + " min walk"
-                  onClicked: {
-                    if (modelData.isMore) root.destinationNearbyExpanded = true
-                    else root.selectDestinationStop(modelData)
-                  }
-                }
-              }
-            }
-
-            // Where the ride ends and what is left on foot, at a glance.
-            WalkStrip {
-              visible: root.newTripDestinationStop !== null
-              startGlyph: root.newTripDestinationStop ? root.chipGlyph(root.newTripDestinationStop).trim() : ""
-              startText: root.newTripDestinationStop ? Model.boardStopName(root.newTripDestinationStop.name) : ""
-              walk: root.newTripDestinationStop ? Number(root.newTripDestinationStop.walkMinutes || 0) : 0
-              endText: Model.boardStopName(root.newTripDestination ? root.newTripDestination.name : "")
-              endBold: true
-            }
+            visible: destinationEditor.kind === "address" && destinationEditor.stopId !== ""
+            text: "Get off at " + Model.boardStopName(destinationEditor.stopName) + " · "
+              + destinationEditor.walkMinutes + " min walk to " + Model.boardStopName(destinationEditor.address)
           }
         }
 
         Text {
           width: parent.width
-          visible: root.service && root.service.journeyRows.count === 0 && root.newTripOrigin !== null
-            && root.newTripDestination !== null && root.service.journeyError === "" && root.lastJourneys.length >= 0
+          visible: root.service && root.service.journeyRows.count === 0 && originEditor.stopId !== ""
+            && destinationEditor.stopId !== "" && root.service.journeyError === "" && root.lastJourneys.length >= 0
             && root.service.lastPlanNote.indexOf("parsed=") !== -1
           textFormat: Text.PlainText
           text: root.lastJourneys.length ? "No trips in the next 3 hours" : "No trips found"
@@ -1608,71 +1471,6 @@ Item {
   }
 
 
-  // "Address → walk → stop" (origin) or "stop → walk → address" (destination):
-  // the ends of the trip and what is on foot, at a glance.
-  component WalkStrip: Row {
-    id: walkStrip
-
-    property string startGlyph: ""
-    property string startText: ""
-    property bool startBold: false
-    property int walk: 0
-    property string endGlyph: ""
-    property string endText: ""
-    property bool endBold: false
-
-    spacing: Style.space(6)
-
-    Text {
-      anchors.verticalCenter: parent.verticalCenter
-      visible: walkStrip.startGlyph !== ""
-      textFormat: Text.PlainText
-      text: walkStrip.startGlyph
-      color: root.muted
-      font.family: root.family
-      font.pixelSize: Style.space(15)
-    }
-
-    Text {
-      anchors.verticalCenter: parent.verticalCenter
-      textFormat: Text.PlainText
-      text: walkStrip.startText
-      color: root.foreground
-      font.family: root.family
-      font.pixelSize: Style.font.caption
-      font.weight: walkStrip.startBold ? Font.DemiBold : Font.Normal
-    }
-
-    Text {
-      anchors.verticalCenter: parent.verticalCenter
-      textFormat: Text.PlainText
-      text: "→  󰖃 " + walkStrip.walk + " min  →"
-      color: root.muted
-      font.family: root.family
-      font.pixelSize: Style.font.caption
-    }
-
-    Text {
-      anchors.verticalCenter: parent.verticalCenter
-      visible: walkStrip.endGlyph !== ""
-      textFormat: Text.PlainText
-      text: walkStrip.endGlyph
-      color: root.muted
-      font.family: root.family
-      font.pixelSize: Style.space(15)
-    }
-
-    Text {
-      anchors.verticalCenter: parent.verticalCenter
-      textFormat: Text.PlainText
-      text: walkStrip.endText
-      color: root.foreground
-      font.family: root.family
-      font.pixelSize: Style.font.caption
-      font.weight: walkStrip.endBold ? Font.DemiBold : Font.Normal
-    }
-  }
-
   component NewTripButton: BorderSurface {
     id: newTripButton
 
@@ -1719,28 +1517,6 @@ Item {
 
     TapHandler {
       onTapped: newTripButton.clicked()
-    }
-  }
-
-  component NewTripField: TextField {
-    id: newTripField
-
-    height: root.controlHeight
-    verticalAlignment: TextInput.AlignVCenter
-    foreground: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.85)
-    font.family: root.family
-    font.pixelSize: Style.font.bodySmall
-    font.weight: text === "" ? Font.Light : Font.Normal
-    placeholderTextColor: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.25)
-    leftPadding: Style.space(10)
-    rightPadding: Style.space(10)
-    topPadding: Style.space(0)
-    bottomPadding: Style.space(0)
-    background: BorderSurface {
-      color: Qt.darker(Color.background, 1.1)
-      borderSpec: Border.flat(newTripField.activeFocus ? Color.accent
-        : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.20), Style.space(1))
-      radius: Style.space(4)
     }
   }
 

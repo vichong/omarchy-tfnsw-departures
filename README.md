@@ -45,8 +45,8 @@ All present on a stock Omarchy install: `curl` (HTTPS calls to
 Omarchy's own `omarchy-notification-send`. API and keyring helpers use
 `scripts/tfnsw-bounded` or curl's response cap. Runtime `mkdir`, notifications,
 Wi-Fi checks and cache reads use fixed argument arrays, deadlines, and capped
-reads where output is consumed. No sudo or pkexec, installer, or bundled binary
-is used at runtime. Plugin-managed persistent files stay under
+reads where output is consumed. No sudo or pkexec is required. There is no
+installer and no bundled binary. Plugin-managed persistent files stay under
 `~/.config/omarchy/tfnsw-departures/` and
 `~/.cache/omarchy/tfnsw-departures/`; the API key is stored separately by the
 system keyring. `scripts/build-stops` is a developer tool that rewrites

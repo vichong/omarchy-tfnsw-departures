@@ -133,6 +133,7 @@ Ui.Panel {
     function settings(): void { root.openOverlay("settings") }
     function newtrip(): void { root.openOverlay("newtrip") }
     function alerts(): void { root.alertsExpanded = !root.alertsExpanded }
+    function menu(): void { if (root.ready) placeDropdown.toggle() }
     function expand(index: int): void {
       var list = root.ready ? root.service.board : []
       if (index >= 0 && index < list.length) root.toggleExpanded(list[index].id)
@@ -339,7 +340,9 @@ Ui.Panel {
                 // The kit control supplies the list popup and keyboard handling;
                 // its own face is hidden and the chip below is what shows.
                 opacity: 0
-                width: selectorChip.width
+                // The list sizes to the trigger, so the trigger spans the label
+                // column: rows read "name  route" without truncation.
+                width: placeSelectorSlot.width
                 showLabel: false
                 rowHeight: selectorChip.height
                 foreground: root.fg

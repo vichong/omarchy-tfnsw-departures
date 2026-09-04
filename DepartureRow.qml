@@ -168,8 +168,8 @@ CursorSurface {
 
     Row {
       anchors.fill: parent
-      anchors.leftMargin: Style.space(12)
-      anchors.rightMargin: Style.space(12)
+      anchors.leftMargin: Style.space(10)
+      anchors.rightMargin: Style.space(10)
       anchors.topMargin: Style.space(10)
       anchors.bottomMargin: Style.space(10)
       spacing: Style.space(9)
@@ -307,8 +307,10 @@ CursorSurface {
                 Text {
                   anchors.verticalCenter: parent.verticalCenter
                   readonly property real availableWidth: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
-                  visible: root.headsign !== "" && root.headsign !== root.destination && availableWidth > 0
-                    && (root.pillCount >= 2 || availableWidth >= Style.space(70))
+                  // Show the headsign whole when it fits, elided only when it still
+                  // has 70 units; a three-letter stub is noise, so hide it instead.
+                  visible: root.headsign !== "" && root.headsign !== root.destination
+                    && availableWidth >= Math.min(implicitWidth, Style.space(70))
                   width: availableWidth
                   textFormat: Text.PlainText
                   text: root.headsign
@@ -484,7 +486,7 @@ CursorSurface {
       Column {
         id: departureClock
 
-        width: Style.space(60)
+        width: Style.space(52)
         topPadding: Style.space(3)
         spacing: Style.space(6)
 
@@ -533,8 +535,8 @@ CursorSurface {
     anchors.left: parent.left
     anchors.right: parent.right
     anchors.top: collapsed.bottom
-    anchors.leftMargin: Style.space(73)
-    anchors.rightMargin: Style.space(12)
+    anchors.leftMargin: Style.space(71)
+    anchors.rightMargin: Style.space(10)
     visible: root.expanded
     implicitHeight: boardColumn.implicitHeight
     radius: Style.space(6)

@@ -212,8 +212,10 @@ function tempPlaceFrom(location, firstStop, destStop, walkMinutes, destinationLo
     destStopName: String(destStop.name || destStop.shortName || ""),
     walkMinutes: Math.max(0, Math.round(Number(walkMinutes) || 0)),
     walkEstimated: !!(location && !location.isStop),
+    anyStop: location.anyStop === true && !location.isStop && isFinite(location.lat) && isFinite(location.lon),
     destWalkMinutes: 0,
     destWalkEstimated: false,
+    destAnyStop: false,
     lines: [],
     modes: []
   }
@@ -232,6 +234,7 @@ function tempPlaceFrom(location, firstStop, destStop, walkMinutes, destinationLo
     }
     place.destWalkMinutes = Math.max(0, Math.round(Number(destStop.walkMinutes) || 0))
     place.destWalkEstimated = true
+    place.destAnyStop = destinationLocation.anyStop === true
   }
   return place
 }
@@ -298,8 +301,12 @@ function matchesPlace(dep, place) {
 }
 
 function leaveInMs(dep, place, nowMs) {
-  var walk = place && isFinite(place.walkMinutes) ? Number(place.walkMinutes) : 0
-  return Api.effectiveMs(dep) - nowMs - walk * 60 * 1000
+  var leadWalkSec = dep && dep.leadWalkSec !== undefined && isFinite(dep.leadWalkSec)
+    ? Math.max(0, Number(dep.leadWalkSec)) : null
+  var walkMs = leadWalkSec !== null
+    ? leadWalkSec * 1000
+    : (place && place.anyStop !== true && isFinite(place.walkMinutes) ? Number(place.walkMinutes) * 60 * 1000 : 0)
+  return Api.effectiveMs(dep) - nowMs - walkMs
 }
 
 function delaySec(dep) {
@@ -339,6 +346,8 @@ function boardFromJourneys(journeys, place, nowMs) {
     for (var l = 0; l < legs.length; l++) if (legs[l].kind === "ride") rides.push(legs[l])
     if (!rides.length) continue
     var first = rides[0]
+    var leadWalkSec = legs.length > 0 && legs[0] && legs[0].kind === "walk"
+      ? Math.max(0, Number(legs[0].durationSec) || 0) : null
     var infos = []
     var seen = {}
     for (var r = 0; r < legs.length; r++) {
@@ -363,8 +372,8 @@ function boardFromJourneys(journeys, place, nowMs) {
       headsign: first.destination,
       platform: first.platform,
       mode: first.mode,
-      plannedMs: journey.departMs,
-      estimatedMs: realtime ? journey.departMs : 0,
+      plannedMs: first.departMs,
+      estimatedMs: realtime ? first.departMs : 0,
       realtime: realtime,
       cancelled: false,
       infos: infos,
@@ -375,6 +384,8 @@ function boardFromJourneys(journeys, place, nowMs) {
       legsSummary: summary.join(" → "),
       legs: legs
     })
+    if (leadWalkSec !== null)
+      entries[entries.length - 1].leadWalkSec = leadWalkSec
   }
   // Departure order; when two options leave together, the earlier arrival
   // first, and at equal arrival the one with fewer changes.
@@ -603,8 +614,8 @@ function routeCaption(place) {
   var text = routeLabel(place)
   var originWalk = Math.max(0, Math.round(Number(place.walkMinutes) || 0))
   var destWalk = Math.max(0, Math.round(Number(place.destWalkMinutes) || 0))
-  if (originWalk > 0) text += " · " + originWalk + " min walk"
-  if (destWalk > 0) text += " · then " + destWalk + " min walk"
+  if (originWalk > 0 && place.anyStop !== true) text += " · " + originWalk + " min walk"
+  if (destWalk > 0 && place.destAnyStop !== true) text += " · then " + destWalk + " min walk"
   return text
 }
 
@@ -818,6 +829,8 @@ function projectRow(dep, place, nowMs, occupancy) {
     arriveText: dep.arriveMs ? clockText(dep.arriveMs) : "",
     travelText: dep.arriveMs ? travelText(dep.travelSec) : "",
     doorText: dep.arriveMs ? durationText(doorToDoorMinutes(dep, place)) : "",
+    leadWalkMinutes: dep.leadWalkSec !== undefined && isFinite(dep.leadWalkSec) ? Math.max(0, Math.round(Number(dep.leadWalkSec) / 60)) : -1,
+    finalWalkMinutes: finalWalkMinutes(dep),
     changesText: !dep.arriveMs || dep.changes === 0 ? "" : dep.changes + (dep.changes === 1 ? " change" : " changes"),
     legsSummary: dep.legsSummary || ""
   }

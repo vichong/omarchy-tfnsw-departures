@@ -430,7 +430,10 @@ Ui.Panel {
             Text {
               width: parent.width
               textFormat: Text.PlainText
-              text: root.ready && root.service.activePlace ? Model.routeCaption(root.service.activePlace) : ""
+              text: root.ready && root.service.activePlace
+                ? Model.routeCaption(root.service.activePlace)
+                  + (root.service.planFallbackCaption ? " · " + root.service.planFallbackCaption : "")
+                : ""
               color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
               font.family: root.family
               font.pixelSize: Style.font.caption
@@ -547,8 +550,8 @@ Ui.Panel {
               Text {
                 width: parent.width
                 textFormat: Text.PlainText
-                text: (root.ready && root.service.activePlace && root.service.activePlace.walkMinutes > 0
-                  ? root.service.activePlace.walkMinutes + " min\u00a0walk · " : "")
+                text: (root.ready && root.service.nextLeadWalkMinutes > 0
+                  ? root.service.nextLeadWalkMinutes + " min\u00a0walk · " : "")
                   + (root.ready && root.service.nextLine ? root.service.nextLine : "")
                   + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
                   + (root.ready && root.service.nextFinalWalkMinutes > 0

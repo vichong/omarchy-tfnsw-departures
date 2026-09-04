@@ -72,6 +72,10 @@ walk to the door.
 The trip selector shows the saved nickname with its route underneath. Trip rows
 lead with your saved destination, keep the vehicle headsign secondary, and read the journey as a
 chain underneath: walk › line › walk, then the arrival time and platform.
+An address end can be **Any nearby stop**: the planner picks the best stop
+for each journey, so buses, trains and light rail from the same address
+compete on one board, each with its own walk. Pin a stop chip instead to
+plan from that stop with your own walk time.
 Expanding a row opens an indicator board that mirrors the chain: when to
 leave, each leg with its departure and platform, and the change in between.
 

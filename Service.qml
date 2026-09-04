@@ -258,10 +258,12 @@ QtObject {
   property string nextLineColor: ""
   property string nextLine: ""
   property string nextDestination: ""
+  property int nextLeadWalkMinutes: 0
   property int nextFinalWalkMinutes: 0
   property int nextDoorMinutes: 0
   property real underlineFraction: 0
   property string barCaption: ""
+  property string planFallbackCaption: ""
   property string lastPolledAt: ""
   property double lastPolledMs: 0
   property double nowMs: Date.now()
@@ -793,9 +795,14 @@ QtObject {
     var token = generation
     var placeId = activePlace.id
     var stopId = String(activePlace.stopId || "")
+    var stopName = String(activePlace.stopName || "")
     var destStopId = String(activePlace.destStopId || "")
+    var destStopName = String(activePlace.destStopName || "")
     var destAddress = String(activePlace.destAddress || "")
+    var originAnyStop = activePlace.anyStop === true && isFinite(activePlace.lat) && isFinite(activePlace.lon)
+    var destinationAnyStop = activePlace.destAnyStop === true && isFinite(activePlace.destLat) && isFinite(activePlace.destLon)
     var destWalkMinutes = Math.max(0, Math.round(Number(activePlace.destWalkMinutes) || 0))
+    planFallbackCaption = ""
     function complete(result) {
       if (token !== generation)
         return
@@ -805,6 +812,8 @@ QtObject {
           || String(root.activePlace.stopId || "") !== stopId
           || String(root.activePlace.destStopId || "") !== destStopId
           || String(root.activePlace.destAddress || "") !== destAddress
+          || (root.activePlace.anyStop === true && isFinite(root.activePlace.lat) && isFinite(root.activePlace.lon)) !== originAnyStop
+          || (root.activePlace.destAnyStop === true && isFinite(root.activePlace.destLat) && isFinite(root.activePlace.destLon)) !== destinationAnyStop
           || Math.max(0, Math.round(Number(root.activePlace.destWalkMinutes) || 0)) !== destWalkMinutes) {
         // The place or either endpoint changed under this request; its board
         // belongs to the old source.
@@ -821,8 +830,9 @@ QtObject {
           pollBackoff = Math.min(5, pollBackoff + 1)
       } else {
         departures = trip
-          ? Model.appendEndWalk(result.data.slice(0, Api.MAX_JOURNEYS), destWalkMinutes,
-              Model.boardStopName(destAddress || activePlace.destStopName || ""))
+          ? (destinationAnyStop ? result.data.slice(0, Api.MAX_JOURNEYS)
+            : Model.appendEndWalk(result.data.slice(0, Api.MAX_JOURNEYS), destWalkMinutes,
+                Model.boardStopName(destAddress || activePlace.destStopName || "")))
           : result.data.slice(0, Api.MAX_STOP_EVENTS)
         pollBackoff = 0
         phase = "connected"
@@ -846,14 +856,31 @@ QtObject {
       else
         demoBackend.departures(complete)
     } else {
-      var path = trip
-        ? Api.tripPath(activePlace.stopId, activePlace.destStopId, 6)
-        : Api.departuresPath(activePlace.stopId, excludedModes(activePlace))
-      liveBackend.request(path, function(response) {
+      var originSpec = originAnyStop ? { "lat": Number(activePlace.lat), "lon": Number(activePlace.lon) } : stopId
+      var destinationSpec = destinationAnyStop
+        ? { "lat": Number(activePlace.destLat), "lon": Number(activePlace.destLon) } : destStopId
+      function requestTrip(origin, destination, allowFallback) {
+        liveBackend.request(Api.tripPath(origin, destination, 6), function(response) {
+          if (response.ok)
+            response.data = Api.parseJourneys(response.data)
+          if (response.ok && response.data.length === 0 && allowFallback && (originAnyStop || destinationAnyStop)) {
+            if (token !== generation)
+              return
+            var captions = []
+            if (originAnyStop) captions.push("Planned from " + stopName)
+            if (destinationAnyStop) captions.push("Planned to " + destStopName)
+            root.planFallbackCaption = captions.join(" · ")
+            requestTrip(stopId, destStopId, false)
+            return
+          }
+          complete(response)
+        })
+      }
+      if (trip) {
+        requestTrip(originSpec, destinationSpec, true)
+      } else liveBackend.request(Api.departuresPath(activePlace.stopId, excludedModes(activePlace)), function(response) {
         if (response.ok)
-          response.data = trip
-            ? Api.parseJourneys(response.data)
-            : Api.parseDepartures(response.data)
+          response.data = Api.parseDepartures(response.data)
 
         complete(response)
       })
@@ -888,6 +915,7 @@ QtObject {
     nextLine = ""
     nextDestination = ""
     nextFinalWalkMinutes = 0
+    nextLeadWalkMinutes = 0
     nextDoorMinutes = 0
     underlineFraction = 0
     barCaption = ""
@@ -916,6 +944,9 @@ QtObject {
     nextLine = barState.line
     nextDestination = barState.destination
     var next = Model.nextCatchable(board, place, now)
+    nextLeadWalkMinutes = next && next.leadWalkSec !== undefined
+      ? Math.max(0, Math.round(Number(next.leadWalkSec) / 60))
+      : (place && place.anyStop !== true ? Math.max(0, Math.round(Number(place.walkMinutes) || 0)) : 0)
     nextFinalWalkMinutes = Model.finalWalkMinutes(next)
     nextDoorMinutes = Model.doorToDoorMinutes(next, place)
     underlineFraction = barState.fraction
@@ -928,7 +959,7 @@ QtObject {
     var wanted = String(depId || "")
     var place = activePlace
     for (var i = 0; i < board.length; i++) if (String(board[i].id) === wanted)
-      return Model.legRows(board[i], occupancy, place ? place.walkMinutes : 0)
+      return Model.legRows(board[i], occupancy, place && place.anyStop !== true ? place.walkMinutes : 0)
 
     return []
   }
@@ -1207,17 +1238,19 @@ QtObject {
       var boardPlace = {
         "id": "newtrip",
         "name": String(location.name || "New trip").split(",")[0],
-        "stopId": location.isStop ? String(location.id || "") : "",
+        "stopId": location.isStop ? String(location.id || "") : String(location.pinnedId || ""),
         "stopName": firstRide ? firstRide.from : String(location.name || ""),
-        "address": !location.isStop ? String(location.name || location.shortName || "") : "",
-        "lat": !location.isStop ? Number(location.lat) : null,
-        "lon": !location.isStop ? Number(location.lon) : null,
-        "walkEstimated": !location.isStop,
-        "destStopId": chosenDestination ? String(chosenDestination.id || "") : "",
-        "destStopName": chosenDestination ? String(chosenDestination.name || chosenDestination.shortName || "") : "",
-        "destAddress": destinationIsCoord ? String(destination.name || destination.shortName || "") : "",
-        "destLat": destinationIsCoord ? Number(destination.lat) : null,
-        "destLon": destinationIsCoord ? Number(destination.lon) : null,
+        "address": String(location.address || (!location.isStop ? location.name || location.shortName || "" : "")),
+        "lat": !location.isStop || location.address ? Number(location.lat) : null,
+        "lon": !location.isStop || location.address ? Number(location.lon) : null,
+        "anyStop": location.anyStop === true,
+        "walkEstimated": !location.isStop && location.anyStop !== true,
+        "destStopId": chosenDestination ? String(chosenDestination.id || "") : String(destination.pinnedId || ""),
+        "destStopName": chosenDestination ? String(chosenDestination.name || chosenDestination.shortName || "") : String(destination.pinnedName || ""),
+        "destAddress": String(destination.address || (destinationIsCoord ? destination.name || destination.shortName || "" : "")),
+        "destLat": destinationIsCoord || destination.address ? Number(destination.lat) : null,
+        "destLon": destinationIsCoord || destination.address ? Number(destination.lon) : null,
+        "destAnyStop": destination.anyStop === true,
         "destWalkMinutes": destinationIsCoord && arriveVia ? endWalk : 0,
         "destWalkEstimated": destinationIsCoord && !!arriveVia,
         "lines": [],
@@ -1254,7 +1287,8 @@ QtObject {
   function journeyLegsFor(depId) {
     var wanted = String(depId || "")
     for (var i = 0; i < journeyBoard.length; i++) if (String(journeyBoard[i].id) === wanted)
-      return Model.legRows(journeyBoard[i], occupancy, journeyPlace ? journeyPlace.walkMinutes : 0)
+      return Model.legRows(journeyBoard[i], occupancy,
+        journeyPlace && journeyPlace.anyStop !== true ? journeyPlace.walkMinutes : 0)
 
     return []
   }

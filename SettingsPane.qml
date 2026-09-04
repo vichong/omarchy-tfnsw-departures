@@ -587,6 +587,7 @@ Flickable {
         "address": page.host.placeAddress,
         "lat": page.host.placeLat,
         "lon": page.host.placeLon,
+        "anyStop": page.host.placeAnyStop,
         "walkMinutes": page.host.placeWalk,
         "walkEstimated": page.host.placeWalkEstimated
       }, "address")
@@ -597,6 +598,7 @@ Flickable {
         "address": page.host.placeDestAddress,
         "lat": page.host.placeDestLat,
         "lon": page.host.placeDestLon,
+        "anyStop": page.host.placeDestAnyStop,
         "walkMinutes": page.host.placeDestWalk,
         "walkEstimated": page.host.placeDestWalkEstimated
       }, "stop")

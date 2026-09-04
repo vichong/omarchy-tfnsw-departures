@@ -128,6 +128,26 @@ const tripBoard = Model.boardFromJourneys(journeys, tripPlace, tripNow)
 equal(tripBoard.length, 1, "one journey becomes one board entry")
 equal([tripBoard[0].line, tripBoard[0].mode, tripBoard[0].changes, tripBoard[0].platform, tripBoard[0].stopName], ["T4", "train", 0, "3", "Sydenham Station"], "journey entry takes the first ride's identity")
 assert(tripBoard[0].arriveMs === journeys[0].arriveMs && tripBoard[0].travelSec > 0, "journey entry carries arrival and travel time")
+const firstRide = journeys[0].legs[0]
+const leadWalk = {
+  kind: "walk", mode: "walk", line: "", tripId: "", destination: "", platform: "",
+  from: "Bulletin Place", to: firstRide.from, departMs: firstRide.departMs - 4 * 60000,
+  arriveMs: firstRide.departMs, durationSec: 240, realtime: false, infos: [], stops: []
+}
+const coordinateJourney = Object.assign({}, journeys[0], {
+  departMs: leadWalk.departMs,
+  durationSec: journeys[0].durationSec + 240,
+  legs: [leadWalk].concat(journeys[0].legs)
+})
+const coordinatePlace = Object.assign({}, tripPlace, {
+  address: "Bulletin Place, Sydney", lat: -33.862, lon: 151.21, anyStop: true, walkMinutes: 55
+})
+const coordinateNow = firstRide.departMs - 10 * 60000
+const coordinateBoard = Model.boardFromJourneys([coordinateJourney], coordinatePlace, coordinateNow)
+equal([coordinateBoard[0].leadWalkSec, coordinateBoard[0].plannedMs, coordinateBoard[0].estimatedMs],
+  [240, firstRide.departMs, firstRide.departMs], "coordinate journey departs at the first ride and carries its leading walk")
+equal(Model.leaveInMs(coordinateBoard[0], coordinatePlace, coordinateNow), 6 * 60000,
+  "leave-by time subtracts the journey's leading walk instead of the saved place walk")
 const tripRows = Model.buildRows(tripBoard, tripPlace, tripNow)
 assert(/^[0-9]{2}:[0-9]{2}$/.test(tripRows[0].arriveText) && /min$/.test(tripRows[0].travelText) && tripRows[0].changesText === "", "direct trip rows omit a changes pill")
 equal([tripRows[0].destination, tripRows[0].headsign], ["Wynyard", journeys[0].legs[0].destination], "trip rows lead with the place destination and keep the vehicle headsign")
@@ -202,7 +222,8 @@ equal(destinationChoices[1].label, "Wynyard Station · Home", "destination choic
 const tempPlace = Model.tempPlaceFrom({ name: "123 George St, Sydney" }, { id: "201029", name: "Surry Hills Light Rail" }, { id: "206710", name: "Chatswood Station" }, 5.6)
 equal(tempPlace, { id: "temp", name: "123 George St", stopId: "201029", stopName: "Surry Hills Light Rail",
   destStopId: "206710", destStopName: "Chatswood Station", walkMinutes: 6, walkEstimated: true,
-  destWalkMinutes: 0, destWalkEstimated: false, lines: [], modes: [], address: "123 George St, Sydney" }, "temporary place has the unsaved trip shape")
+  anyStop: false, destWalkMinutes: 0, destWalkEstimated: false, destAnyStop: false,
+  lines: [], modes: [], address: "123 George St, Sydney" }, "temporary place has the unsaved trip shape")
 const addressPlace = Model.tempPlaceFrom({ name: "123 George St, Sydney" },
   { id: "201029", name: "Surry Hills Light Rail" }, { id: "206710", name: "Chatswood Station" }, 6,
   { name: "1 Help St, Chatswood", isStop: false, lat: -33.796, lon: 151.181 })
@@ -210,6 +231,9 @@ equal([addressPlace.destAddress, addressPlace.destLat, addressPlace.destLon],
   ["1 Help St, Chatswood", -33.796, 151.181], "temporary trip retains its destination address coordinates")
 equal(Model.routeLabel(addressPlace), "123 George St → 1 Help St",
   "address trip route names the door destination")
+equal(Model.routeCaption(Object.assign({}, addressPlace, { anyStop: true, destAnyStop: true,
+  walkMinutes: 12, destWalkMinutes: 9 })), "123 George St → 1 Help St",
+  "any-stop address ends omit per-trip walk times from the route caption")
 equal(Model.finalWalkMinutes({ legs: [{ kind: "ride", durationSec: 600 }, { kind: "walk", durationSec: 350 }] }), 6,
   "final walking leg is rounded for the leave-window caption")
 equal(Model.tripName(tempPlace), "123 George St → Chatswood", "temporary trip name falls back to its route")

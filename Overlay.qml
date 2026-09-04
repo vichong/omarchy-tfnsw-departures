@@ -42,9 +42,11 @@ Item {
   property var nearbyStops: []
   property bool nearbyExpanded: false
   property bool nearbyFallback: false
-  // The chosen origin stop had nothing within the horizon: replanned from the address.
+  // A coordinate plan with no result is retried once with the pinned nearest stop.
   property bool originFallback: false
   property string originFallbackStop: ""
+  property bool destinationFallback: false
+  property string destinationFallbackStop: ""
   // Destination chips: the planner's own end stop by default; a click overrides it.
   property bool destinationOverride: false
   // Mode filter for the nearby-stop chips at both ends ("" = all), like the
@@ -78,6 +80,7 @@ Item {
   property string placeAddress: ""
   property var placeLat: null
   property var placeLon: null
+  property bool placeAnyStop: false
   property bool placeWalkEstimated: false
   property string placeDestKind: "stop"
   property string placeDestStopId: ""
@@ -85,6 +88,7 @@ Item {
   property string placeDestAddress: ""
   property var placeDestLat: null
   property var placeDestLon: null
+  property bool placeDestAnyStop: false
   property string placeLines: ""
   property string placeDestination: ""
   property var placeModes: []
@@ -175,6 +179,7 @@ Item {
       placeAddress = ""
       placeLat = null
       placeLon = null
+      placeAnyStop = false
       placeWalkEstimated = false
       placeDestKind = "stop"
       placeDestStopId = ""
@@ -182,6 +187,7 @@ Item {
       placeDestAddress = ""
       placeDestLat = null
       placeDestLon = null
+      placeDestAnyStop = false
       placeLines = ""
       placeDestination = ""
       placeModes = []
@@ -199,6 +205,7 @@ Item {
     placeAddress = p.address || ""
     placeLat = p.lat
     placeLon = p.lon
+    placeAnyStop = p.anyStop === true
     placeWalkEstimated = p.walkEstimated === true
     placeDestKind = Model.endKind(p, "dest")
     placeDestStopId = p.destStopId || ""
@@ -206,6 +213,7 @@ Item {
     placeDestAddress = p.destAddress || ""
     placeDestLat = p.destLat
     placeDestLon = p.destLon
+    placeDestAnyStop = p.destAnyStop === true
     placeLines = p.lines.join(", ")
     placeDestination = p.destination
     placeModes = p.modes.slice()
@@ -240,6 +248,7 @@ Item {
     placeAddress = String(place.address || "")
     placeLat = place.lat
     placeLon = place.lon
+    placeAnyStop = place.anyStop === true
     placeWalkEstimated = place.walkEstimated === true
     placeDestKind = Model.endKind(place, "dest")
     placeDestStopId = String(place.destStopId || "")
@@ -247,6 +256,7 @@ Item {
     placeDestAddress = String(place.destAddress || "")
     placeDestLat = place.destLat
     placeDestLon = place.destLon
+    placeDestAnyStop = place.destAnyStop === true
     placeLines = ""
     placeDestination = ""
     placeModes = []
@@ -340,6 +350,7 @@ Item {
       placeDestAddress = end.address
       placeDestLat = end.lat
       placeDestLon = end.lon
+      placeDestAnyStop = end.anyStop
       placeDestWalk = end.walkMinutes
       placeDestWalkEstimated = end.walkEstimated
       return
@@ -350,6 +361,7 @@ Item {
     placeAddress = end.address
     placeLat = end.lat
     placeLon = end.lon
+    placeAnyStop = end.anyStop
     placeWalk = end.walkMinutes
     placeWalkEstimated = end.walkEstimated
   }
@@ -366,12 +378,14 @@ Item {
       "address": placeOriginKind === "address" ? placeAddress : "",
       "lat": placeOriginKind === "address" ? placeLat : null,
       "lon": placeOriginKind === "address" ? placeLon : null,
+      "anyStop": placeOriginKind === "address" && placeAnyStop,
       "walkEstimated": placeOriginKind === "address" && placeWalkEstimated,
       "destStopId": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopId : "",
       "destStopName": Api.isStopId(placeDestStopId) && placeDestStopId !== placeStopId ? placeDestStopName : "",
-      "destAddress": placeDestAddress,
-      "destLat": placeDestLat,
-      "destLon": placeDestLon,
+      "destAddress": placeDestKind === "address" ? placeDestAddress : "",
+      "destLat": placeDestKind === "address" ? placeDestLat : null,
+      "destLon": placeDestKind === "address" ? placeDestLon : null,
+      "destAnyStop": placeDestKind === "address" && placeDestAnyStop,
       "destWalkMinutes": placeDestWalk,
       "destWalkEstimated": placeDestKind === "address" && placeDestWalkEstimated,
       "lines": placeLines.split(","),
@@ -641,6 +655,7 @@ Item {
     nearbyExpanded = false
     nearbyFallback = false
     originFallback = false
+    destinationFallback = false
     nearbyStops = loc.isStop ? [] : Model.nearestStops(service.stops, loc.lat, loc.lon, 8, 3000)
     newTripOrigin = loc.isStop ? loc : (nearbyStops.length ? nearbyStops[0] : null)
     newTripDestinationOptions = Model.destinationOptions(service.effectivePlaces)
@@ -674,6 +689,7 @@ Item {
     nearbyExpanded = false
     nearbyFallback = false
     originFallback = false
+    destinationFallback = false
     newTripOrigin = null
     newTripDestination = null
     newTripDestinationStops = []
@@ -841,6 +857,8 @@ Item {
   function newTripEdited() {
     originFallback = false
     originFallbackStop = ""
+    destinationFallback = false
+    destinationFallbackStop = ""
     planNewTrip()
   }
 
@@ -856,26 +874,44 @@ Item {
       return
     }
     expandedJourneyId = ""
-    newTripWalk = from.walkMinutes
+    // An any-stop origin carries its walk in each journey's first leg.
+    newTripWalk = from.anyStop === true ? 0 : from.walkMinutes
     var fromId = from.stopId
     var toId = to.stopId
-    var canFallback = from.kind === "address" && isFinite(from.lat) && isFinite(from.lon)
-    var origin = originFallback && canFallback
-      ? { "isStop": false, "lat": Number(from.lat), "lon": Number(from.lon), "name": from.address }
-      : { "isStop": true, "id": from.stopId, "name": from.stopName }
-    var destination = { "isStop": true, "id": to.stopId, "name": to.stopName }
+    var originIsCoord = from.anyStop === true && from.kind === "address" && isFinite(from.lat) && isFinite(from.lon)
+    var destinationIsCoord = to.anyStop === true && to.kind === "address" && isFinite(to.lat) && isFinite(to.lon)
+    var origin = originIsCoord && !originFallback
+      ? { "isStop": false, "lat": Number(from.lat), "lon": Number(from.lon), "name": from.address,
+          "address": from.address, "anyStop": true, "pinnedId": from.stopId, "pinnedName": from.stopName }
+      : { "isStop": true, "id": from.stopId, "name": from.stopName,
+          "address": from.kind === "address" ? from.address : "", "lat": from.lat, "lon": from.lon,
+          "anyStop": originIsCoord }
+    var destination = destinationIsCoord && !destinationFallback
+      ? { "isStop": false, "lat": Number(to.lat), "lon": Number(to.lon), "name": to.address,
+          "address": to.address, "anyStop": true, "pinnedId": to.stopId, "pinnedName": to.stopName }
+      : { "isStop": true, "id": to.stopId, "name": to.stopName,
+          "address": to.kind === "address" ? to.address : "", "lat": to.lat, "lon": to.lon,
+          "anyStop": destinationIsCoord }
     service.planFrom(origin, destination, function(journeys) {
       var currentFrom = root.newTripEndpoint(false)
       var currentTo = root.newTripEndpoint(true)
       if (!currentFrom || !currentTo || currentFrom.stopId !== fromId || currentTo.stopId !== toId)
         return
       root.lastJourneys = journeys
-      if (root.service.journeyRows.count === 0 && origin.isStop && canFallback) {
-        root.originFallbackStop = Model.boardStopName(from.stopName)
-        root.originFallback = true
+      if (!journeys.length && ((originIsCoord && !root.originFallback)
+          || (destinationIsCoord && !root.destinationFallback))) {
+        if (originIsCoord && !root.originFallback) {
+          root.originFallbackStop = String(from.stopName || "")
+          root.originFallback = true
+        }
+        if (destinationIsCoord && !root.destinationFallback) {
+          root.destinationFallbackStop = String(to.stopName || "")
+          root.destinationFallback = true
+        }
         root.planNewTrip()
       }
-    }, from.walkMinutes, to.walkMinutes, to.kind === "address" ? Model.boardStopName(to.address) : "")
+    }, originIsCoord ? 0 : from.walkMinutes, destinationIsCoord ? 0 : to.walkMinutes,
+      to.kind === "address" && !destinationIsCoord ? Model.boardStopName(to.address) : "")
   }
 
   function newTripDraft() {
@@ -891,6 +927,7 @@ Item {
       "address": from.kind === "address" ? from.address : "",
       "lat": from.kind === "address" ? from.lat : null,
       "lon": from.kind === "address" ? from.lon : null,
+      "anyStop": from.kind === "address" && from.anyStop,
       "walkMinutes": from.walkMinutes,
       "walkEstimated": from.kind === "address" && from.walkEstimated,
       "destStopId": to.stopId,
@@ -898,6 +935,7 @@ Item {
       "destAddress": to.kind === "address" ? to.address : "",
       "destLat": to.kind === "address" ? to.lat : null,
       "destLon": to.kind === "address" ? to.lon : null,
+      "destAnyStop": to.kind === "address" && to.anyStop,
       "destWalkMinutes": to.walkMinutes,
       "destWalkEstimated": to.kind === "address" && to.walkEstimated,
       "lines": [],
@@ -1259,7 +1297,7 @@ Item {
           Caption {
             width: parent.width
             visible: root.originFallback
-            text: "No services soon from " + root.originFallbackStop + " — planned from your address"
+            text: "Planned from " + root.originFallbackStop
           }
         }
 
@@ -1283,9 +1321,15 @@ Item {
 
           Caption {
             width: parent.width
-            visible: destinationEditor.kind === "address" && destinationEditor.stopId !== ""
+            visible: destinationEditor.kind === "address" && destinationEditor.stopId !== "" && !destinationEditor.anyStop
             text: "Get off at " + Model.boardStopName(destinationEditor.stopName) + " · "
               + destinationEditor.walkMinutes + " min walk to " + Model.boardStopName(destinationEditor.address)
+          }
+
+          Caption {
+            width: parent.width
+            visible: root.destinationFallback
+            text: "Planned to " + root.destinationFallbackStop
           }
         }
 
@@ -1360,10 +1404,16 @@ Item {
 
                 Text {
                   textFormat: Text.PlainText
-                  text: (root.newTripWalk > 0 ? root.newTripWalk + " min walk · " : "")
-                    + (newTripBoard.firstRow ? newTripBoard.firstRow.line + " to " + newTripBoard.firstRow.headsign : "")
-                    + (root.lastJourneys.length && Model.finalWalkMinutes(root.lastJourneys[0]) > 0
-                      ? " · then " + Model.finalWalkMinutes(root.lastJourneys[0]) + " min walk" : "")
+                  width: parent.width
+                  readonly property var firstRow: newTripBoard.firstRow
+                  readonly property int leadWalk: firstRow && firstRow.leadWalkMinutes >= 0 ? firstRow.leadWalkMinutes : root.newTripWalk
+                  text: (leadWalk > 0 ? leadWalk + " min\u00a0walk · " : "")
+                    + (firstRow ? firstRow.line + " to " + firstRow.headsign : "")
+                    + (firstRow && firstRow.finalWalkMinutes > 0 ? " · then\u00a0" + firstRow.finalWalkMinutes + "\u00a0min\u00a0walk" : "")
+                    + (firstRow && firstRow.doorText ? " · " + firstRow.doorText.replace(/ /g, "\u00a0") + "\u00a0door\u00a0to\u00a0door" : "")
+                  wrapMode: Text.WordWrap
+                  maximumLineCount: 2
+                  elide: Text.ElideRight
                   color: root.muted
                   font.family: root.family
                   font.pixelSize: Style.font.caption
@@ -1412,6 +1462,7 @@ Item {
               plannedText: model.plannedText
               arriveText: model.arriveText
               travelText: model.travelText
+              doorText: model.doorText
               changesText: model.changesText
               legsSummary: model.legsSummary
               crowding: model.crowding

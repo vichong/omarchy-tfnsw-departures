@@ -18,6 +18,7 @@ Column {
   property string address: ""
   property var lat: null
   property var lon: null
+  property bool anyStop: false
   property int walkMinutes: 0
   property bool walkEstimated: false
   property var nearby: []
@@ -48,6 +49,7 @@ Column {
       "address": kind === "address" ? address : "",
       "lat": kind === "address" ? lat : null,
       "lon": kind === "address" ? lon : null,
+      "anyStop": kind === "address" && anyStop,
       "walkMinutes": walkMinutes,
       "walkEstimated": kind === "address" && walkEstimated,
       "nearby": nearby
@@ -63,6 +65,7 @@ Column {
     address = String(end.address || "")
     lat = end.lat === undefined ? null : end.lat
     lon = end.lon === undefined ? null : end.lon
+    anyStop = kind === "address" && end.anyStop === true && isFinite(lat) && isFinite(lon)
     walkMinutes = Math.max(0, Math.min(60, Math.round(Number(end.walkMinutes) || 0)))
     walkEstimated = kind === "address" && end.walkEstimated === true
     nearby = []
@@ -82,6 +85,7 @@ Column {
     address = ""
     lat = null
     lon = null
+    anyStop = false
     walkMinutes = 0
     walkEstimated = false
     nearby = []
@@ -190,6 +194,7 @@ Column {
       lat = null
       lon = null
       walkEstimated = false
+      anyStop = false
       nearby = []
       chosenStop = item
       edited()
@@ -200,6 +205,7 @@ Column {
     lon = item.lon
     stopId = ""
     stopName = ""
+    anyStop = true
     walkEstimated = true
     chosenStop = null
     findNearby(true)
@@ -249,10 +255,19 @@ Column {
     stopId = String(stop.id || "")
     stopName = String(stop.name || stop.shortName || "")
     chosenStop = stop
+    if (automatic !== true)
+      anyStop = false
     if (walkEstimated || automatic === true) {
       walkEstimated = true
       walkMinutes = estimateFor(stop)
     }
+    edited()
+  }
+
+  function chooseAnyStop() {
+    if (kind !== "address" || !address || !isFinite(lat) || !isFinite(lon))
+      return
+    anyStop = true
     edited()
   }
 
@@ -493,6 +508,17 @@ Column {
       width: parent.width
       spacing: Style.space(6)
 
+      StopChip {
+        text: "Any nearby stop"
+        glyph: Model.glyphFor("walk")
+        glyphColor: root.muted
+        tooltip: "Let the journey planner choose a nearby stop for each trip"
+        selected: root.anyStop
+        foreground: root.foreground
+        chipFontFamily: root.fontFamily
+        onClicked: root.chooseAnyStop()
+      }
+
       Repeater {
         readonly property var featured: Model.featureNearby(root.filteredNearby(), root.stopId, 15)
         model: root.nearbyExpanded ? featured
@@ -504,7 +530,9 @@ Column {
           glyph: modelData.isMore ? "" : Model.glyphFor(root.chipMode(modelData))
           glyphColor: modelData.isMore ? root.foreground : Api.lineColor("", root.chipMode(modelData))
           tooltip: modelData.isMore ? "" : root.chipTooltip(modelData)
-          selected: !modelData.isMore && String(modelData.id) === String(root.stopId)
+          selected: !root.anyStop && !modelData.isMore && String(modelData.id) === String(root.stopId)
+          foreground: root.foreground
+          chipFontFamily: root.fontFamily
           onClicked: {
             if (modelData.isMore) root.nearbyExpanded = true
             else root.chooseNearby(modelData, false)
@@ -516,7 +544,7 @@ Column {
 
   Row {
     width: root.width
-    visible: root.stopId !== ""
+    visible: root.stopId !== "" && !root.anyStop
     spacing: Style.space(6)
 
     Text {
@@ -581,6 +609,32 @@ Column {
     }
   }
 
+  Row {
+    width: root.width
+    visible: root.kind === "address" && root.anyStop
+    spacing: Style.space(6)
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      textFormat: Text.PlainText
+      text: "󰖃"
+      color: root.muted
+      font.family: root.fontFamily
+      font.pixelSize: Style.space(15)
+    }
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      width: Math.max(0, parent.width - parent.children[0].width - parent.spacing)
+      textFormat: Text.PlainText
+      text: root.destination ? "walk to the door from the planner" : "walk from the planner, per trip"
+      color: root.muted
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.caption
+      elide: Text.ElideRight
+    }
+  }
+
   // A nearby-stop chip: the mode pictogram in its Transport NSW colour at a
   // size that reads (14 units), the shortened stop name, and a hover tooltip
   // with the full name, mode and walk.
@@ -589,7 +643,9 @@ Column {
 
     property string text: ""
     property string glyph: ""
-    property color glyphColor: root.foreground
+    property color foreground: Color.foreground
+    property color glyphColor: foreground
+    property string chipFontFamily: Style.font.family
     property string tooltip: ""
     property bool selected: false
     signal clicked()
@@ -600,10 +656,10 @@ Column {
     width: implicitWidth
     height: implicitHeight
     color: selected ? Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.14)
-      : chipHover.hovered ? Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.06)
-      : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0)
+      : chipHover.hovered ? Qt.rgba(chip.foreground.r, chip.foreground.g, chip.foreground.b, 0.06)
+      : Qt.rgba(chip.foreground.r, chip.foreground.g, chip.foreground.b, 0)
     borderSpec: Border.flat(selected ? Color.accent
-      : Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.18), Style.space(1))
+      : Qt.rgba(chip.foreground.r, chip.foreground.g, chip.foreground.b, 0.18), Style.space(1))
 
     Row {
       id: chipRow
@@ -617,7 +673,7 @@ Column {
         textFormat: Text.PlainText
         text: chip.glyph
         color: chip.glyphColor
-        font.family: root.fontFamily
+        font.family: chip.chipFontFamily
         font.pixelSize: Style.space(14)
       }
 
@@ -625,8 +681,8 @@ Column {
         anchors.verticalCenter: parent.verticalCenter
         textFormat: Text.PlainText
         text: chip.text
-        color: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.85)
-        font.family: root.fontFamily
+        color: Qt.rgba(chip.foreground.r, chip.foreground.g, chip.foreground.b, 0.85)
+        font.family: chip.chipFontFamily
         font.pixelSize: Style.font.caption
         font.weight: Font.Medium
       }
@@ -645,7 +701,7 @@ Column {
     Ui.PanelToolTip {
       visible: chipHover.hovered && chip.tooltip !== ""
       text: chip.tooltip
-      fontFamily: root.fontFamily
+      fontFamily: chip.chipFontFamily
     }
   }
 }

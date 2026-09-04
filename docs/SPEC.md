@@ -819,3 +819,64 @@ widths in. Kit `Dropdown` face is hidden with `opacity: 0` where a custom
 chip is drawn. Heights: buttons `Style.space(30)`, inputs `Style.space(30)`,
 chips `Style.space(24)`, as the Gorelo plugin. Run all tests and
 `omarchy plugin validate .` before finishing; no restart, no commit.
+
+## v0.11: "Any nearby stop" — let the planner choose the stop at an address end (Vic, 2026-09-04)
+Vic's case: from Bulletin Place to Surry Hills the light rail, the train and
+the 301/302/303 buses are all real options, and he wants one glance to
+compare them. Stop-to-stop planning (v0.10) can never show that: one stop
+is one or two modes. So an **Address** end gets a third choice.
+
+**End editor (`EndEditor.qml`).** For an Address end the chip row starts
+with a chip **"Any nearby stop"** (walk glyph, no mode colour), selected by
+default for a freshly entered address. Selecting it means "plan from/to the
+address itself; the planner picks the stop per journey". Selecting a named
+stop chip pins that stop as now. While "Any nearby stop" is selected the
+walk line reads `󰖃  walk from the planner, per trip` (muted, no number, no
+estimate tick) for the origin and `󰖃  walk to the door from the planner`
+for the destination. The mode filter row still filters the named chips.
+
+**Config (`ConfigStore.js`).** New per-end booleans `anyStop` (origin) and
+`destAnyStop` (destination). Only valid together with an address and
+coordinates; default `false` (existing trips unchanged). `stopId` /
+`destStopId` stay required and keep the nearest stop (used for the trip
+name, the tooltip, the fallback below and the marketplace-facing
+`status`). The Settings save and New trip Use/Save write the flags from the
+editors.
+
+**Planning (`Service.qml`).** In `poll()` for the active place: origin spec
+is the coordinate `{lat, lon}` when `anyStop`, else `stopId`; destination
+spec is the coordinate when `destAnyStop`, else `destStopId`. `planFrom`
+already accepts coordinate ends; use the same path (`Api.tripPath` must
+accept a coordinate on either side — check `coordSpec` handling and extend
+if only one side supports it). No `appendEndWalk` when `destAnyStop` (the
+planner returns its own final walk leg); the place's `walkMinutes` is
+ignored when `anyStop` (the planner returns the first walk leg). The New
+trip pane plans the same way from the editors' state. Fallback: if a
+coordinate plan returns nothing, plan once from/to the pinned nearest stop
+and say so in the caption ("Planned from Circular Quay Station").
+
+**Board model (`Model.js`).** Journeys that begin with a walking leg carry
+the walk in the entry: `leadWalkSec` (first walk leg duration) and
+`plannedMs` / `estimatedMs` = the **first ride's** departure, not the walk
+start (DEPARTS shows when the vehicle leaves). `leaveInMs(dep, place)`
+subtracts `dep.leadWalkSec` when present, else the place walk. `legRows`
+does not synthesise a leading walk when the legs already start with one
+(already true). `doorToDoorMinutes` unchanged (adds the place walk only when
+there is no leading walk leg). `barState`/`nextCatchable`/leave window use
+the same `leaveInMs`, so the leave heading and track follow per-journey
+walks automatically; the leave window sub-line's "N min walk" reads the
+next journey's lead walk, and its "then N min walk" the final walk leg.
+
+**Labels.** `routeLabel`/`routeCaption`: an any-stop end reads the address
+("Bulletin Place → 17 Phelps St"); no walk minutes in the caption for
+any-stop ends (they vary per trip). Hero caption otherwise unchanged.
+
+**Tests.** `test_config`: flags round-trip, dropped without address/coords,
+default false. `test_model`: lead walk entry fields from a fixture journey
+that starts with a walk (build one from the existing trip fixture by
+prepending a walk leg); `leaveInMs` uses it; `plannedMs` is the ride
+departure. Existing tests must pass unchanged.
+
+**Hard rules.** As before: no API key in files, length-based array checks,
+one assignment per property, kit `Dropdown` face hidden with `opacity: 0`,
+no restart, no commit. Panel.qml qmllint false positive is known.

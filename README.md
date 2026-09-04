@@ -23,10 +23,10 @@ is available. Bus and Metro coverage is reliable, train coverage is sparse,
 and light rail has no crowding feed. Departure-only boards do not show crowding
 because their identifiers cannot be joined to the vehicle-position feeds.
 
-| Bar | Departures popup |
-|:---:|:---:|
-| ![Transport NSW leave-in countdown in the Omarchy bar](docs/screenshots/bar.png) | ![Live departure board popup](docs/screenshots/popup.png) |
+![Live departure board popup](docs/screenshots/popup.png)
+
 | **Settings** | **New trip** |
+|---|---|
 | ![Transport NSW plugin settings](docs/screenshots/settings.png) | ![New trip: address, nearest stop, destination, board](docs/screenshots/newtrip.png) |
 
 ## Install

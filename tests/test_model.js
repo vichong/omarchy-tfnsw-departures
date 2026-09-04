@@ -275,5 +275,13 @@ const nearbyMix = [
 ]
 equal(Model.featureNearby(nearbyMix, "c", 15).map(x => x.id), ["c", "lr", "b1", "b2"], "planner's choice first, then a near station, then by distance")
 equal(Model.featureNearby(nearbyMix, "", 5).map(x => x.id), ["b1", "b2", "lr", "c"], "no station within the walk limit keeps distance order")
+const nearbyCentral = [{ id: "b1", modes: ["bus"], walkMinutes: 2 }, { id: "lr", modes: ["lightrail"], walkMinutes: 3 },
+  { id: "b2", modes: ["bus"], walkMinutes: 4 }, { id: "b3", modes: ["bus"], walkMinutes: 5 }, { id: "lr2", modes: ["lightrail"], walkMinutes: 6 },
+  { id: "central", modes: ["train", "lightrail"], walkMinutes: 10 }]
+const busCrowd = []
+for (let i = 0; i < 14; i++) busCrowd.push({ id: String(201000 + i), name: "Bus " + i, modes: ["bus"], metres: 100 + i * 40 })
+const mergedCrowd = Model.mergeNearby([{ id: "200060", name: "Central Station", modes: ["train", "lightrail"], metres: 800 }], busCrowd)
+assert(mergedCrowd.length === 12 && mergedCrowd.some(x => x.id === "200060"), "a walkable station survives the 12-stop cap under a crowd of bus stops")
+equal(Model.featureNearby(nearbyCentral, "", 15).map(x => x.id), ["lr", "central", "b1", "b2", "b3", "lr2"], "the nearest stop of each rail mode is featured, a second light rail stop is not")
 
 done("test_model")

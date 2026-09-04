@@ -275,8 +275,13 @@ Column {
     return glyphs.length ? name + "  ·  " + glyphs.join(" ") : name
   }
 
+  // The glyph shows the heaviest mode at a stop: Central is a train station
+  // that also has light rail, not the other way round.
   function chipMode(stop) {
     var modes = stop && stop.modes && isFinite(stop.modes.length) ? stop.modes : []
+    var order = ["train", "metro", "ferry", "lightrail", "coach", "bus", "schoolbus"]
+    for (var o = 0; o < order.length; o++)
+      for (var m = 0; m < modes.length; m++) if (String(modes[m]) === order[o]) return order[o]
     return modes.length ? String(modes[0]) : "bus"
   }
 

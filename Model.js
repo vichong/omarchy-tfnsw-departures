@@ -161,8 +161,13 @@ function mergeNearby(bundled, api) {
   var remote = listValue(api)
   for (var i = 0; i < local.length; i++) add(local[i], true)
   for (var r = 0; r < remote.length; r++) add(remote[r], false)
-  out.sort(function(a, b) { return a.metres - b.metres || a.name.localeCompare(b.name) || a.id.localeCompare(b.id) })
-  return out.slice(0, 12)
+  function byDistance(a, b) { return a.metres - b.metres || a.name.localeCompare(b.name) || a.id.localeCompare(b.id) }
+  out.sort(byDistance)
+  // Cap at 12, but never let a crowd of nearer bus stops push a walkable
+  // station out: the nearest stop of each rail or ferry mode is kept.
+  var kept = featureNearby(out, "", 15).slice(0, 12)
+  kept.sort(byDistance)
+  return kept
 }
 
 // Saved origin and destination stops become a compact destination chooser.
@@ -515,12 +520,15 @@ function appendEndWalk(journeys, minutes, toName) {
 }
 
 // Chip order for nearby stops: the preferred one first (the planner's own
-// choice), then the nearest station-class stop (train, metro, light rail,
-// ferry) when it is within maxStationWalk minutes, then the rest by distance.
+// choice), then the nearest stop of each station-class mode (train, metro,
+// light rail, ferry) within maxStationWalk minutes, then the rest by
+// distance. One per mode, so a walkable Central is not buried under the
+// bus stops that happen to be closer.
+var STATION_MODES = ["train", "metro", "lightrail", "ferry"]
 function featureNearby(list, preferredId, maxStationWalk) {
   var source = list && isFinite(list.length) ? list : []
   var limit = isFinite(maxStationWalk) ? Number(maxStationWalk) : 15
-  var out = [], seen = {}
+  var out = [], seen = {}, covered = {}
   function take(item) {
     if (!item || seen[String(item.id)]) return
     seen[String(item.id)] = true
@@ -528,10 +536,16 @@ function featureNearby(list, preferredId, maxStationWalk) {
   }
   for (var p = 0; p < source.length; p++) if (preferredId && String(source[p].id) === String(preferredId)) take(source[p])
   for (var i = 0; i < source.length; i++) {
+    if (Number(source[i].walkMinutes || 0) > limit) continue
     var modes = source[i].modes && isFinite(source[i].modes.length) ? source[i].modes : []
-    var station = false
-    for (var m = 0; m < modes.length; m++) if (["train", "metro", "lightrail", "ferry"].indexOf(String(modes[m])) !== -1) station = true
-    if (station && Number(source[i].walkMinutes || 0) <= limit) { take(source[i]); break }
+    var fresh = false
+    for (var m = 0; m < modes.length; m++) {
+      var mode = String(modes[m])
+      if (STATION_MODES.indexOf(mode) !== -1 && !covered[mode]) fresh = true
+    }
+    if (!fresh) continue
+    for (var c = 0; c < modes.length; c++) covered[String(modes[c])] = true
+    take(source[i])
   }
   for (var r = 0; r < source.length; r++) take(source[r])
   return out

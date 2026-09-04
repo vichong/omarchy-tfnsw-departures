@@ -554,7 +554,7 @@ Ui.Panel {
                   + (root.ready && root.service.nextFinalWalkMinutes > 0
                     ? " · then\u00a0" + root.service.nextFinalWalkMinutes + "\u00a0min\u00a0walk" : "")
                   + (root.ready && root.service.nextDoorMinutes > 0
-                    ? " · " + root.service.nextDoorMinutes + "\u00a0min\u00a0door\u00a0to\u00a0door" : "")
+                    ? " · " + Model.durationText(root.service.nextDoorMinutes).replace(/ /g, "\u00a0") + "\u00a0door\u00a0to\u00a0door" : "")
                 // Two lines at most: the walks and the total make this longer
                 // than one line on trips to an address.
                 wrapMode: Text.WordWrap

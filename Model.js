@@ -637,10 +637,17 @@ function doorToDoorMinutes(entry, place) {
   return minutes + (startsWithWalk ? 0 : walk)
 }
 
+// "33 min" under an hour, "1 h 31 min" (or "2 h") from an hour up.
+function durationText(minutes) {
+  var m = Math.max(0, Math.round(Number(minutes) || 0))
+  if (m < 60) return m + " min"
+  var hours = Math.floor(m / 60), rest = m % 60
+  return rest ? hours + " h " + rest + " min" : hours + " h"
+}
+
 function travelText(sec) {
   if (!sec) return ""
-  var minutes = Math.max(1, Math.round(sec / 60))
-  return minutes + " min"
+  return durationText(Math.max(1, Math.round(sec / 60)))
 }
 
 function nextCatchable(board, place, nowMs) {
@@ -653,7 +660,7 @@ function nextCatchable(board, place, nowMs) {
 
 function leaveHeading(leaveMs) {
   if (!isFinite(leaveMs) || leaveMs < 60 * 1000) return "Leave now"
-  return "Leave in " + Math.floor(leaveMs / 60000) + " min"
+  return "Leave in " + durationText(Math.floor(leaveMs / 60000))
 }
 
 function relativeTimeText(lastMs, nowMs) {
@@ -810,7 +817,7 @@ function projectRow(dep, place, nowMs, occupancy) {
     alertTitle: dep.infos.length ? dep.infos[0].title : "",
     arriveText: dep.arriveMs ? clockText(dep.arriveMs) : "",
     travelText: dep.arriveMs ? travelText(dep.travelSec) : "",
-    doorText: dep.arriveMs ? doorToDoorMinutes(dep, place) + " min" : "",
+    doorText: dep.arriveMs ? durationText(doorToDoorMinutes(dep, place)) : "",
     changesText: !dep.arriveMs || dep.changes === 0 ? "" : dep.changes + (dep.changes === 1 ? " change" : " changes"),
     legsSummary: dep.legsSummary || ""
   }

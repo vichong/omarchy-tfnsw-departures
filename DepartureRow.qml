@@ -47,9 +47,15 @@ CursorSurface {
   readonly property color lightThemeToken: tokenLuminance(Color.foreground) >= tokenLuminance(Color.background) ? Color.foreground : Color.background
   readonly property color darkThemeToken: tokenLuminance(Color.foreground) < tokenLuminance(Color.background) ? Color.foreground : Color.background
   readonly property color countdownFg: Api.lightTextOn(lineColor) ? lightThemeToken : darkThemeToken
-  readonly property int countdownMinutes: Math.max(0, Math.min(99, Math.floor(Math.max(0, leaveMs) / 60000)))
-  readonly property string countdownText: missed ? "—" : cancelled ? String(countdownMinutes) : leaveMs < 60 * 1000 ? "NOW" : String(countdownMinutes)
-  readonly property bool countdownHasUnit: !cancelled && !missed && leaveMs >= 60 * 1000
+  readonly property int countdownMinutes: Math.max(0, Math.floor(Math.max(0, leaveMs) / 60000))
+  // From 100 minutes the block reads "1h40": hours and minutes, no unit word.
+  readonly property bool countdownHours: countdownMinutes >= 100
+  readonly property string countdownText: missed ? "—"
+    : cancelled ? String(Math.min(99, countdownMinutes))
+    : leaveMs < 60 * 1000 ? "NOW"
+    : countdownHours ? Math.floor(countdownMinutes / 60) + "h" + (countdownMinutes % 60 < 10 ? "0" : "") + (countdownMinutes % 60)
+    : String(countdownMinutes)
+  readonly property bool countdownHasUnit: !cancelled && !missed && leaveMs >= 60 * 1000 && !countdownHours
   readonly property string countdownLabel: cancelled ? "CANC" : missed ? "MISSED" : "LEAVE"
   readonly property bool expandable: legs && legs.length > 0
   readonly property int rideCount: {
@@ -210,7 +216,7 @@ CursorSurface {
               font.family: root.family
               font.pixelSize: root.missed ? Style.font.subtitle
                 : root.cancelled ? Style.font.body
-                : root.countdownText === "NOW" ? Style.font.heading : Style.space(20)
+                : root.countdownText === "NOW" || root.countdownHours ? Style.font.heading : Style.space(20)
               font.weight: root.cancelled ? Font.Medium : Font.Bold
               font.strikeout: root.cancelled
             }

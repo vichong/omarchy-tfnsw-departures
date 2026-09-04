@@ -170,6 +170,8 @@ const noStops = { legs: [Object.assign({}, multi[0].legs[0], { stops: [] })] }
 equal(Model.legRows(noStops)[0].stopsText, "Surry Hills · Central Chalmers St", "ride without a stop sequence falls back to endpoints")
 equal(Model.doorToDoorMinutes(commuteBoard[0], commute), Math.round(commuteBoard[0].travelSec / 60) + commute.walkMinutes, "door to door adds the place walk to a stop-to-stop journey")
 equal(Model.doorToDoorMinutes(Object.assign({}, commuteBoard[0], { legs: [{ kind: "walk", durationSec: 180 }].concat(commuteBoard[0].legs) }), commute), Math.round(commuteBoard[0].travelSec / 60), "a journey that starts with its own walk does not add the place walk again")
+equal([Model.durationText(33), Model.durationText(60), Model.durationText(91), Model.durationText(125)], ["33 min", "1 h", "1 h 31 min", "2 h 5 min"], "durations switch to hours from 60 minutes")
+equal(Model.leaveHeading(91 * 60000), "Leave in 1 h 31 min", "leave heading uses hours too")
 const walkedOnce = Model.appendEndWalk(multi, 5, "1 Bligh St")
 const walkedTwice = Model.appendEndWalk(walkedOnce, 5, "1 Bligh St")
 equal(walkedTwice[0].legs.length, walkedOnce[0].legs.length, "appending the same end walk twice adds it once")

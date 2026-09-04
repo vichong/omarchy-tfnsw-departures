@@ -23,6 +23,7 @@ CursorSurface {
   property string plannedText: ""
   property string arriveText: ""
   property string travelText: ""
+  property string doorText: ""
   property string changesText: ""
   property string legsSummary: ""
   property string crowding: ""
@@ -51,6 +52,12 @@ CursorSurface {
   readonly property bool countdownHasUnit: !cancelled && !missed && leaveMs >= 60 * 1000
   readonly property string countdownLabel: cancelled ? "CANC" : missed ? "MISSED" : "LEAVE"
   readonly property bool expandable: legs && legs.length > 0
+  readonly property int rideCount: {
+    var n = 0
+    var source = legs && isFinite(legs.length) ? legs : []
+    for (var i = 0; i < source.length; i++) if (source[i] && source[i].kind === "ride") n++
+    return n
+  }
   readonly property int collapsedHeight: Style.space(46) + Style.space(20)
   readonly property var pillItems: cancelled ? ["cancelled"]
     : (realtime ? ["RT"] : []).concat(changesText ? [changesText] : [])
@@ -101,6 +108,8 @@ CursorSurface {
     var parts = []
     if (arriveText)
       parts.push("→ " + arriveText)
+    if (doorText)
+      parts.push(doorText)
     if (platform)
       parts.push(platformPrefix() + platform)
     if (dominated)
@@ -548,6 +557,41 @@ CursorSurface {
       id: boardColumn
 
       width: parent.width
+
+      // Board header: the total the rows add up to.
+      Item {
+        width: parent.width
+        visible: root.doorText !== ""
+        implicitHeight: visible ? boardHeader.implicitHeight + Style.space(14) : 0
+        height: implicitHeight
+
+        Text {
+          id: boardHeader
+
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.leftMargin: Style.space(11)
+          anchors.rightMargin: Style.space(11)
+          anchors.verticalCenter: parent.verticalCenter
+          textFormat: Text.PlainText
+          text: "Door to door " + root.doorText
+            + " · " + root.rideCount + (root.rideCount === 1 ? " leg" : " legs")
+            + (root.changesText ? " · " + root.changesText : "")
+          elide: Text.ElideRight
+          color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.85)
+          font.family: root.family
+          font.pixelSize: Style.font.caption
+          font.weight: Font.Medium
+        }
+
+        Rectangle {
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.bottom: parent.bottom
+          height: Style.space(1)
+          color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.10)
+        }
+      }
 
       Repeater {
         model: root.expanded ? root.legs : []

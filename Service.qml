@@ -259,6 +259,7 @@ QtObject {
   property string nextLine: ""
   property string nextDestination: ""
   property int nextFinalWalkMinutes: 0
+  property int nextDoorMinutes: 0
   property real underlineFraction: 0
   property string barCaption: ""
   property string lastPolledAt: ""
@@ -887,6 +888,7 @@ QtObject {
     nextLine = ""
     nextDestination = ""
     nextFinalWalkMinutes = 0
+    nextDoorMinutes = 0
     underlineFraction = 0
     barCaption = ""
   }
@@ -915,6 +917,7 @@ QtObject {
     nextDestination = barState.destination
     var next = Model.nextCatchable(board, place, now)
     nextFinalWalkMinutes = Model.finalWalkMinutes(next)
+    nextDoorMinutes = Model.doorToDoorMinutes(next, place)
     underlineFraction = barState.fraction
     barCaption = barState.caption
     maybeNotify(now)

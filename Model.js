@@ -625,6 +625,18 @@ function firstWord(text) {
   return name.split(",")[0].trim() || String(text || "")
 }
 
+// Door to door: the journey's own span (which already includes an appended
+// walk to the address) plus the place walk when the planner did not start
+// with a walking leg of its own.
+function doorToDoorMinutes(entry, place) {
+  if (!entry || !entry.arriveMs) return 0
+  var minutes = Math.max(0, Math.round(Number(entry.travelSec || 0) / 60))
+  var legs = entry.legs && isFinite(entry.legs.length) ? entry.legs : []
+  var startsWithWalk = legs.length > 0 && legs[0] && legs[0].kind === "walk"
+  var walk = place && isFinite(place.walkMinutes) ? Math.max(0, Math.round(Number(place.walkMinutes))) : 0
+  return minutes + (startsWithWalk ? 0 : walk)
+}
+
 function travelText(sec) {
   if (!sec) return ""
   var minutes = Math.max(1, Math.round(sec / 60))
@@ -798,6 +810,7 @@ function projectRow(dep, place, nowMs, occupancy) {
     alertTitle: dep.infos.length ? dep.infos[0].title : "",
     arriveText: dep.arriveMs ? clockText(dep.arriveMs) : "",
     travelText: dep.arriveMs ? travelText(dep.travelSec) : "",
+    doorText: dep.arriveMs ? doorToDoorMinutes(dep, place) + " min" : "",
     changesText: !dep.arriveMs || dep.changes === 0 ? "" : dep.changes + (dep.changes === 1 ? " change" : " changes"),
     legsSummary: dep.legsSummary || ""
   }

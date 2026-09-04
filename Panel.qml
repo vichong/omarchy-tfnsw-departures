@@ -548,11 +548,17 @@ Ui.Panel {
                 width: parent.width
                 textFormat: Text.PlainText
                 text: (root.ready && root.service.activePlace && root.service.activePlace.walkMinutes > 0
-                  ? root.service.activePlace.walkMinutes + " min walk · " : "")
+                  ? root.service.activePlace.walkMinutes + " min\u00a0walk · " : "")
                   + (root.ready && root.service.nextLine ? root.service.nextLine : "")
                   + (root.ready && root.service.nextDestination ? " to " + root.service.nextDestination : "")
                   + (root.ready && root.service.nextFinalWalkMinutes > 0
-                    ? " · " + root.service.nextFinalWalkMinutes + " min walk at the end" : "")
+                    ? " · then\u00a0" + root.service.nextFinalWalkMinutes + "\u00a0min\u00a0walk" : "")
+                  + (root.ready && root.service.nextDoorMinutes > 0
+                    ? " · " + root.service.nextDoorMinutes + "\u00a0min\u00a0door\u00a0to\u00a0door" : "")
+                // Two lines at most: the walks and the total make this longer
+                // than one line on trips to an address.
+                wrapMode: Text.WordWrap
+                maximumLineCount: 2
                 elide: Text.ElideRight
                 color: Qt.rgba(root.fg.r, root.fg.g, root.fg.b, 0.55)
                 font.family: root.family
@@ -817,6 +823,7 @@ Ui.Panel {
             plannedText: model.plannedText
             arriveText: model.arriveText
             travelText: model.travelText
+            doorText: model.doorText
             changesText: model.changesText
             legsSummary: model.legsSummary
             crowding: model.crowding

@@ -359,7 +359,8 @@ function nearbyModes(name) {
   var n = String(name || "")
   if (/light rail/i.test(n)) return ["lightrail"]
   if (/\bwharf\b/i.test(n)) return ["ferry"]
-  if (/\bstation\b/i.test(n)) return ["train"]
+  // The coord lookup asks for bus points; "Wynyard Station, Stand B" is a bus
+  // stand, not a train. Stations come from the bundled list with real modes.
   return ["bus"]
 }
 

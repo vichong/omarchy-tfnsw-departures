@@ -130,7 +130,7 @@ assert(!Api.lightTextOn("#F99D1C") && !Api.lightTextOn("#00B5EF") && !Api.lightT
 assert(Math.abs(Api.contrastRatio("#FFFFFF", "#000000") - 21) < 0.01, "contrast ratio of black on white is 21")
 equal(Api.luminance("bogus"), 0, "bad colours have zero luminance")
 
-equal([Api.nearbyModes("Crown St at Rainford St, Surry Hills"), Api.nearbyModes("The Star Light Rail, Pyrmont"), Api.nearbyModes("Circular Quay Wharf 2"), Api.nearbyModes("Martin Place Station, Elizabeth St")], [["bus"], ["lightrail"], ["ferry"], ["train"]], "nearby modes inferred from the platform name")
+equal([Api.nearbyModes("Crown St at Rainford St, Surry Hills"), Api.nearbyModes("The Star Light Rail, Pyrmont"), Api.nearbyModes("Circular Quay Wharf 2"), Api.nearbyModes("Martin Place Station, Elizabeth St")], [["bus"], ["lightrail"], ["ferry"], ["bus"]], "nearby modes inferred from the platform name; a station bus stand is a bus stop")
 
 const infoWithText = Api.parseDepartures(fixture("departure_mon_sydenham.json")).map(d => d.infos).flat().find(i => i.text)
 assert(infoWithText && /buses replace trains/i.test(infoWithText.text), "alerts carry their body text from speechText")

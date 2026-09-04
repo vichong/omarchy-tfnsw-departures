@@ -8,10 +8,12 @@ cd "$(dirname "$0")/.."
 key=$(secret-tool lookup service tfnsw-departures account apikey)
 export TFNSW_KEY="$key"
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
-for f in sydneytrains metro lightrail/innerwest lightrail/cbdandsoutheast lightrail/newcastle ferries/sydneyferries; do
-  n=${f//\//-}
+# Metro comes from the v2 schedule: v1 stops at the original 13 stations and
+# knows nothing of the city section (Gadigal, Barangaroo, Victoria Cross...).
+for f in v1/sydneytrains v2/metro v1/lightrail/innerwest v1/lightrail/cbdandsoutheast v1/lightrail/newcastle v1/ferries/sydneyferries; do
+  n=${f#*/}; n=${n//\//-}
   curl -sS --proto =https --max-filesize 200000000 -H "Authorization: apikey $key" \
-    -o "$tmp/$n.zip" "https://api.transport.nsw.gov.au/v1/gtfs/schedule/$f"
+    -o "$tmp/$n.zip" "https://api.transport.nsw.gov.au/${f%%/*}/gtfs/schedule/${f#*/}"
   unzip -o -q "$tmp/$n.zip" stops.txt -d "$tmp/$n"
 done
 python3 - "$tmp" <<'PY'

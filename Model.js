@@ -163,9 +163,9 @@ function mergeNearby(bundled, api) {
   for (var r = 0; r < remote.length; r++) add(remote[r], false)
   function byDistance(a, b) { return a.metres - b.metres || a.name.localeCompare(b.name) || a.id.localeCompare(b.id) }
   out.sort(byDistance)
-  // Cap at 12, but never let a crowd of nearer bus stops push a walkable
+  // Cap at 24 (a CBD address has dozens of bus stops), but never let a crowd of nearer bus stops push a walkable
   // station out: the nearest stop of each rail or ferry mode is kept.
-  var kept = featureNearby(out, "", 15).slice(0, 12)
+  var kept = featureNearby(out, "", 15).slice(0, 24)
   kept.sort(byDistance)
   return kept
 }

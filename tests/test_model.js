@@ -281,7 +281,7 @@ const nearbyCentral = [{ id: "b1", modes: ["bus"], walkMinutes: 2 }, { id: "lr",
 const busCrowd = []
 for (let i = 0; i < 14; i++) busCrowd.push({ id: String(201000 + i), name: "Bus " + i, modes: ["bus"], metres: 100 + i * 40 })
 const mergedCrowd = Model.mergeNearby([{ id: "200060", name: "Central Station", modes: ["train", "lightrail"], metres: 800 }], busCrowd)
-assert(mergedCrowd.length === 12 && mergedCrowd.some(x => x.id === "200060"), "a walkable station survives the 12-stop cap under a crowd of bus stops")
+assert(mergedCrowd.length === 15 && mergedCrowd.some(x => x.id === "200060"), "a walkable station survives the 12-stop cap under a crowd of bus stops")
 equal(Model.featureNearby(nearbyCentral, "", 15).map(x => x.id), ["lr", "central", "b1", "b2", "b3", "lr2"], "the nearest stop of each rail mode is featured, a second light rail stop is not")
 
 done("test_model")

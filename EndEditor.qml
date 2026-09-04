@@ -253,6 +253,17 @@ Column {
     edited()
   }
 
+  // How many nearby stops serve a mode: shown on the filter chips so a CBD
+  // address reads "Bus 14 · Train 2" before you filter.
+  function modeCount(id) {
+    var count = 0
+    for (var i = 0; i < nearby.length; i++) {
+      var modes = nearby[i].modes && isFinite(nearby[i].modes.length) ? nearby[i].modes : []
+      if (modes.indexOf(id) !== -1) count++
+    }
+    return count
+  }
+
   function filteredNearby() {
     if (!modeFilter)
       return nearby
@@ -445,8 +456,12 @@ Column {
 
           delegate: Ui.Button {
             required property var modelData
+            readonly property int count: modelData.id ? root.modeCount(modelData.id) : root.nearby.length
+            // Modes with nothing nearby stay out of the row, so a suburb shows
+            // "All · Bus" and the CBD shows every mode with its count.
+            visible: modelData.id === "" || count > 0
             height: Style.space(24)
-            text: modelData.label
+            text: modelData.label + " " + count
             selected: root.modeFilter === modelData.id
             bordered: true
             foreground: root.foreground
@@ -466,7 +481,7 @@ Column {
 
       Repeater {
         readonly property var featured: Model.featureNearby(root.filteredNearby(), root.stopId, 15)
-        model: root.nearbyExpanded ? featured.slice(0, 8)
+        model: root.nearbyExpanded ? featured
           : featured.slice(0, 3).concat(featured.length > 3 ? [{ "isMore": true }] : [])
 
         delegate: StopChip {

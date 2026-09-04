@@ -42,10 +42,15 @@ All present on a stock Omarchy install: `curl` (HTTPS calls to
 `api.transport.nsw.gov.au` only, no redirects), `secret-tool` from libsecret
 (stores the API key in the system keyring), `nmcli` from NetworkManager
 (optional, reads the current Wi-Fi SSID for automatic trip switching) and
-Omarchy's own `omarchy-notification-send`. Child processes run through
-`scripts/tfnsw-bounded`, which caps their output. No sudo or pkexec, no
-installer, no bundled binaries, no writes outside
-`~/.config/omarchy/tfnsw-departures/` and `~/.cache/omarchy/tfnsw-departures/`.
+Omarchy's own `omarchy-notification-send`. API and keyring helpers use
+`scripts/tfnsw-bounded` or curl's response cap. Runtime `mkdir`, notifications,
+Wi-Fi checks and cache reads use fixed argument arrays, deadlines, and capped
+reads where output is consumed. No sudo or pkexec, installer, or bundled binary
+is used at runtime. Plugin-managed persistent files stay under
+`~/.config/omarchy/tfnsw-departures/` and
+`~/.cache/omarchy/tfnsw-departures/`; the API key is stored separately by the
+system keyring. `scripts/build-stops` is a developer tool that rewrites
+`data/stops.json` in the repository.
 
 ## Get a Transport NSW API key
 

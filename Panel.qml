@@ -97,7 +97,10 @@ Ui.Panel {
   }
 
   function openAlert(url) {
-    var safe = Api.httpsOnly(url) || Api.ALERTS_URL
+    var value = String(url || "")
+    var safe = value ? Api.httpsOnly(value) : Api.ALERTS_URL
+    if (!safe)
+      return
     Quickshell.execDetached(["gio", "open", safe])
   }
 
@@ -136,15 +139,16 @@ Ui.Panel {
     function menu(): void { if (root.ready) placeDropdown.toggle() }
     function expand(index: int): void {
       var list = root.ready ? root.service.board : []
-      if (index >= 0 && index < list.length) root.toggleExpanded(list[index].id)
+      if (isFinite(index) && Math.floor(index) === index && index >= 0 && index < 50 && index < list.length)
+        root.toggleExpanded(list[index].id)
     }
     function newtripUse(): void { if (root.ready) root.service.requestNewTripAction("use") }
-    function newtripFrom(text: string): void { root.scriptedNewTrip("from:" + text) }
-    function newtripTo(text: string): void { root.scriptedNewTrip("to:" + text) }
-    function placeFrom(text: string): void { root.scriptedNewTrip("placeFrom:" + text) }
+    function newtripFrom(text: string): void { if (text.length <= 120) root.scriptedNewTrip("from:" + text) }
+    function newtripTo(text: string): void { if (text.length <= 120) root.scriptedNewTrip("to:" + text) }
+    function placeFrom(text: string): void { if (text.length <= 120) root.scriptedNewTrip("placeFrom:" + text) }
     function newtripSave(): void { if (root.ready) root.service.requestNewTripAction("save") }
     function here(): void { root.openOverlay("newtrip") }
-    function place(id: string): string { return root.ready && root.service.setActivePlace(id, true) ? id : "unknown place" }
+    function place(id: string): string { return id.length <= 120 && root.ready && root.service.setActivePlace(id, true) ? id : "unknown place" }
     function next(): string { return root.ready ? root.service.pillText : "" }
   }
 

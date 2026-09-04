@@ -76,11 +76,13 @@ QtObject {
 
   function parseResult(text, exitCode) {
     var raw = String(text || "")
-    if (exitCode === 63 || raw.length > Api.MAX_RESPONSE_BYTES + 8)
+    if (exitCode === 63 || raw.length >= Api.MAX_RESPONSE_BYTES + 8)
       return Api.errorResult("protocol", "The Transport NSW response was too large.")
     var marker = raw.lastIndexOf("\n")
     var status = parseInt(marker >= 0 ? raw.slice(marker + 1).trim() : "", 10)
     var body = marker >= 0 ? raw.slice(0, marker) : raw
+    if (body.length >= Api.MAX_RESPONSE_BYTES)
+      return Api.errorResult("protocol", "The Transport NSW response was too large.")
     if (!isNaN(status) && status >= 300 && status < 400)
       return Api.errorResult("protocol", "Unexpected redirect.")
     var parsed = Api.parseResponse(isNaN(status) ? 0 : status, body)
@@ -93,7 +95,9 @@ QtObject {
 
   function parseBinaryResult(text, exitCode) {
     var raw = String(text || "")
-    if (exitCode === 90 || raw.length > binaryMaxBytes)
+    if (exitCode === 90)
+      return Api.errorResult("protocol", "The Transport NSW vehicle-position feed was truncated.")
+    if (raw.length >= binaryMaxBytes)
       return Api.errorResult("protocol", "The Transport NSW vehicle-position feed was too large.")
     if (exitCode !== 0)
       return Api.errorResult("network", "Could not reach the Transport NSW vehicle-position feed (fetch exited " + exitCode + ").")

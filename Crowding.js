@@ -5,6 +5,10 @@
 // Unknown fields are skipped; everything is bounded.
 
 var MAX_ENTITIES = 20000
+var MAX_ENCODED_BASE64 = 6 * 1024 * 1024
+var MAX_DECODED_BYTES = 4 * 1024 * 1024
+var MAX_NESTING_DEPTH = 8
+var MAX_TOTAL_FIELDS = 200000
 var STATUS = ["empty", "many", "few", "standing", "crushed", "full", "closed"]
 
 var B64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
@@ -16,15 +20,18 @@ function fromBase64(text) {
     B64_INDEX = {}
     for (var c = 0; c < B64.length; c++) B64_INDEX[B64.charAt(c)] = c
   }
-  var s = String(text || "").replace(/[^A-Za-z0-9+\/]/g, "")
+  var s = String(text || "")
   var out = []
-  var bits = 0, value = 0
-  for (var i = 0; i < s.length; i++) {
-    value = (value << 6) | B64_INDEX[s.charAt(i)]
+  var bits = 0, value = 0, scanned = 0
+  for (var i = 0; i < s.length && scanned < MAX_ENCODED_BASE64; i++, scanned++) {
+    var digit = B64_INDEX[s.charAt(i)]
+    if (digit === undefined) continue
+    value = (value << 6) | digit
     bits += 6
     if (bits >= 8) {
       bits -= 8
       out.push((value >> bits) & 0xff)
+      if (out.length >= MAX_DECODED_BYTES) return out
     }
   }
   return out
@@ -43,8 +50,13 @@ function readVarint(bytes, pos, end) {
 }
 
 // Walk one message's fields between pos and end; calls onField(field, wire, value|{start,end}).
-function walk(bytes, pos, end, onField) {
+function walk(bytes, pos, end, onField, budget, depth) {
+  var state = budget || { fields: 0, hit: false }
+  var level = isFinite(depth) ? Number(depth) : 0
+  if (level > MAX_NESTING_DEPTH || state.hit) { state.hit = true; return true }
   while (pos < end) {
+    if (state.fields >= MAX_TOTAL_FIELDS) { state.hit = true; return true }
+    state.fields++
     var key = readVarint(bytes, pos, end)
     if (!key) return false
     pos = key.pos
@@ -88,7 +100,9 @@ function parseOccupancy(bytes) {
   var result = {}
   var count = 0
   if (!bytes || !bytes.length) return result
-  walk(bytes, 0, bytes.length, function(field, wire, value) {
+  var budget = { fields: 0, hit: false }
+  var end = Math.min(bytes.length, MAX_DECODED_BYTES)
+  walk(bytes, 0, end, function(field, wire, value) {
     if (field !== 2 || wire !== 2) return
     if (++count > MAX_ENTITIES) return false
     var tripId = "", status = -1
@@ -98,14 +112,14 @@ function parseOccupancy(bytes) {
         if (vf === 1 && vw === 2) {
           walk(bytes, vv.start, vv.end, function(tf, tw, tv) {
             if (tf === 1 && tw === 2) tripId = readString(bytes, tv)
-          })
+          }, budget, 4)
         } else if (vf === 9 && vw === 0) {
           status = vv
         }
-      })
-    })
+      }, budget, 3)
+    }, budget, 2)
     if (tripId && status >= 0 && status < STATUS.length) result[tripId] = STATUS[status]
-  })
+  }, budget, 1)
   return result
 }
 

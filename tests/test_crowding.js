@@ -23,6 +23,14 @@ const occ = Crowding.parseOccupancy(bytes)
 equal(occ, { "1234.trip": "standing", "5678.trip": "many" }, "occupancy keyed by trip id; missing status skipped")
 equal(Crowding.parseOccupancy([]), {}, "empty feed")
 equal(Crowding.parseOccupancy([0xff, 0xff, 0xff]), {}, "garbage does not throw")
+const capped = Crowding.fromBase64("A".repeat(Crowding.MAX_ENCODED_BASE64 + 64))
+equal(capped.length, Crowding.MAX_DECODED_BYTES, "base64 decoding stops at the decoded-byte budget")
+const fieldBudget = { fields: Crowding.MAX_TOTAL_FIELDS, hit: false }
+assert(Crowding.walk([8, 1], 0, 2, function() { throw new Error("field callback ran past budget") }, fieldBudget, 0)
+  && fieldBudget.hit, "protobuf walker stops when the total-field budget is reached")
+const depthBudget = { fields: 0, hit: false }
+assert(Crowding.walk([8, 1], 0, 2, function() { throw new Error("field callback ran past depth") }, depthBudget,
+  Crowding.MAX_NESTING_DEPTH + 1) && depthBudget.hit, "protobuf walker stops beyond the nesting-depth budget")
 equal([Crowding.glyphsFor("many"), Crowding.glyphsFor("few"), Crowding.glyphsFor("standing"), Crowding.glyphsFor("")], [1, 2, 3, 0], "glyph fill counts")
 equal(Crowding.labelFor("few"), "Few seats available", "labels")
 

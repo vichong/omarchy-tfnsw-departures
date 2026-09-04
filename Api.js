@@ -18,6 +18,12 @@ var MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 var MAX_STOP_EVENTS = 120
 var MAX_JOURNEYS = 6
 var MAX_LOCATIONS = 20
+var MAX_LOCATION_SCAN = 200
+var MAX_LEGS = 50
+var MAX_MODES_SCAN = 50
+var MAX_SYSTEM_MESSAGES = 100
+var MAX_INFOS = 8
+var MAX_STOPS = 60
 
 // Trip Planner product classes → mode. Colours are TfNSW's mode palette;
 // the letter is the roundel glyph. Class 100 is a walking leg.
@@ -36,6 +42,26 @@ var DEFAULT_MODE = { cls: 0, id: "other", label: "Service", letter: "•", color
 function clip(text, max) {
   var limit = Math.max(0, parseInt(max, 10) || 0)
   return String(text || "").slice(0, limit)
+}
+
+function typedClip(value, max) {
+  return typeof value === "string" ? clip(value, max) : ""
+}
+
+function firstString(values) {
+  var list = listValue(values)
+  for (var i = 0; i < list.length; i++) if (typeof list[i] === "string" && list[i]) return list[i]
+  return ""
+}
+
+// QML list values may lose native Array identity when crossing property-var
+// boundaries, so parser budgets use a finite length rather than Array.isArray.
+function listValue(value) {
+  return value && typeof value !== "string" && isFinite(value.length) ? value : []
+}
+
+function isListValue(value) {
+  return value && typeof value !== "string" && isFinite(value.length)
 }
 
 // Line colours from TfNSW wayfinding. Sydney Trains verified against each
@@ -163,7 +189,7 @@ function departuresPath(stopId, excludeModes) {
   p.name_dm = String(stopId)
   p.depArrMacro = "dep"
   p.TfNSWDM = "true"
-  var excluded = Array.isArray(excludeModes) ? excludeModes : []
+  var excluded = listValue(excludeModes)
   if (excluded.length) {
     p.excludedMeans = "checkbox"
     for (var i = 0; i < excluded.length; i++) {
@@ -210,7 +236,7 @@ function endpointSpec(endpoint) {
 
 function parseResponse(status, body) {
   var text = String(body || "")
-  if (text.length > MAX_RESPONSE_BYTES) return errorResult("protocol", "The Transport NSW response was too large.")
+  if (text.length >= MAX_RESPONSE_BYTES) return errorResult("protocol", "The Transport NSW response was too large.")
   if (status === 401) return errorResult("credential", "Transport NSW rejected the API key.")
   if (status === 403) {
     // 403 is both "bad key" and "over quota"; the body says which.
@@ -225,7 +251,7 @@ function parseResponse(status, body) {
     var message = data && data.ErrorDetails && data.ErrorDetails.message ? clip(data.ErrorDetails.message, 120) : ""
     return errorResult(status >= 500 ? "network" : "api", message || ("Transport NSW API error (HTTP " + status + ")."))
   }
-  if (!data || typeof data !== "object" || Array.isArray(data)) return errorResult("protocol", "Unexpected response from Transport NSW.")
+  if (!data || typeof data !== "object" || isListValue(data)) return errorResult("protocol", "Unexpected response from Transport NSW.")
   var errors = systemErrors(data)
   if (errors.length && !hasPayload(data)) return errorResult("api", errors[0])
   return { ok: true, status: status, kind: "", error: "", data: data }
@@ -236,8 +262,8 @@ function parseResponse(status, body) {
 // a system error only fails the call when nothing usable came back.
 function systemErrors(data) {
   var out = []
-  var messages = data && Array.isArray(data.systemMessages) ? data.systemMessages : []
-  for (var i = 0; i < messages.length; i++) {
+  var messages = data ? listValue(data.systemMessages) : []
+  for (var i = 0; i < messages.length && i < MAX_SYSTEM_MESSAGES; i++) {
     var m = messages[i]
     if (!m || m.type !== "error") continue
     // -2000 "stop invalid" simply means no match; callers treat empty lists.
@@ -250,7 +276,7 @@ function systemErrors(data) {
 function hasPayload(data) {
   if (!data || typeof data !== "object") return false
   var keys = ["locations", "stopEvents", "journeys"]
-  for (var i = 0; i < keys.length; i++) if (Array.isArray(data[keys[i]]) && data[keys[i]].length) return true
+  for (var i = 0; i < keys.length; i++) if (isListValue(data[keys[i]]) && data[keys[i]].length) return true
   return false
 }
 
@@ -290,17 +316,17 @@ function platformOf(location) {
 function parseInfos(infos) {
   var out = []
   var seen = {}
-  var list = Array.isArray(infos) ? infos : []
-  for (var i = 0; i < list.length && out.length < 8; i++) {
+  var list = listValue(infos)
+  for (var i = 0; i < list.length && out.length < MAX_INFOS; i++) {
     var info = list[i]
     if (!info || typeof info !== "object") continue
-    var id = String(info.id || "")
+    var id = typedClip(info.id, 64)
     var title = clip(String(info.urlText || info.subtitle || "").trim(), 120)
     if (!title || (id && seen[id])) continue
     if (id) seen[id] = true
     var props = info.properties && typeof info.properties === "object" ? info.properties : {}
-    out.push({ id: id || title, title: title, priority: String(info.priority || "normal"),
-               type: String(info.type || ""), url: httpsOnly(info.url),
+    out.push({ id: id || clip(title, 64), title: title, priority: typedClip(info.priority, 32) || "normal",
+               type: typedClip(info.type, 32), url: httpsOnly(info.url),
                text: infoText(props.speechText || props.smsText || info.content || "") })
   }
   return out
@@ -317,28 +343,35 @@ function infoText(value) {
 
 function httpsOnly(url) {
   var text = String(url || "").trim()
-  return /^https:\/\/[^\s"'<>]+$/.test(text) ? text : ""
+  if (!/^https:\/\/[^\s"'<>]+$/.test(text)) return ""
+  var match = text.match(/^https:\/\/([^\/?#]+)(\/[^?#]*)?(?:[?#].*)?$/i)
+  if (!match || /[@:]/.test(match[1])) return ""
+  var host = match[1].toLowerCase()
+  if (host === "transportnsw.info" || host === "www.transportnsw.info"
+      || host === "opendata.transport.nsw.gov.au" || host === "api.transport.nsw.gov.au") return text
+  if (host === "github.com" && String(match[2] || "/").indexOf("/vichong/omarchy-tfnsw-departures") === 0) return text
+  return ""
 }
 
 // stop_finder → [{ id, name, shortName, type, lat, lon, modes: [modeId], isStop }]
 function parseLocations(data) {
-  var list = data && Array.isArray(data.locations) ? data.locations : []
+  var list = data ? listValue(data.locations) : []
   var out = []
-  for (var i = 0; i < list.length && out.length < MAX_LOCATIONS; i++) {
+  for (var i = 0; i < list.length && i < MAX_LOCATION_SCAN && out.length < MAX_LOCATIONS; i++) {
     var loc = list[i]
     if (!loc || typeof loc !== "object" || !loc.name) continue
-    var coord = Array.isArray(loc.coord) ? loc.coord : []
+    var coord = listValue(loc.coord)
     var lat = parseFloat(coord[0]), lon = parseFloat(coord[1])
     var isStop = loc.type === "stop" && isStopId(loc.id)
     var modes = []
-    var rawModes = Array.isArray(loc.modes) ? loc.modes : []
-    for (var m = 0; m < rawModes.length; m++) {
+    var rawModes = listValue(loc.modes)
+    for (var m = 0; m < rawModes.length && m < MAX_MODES_SCAN; m++) {
       var mode = modeFor(rawModes[m])
       if (mode.cls && modes.indexOf(mode.id) === -1) modes.push(mode.id)
     }
     out.push({
-      id: String(loc.id), name: clip(loc.name, 120), shortName: clip(loc.disassembledName || firstSegment(loc.name), 120),
-      type: String(loc.type || ""), lat: isFinite(lat) ? lat : null, lon: isFinite(lon) ? lon : null,
+      id: typedClip(loc.id, 64), name: clip(loc.name, 120), shortName: clip(loc.disassembledName || firstSegment(loc.name), 120),
+      type: typedClip(loc.type, 32), lat: isFinite(lat) ? lat : null, lon: isFinite(lon) ? lon : null,
       modes: modes, isStop: isStop, isBest: loc.isBest === true
     })
   }
@@ -365,13 +398,13 @@ function nearbyModes(name) {
 }
 
 function parseNearby(data) {
-  var list = data && Array.isArray(data.locations) ? data.locations : []
+  var list = data ? listValue(data.locations) : []
   var byId = {}
-  for (var i = 0; i < list.length; i++) {
+  for (var i = 0; i < list.length && i < MAX_LOCATION_SCAN; i++) {
     var loc = list[i]
     if (!loc || typeof loc !== "object") continue
     var parent = loc.parent && typeof loc.parent === "object" ? loc.parent : {}
-    var id = String(parent.id || loc.id || "")
+    var id = typedClip(typeof parent.id === "string" ? parent.id : loc.id, 64)
     if (!isStopId(id)) continue
     var metres = Number(loc.properties && loc.properties.distance)
     if (!isFinite(metres) || metres < 0) continue
@@ -394,7 +427,7 @@ function parseNearby(data) {
 // departure_mon → [{ id, tripId, line, lineName, destination, platform, mode,
 //   plannedMs, estimatedMs, realtime, cancelled, infos, stopName }]
 function parseDepartures(data) {
-  var events = data && Array.isArray(data.stopEvents) ? data.stopEvents : []
+  var events = data ? listValue(data.stopEvents) : []
   var out = []
   for (var i = 0; i < events.length && out.length < MAX_STOP_EVENTS; i++) {
     var ev = events[i]
@@ -404,11 +437,13 @@ function parseDepartures(data) {
     if (!planned && !estimated) continue
     var t = ev.transportation
     var props = t.properties || {}
-    var tripId = String(props.RealtimeTripId || (ev.properties && ev.properties.RealtimeTripId) || props.gtfsTripId || "")
+    var rawTripId = firstString([props.RealtimeTripId,
+      ev.properties && ev.properties.RealtimeTripId, props.gtfsTripId])
+    var tripId = typedClip(rawTripId, 120)
     var product = t.product || {}
     var line = shortLine(t)
     out.push({
-      id: tripId || (line + "@" + (planned || estimated)),
+      id: clip(tripId || (line + "@" + (planned || estimated)), 64),
       tripId: tripId,
       line: line,
       lineName: clip(t.number || t.name || line, 120),
@@ -433,12 +468,12 @@ function effectiveMs(dep) { return dep.estimatedMs || dep.plannedMs }
 //   line, tripId, destination, platform, from, to, departMs, arriveMs, durationSec,
 //   distanceM, realtime, stops: [{ name, arriveMs, departMs }], infos }] }]
 function parseJourneys(data) {
-  var journeys = data && Array.isArray(data.journeys) ? data.journeys : []
+  var journeys = data ? listValue(data.journeys) : []
   var out = []
   for (var i = 0; i < journeys.length && out.length < MAX_JOURNEYS; i++) {
-    var legsRaw = journeys[i] && Array.isArray(journeys[i].legs) ? journeys[i].legs : []
+    var legsRaw = journeys[i] ? listValue(journeys[i].legs) : []
     var legs = []
-    for (var l = 0; l < legsRaw.length; l++) {
+    for (var l = 0; l < legsRaw.length && l < MAX_LEGS; l++) {
       var leg = parseLeg(legsRaw[l])
       if (leg) legs.push(leg)
     }
@@ -465,8 +500,8 @@ function parseLeg(leg) {
   if (!departMs || !arriveMs) return null
   var isWalk = parseInt(product.class, 10) === WALK_CLASS || (!t.number && !t.disassembledName)
   var stops = []
-  var seq = Array.isArray(leg.stopSequence) ? leg.stopSequence : []
-  for (var s = 0; s < seq.length && stops.length < 60; s++) {
+  var seq = listValue(leg.stopSequence)
+  for (var s = 0; s < seq.length && stops.length < MAX_STOPS; s++) {
     var stop = seq[s]
     if (!stop || !stop.name) continue
     stops.push({
@@ -479,7 +514,7 @@ function parseLeg(leg) {
     kind: isWalk ? "walk" : "ride",
     mode: isWalk ? "walk" : modeFor(product.class).id,
     line: isWalk ? "" : shortLine(t),
-    tripId: isWalk ? "" : clip(properties.RealtimeTripId || properties.AVMSTripID || "", 120),
+    tripId: isWalk ? "" : typedClip(firstString([properties.RealtimeTripId, properties.AVMSTripID]), 120),
     destination: clip(t.destination && t.destination.name ? t.destination.name : "", 120),
     platform: isWalk ? "" : platformOf(origin),
     fromId: clip(origin.parent && origin.parent.id ? origin.parent.id : (origin.id || ""), 40),
@@ -493,6 +528,89 @@ function parseLeg(leg) {
     stops: stops,
     infos: parseInfos(leg.infos)
   }
+}
+
+// Cache data has already crossed a trust boundary. Rebuild the exact parsed
+// departure/journey shapes with bounded strings and arrays before reuse.
+function normalizeCachedInfos(value) {
+  if (!isListValue(value)) return null
+  var out = []
+  for (var i = 0; i < value.length && i < MAX_INFOS; i++) {
+    var info = value[i]
+    if (!info || typeof info !== "object" || isListValue(info)) return null
+    var title = typedClip(info.title, 120)
+    if (!title) return null
+    out.push({ id: typedClip(info.id, 64) || clip(title, 64), title: title,
+      priority: typedClip(info.priority, 32) || "normal", type: typedClip(info.type, 32),
+      url: httpsOnly(info.url), text: typedClip(info.text, 600) })
+  }
+  return out
+}
+
+function finiteCachedNumber(value) {
+  return typeof value === "number" && isFinite(value) ? value : null
+}
+
+function normalizeCachedLeg(value) {
+  if (!value || typeof value !== "object" || isListValue(value)
+      || (value.kind !== "ride" && value.kind !== "walk")) return null
+  var departMs = finiteCachedNumber(value.departMs), arriveMs = finiteCachedNumber(value.arriveMs)
+  var durationSec = finiteCachedNumber(value.durationSec), distanceM = finiteCachedNumber(value.distanceM)
+  if (departMs === null || arriveMs === null || arriveMs < departMs || durationSec === null || distanceM === null) return null
+  var infos = normalizeCachedInfos(value.infos)
+  if (infos === null || !isListValue(value.stops)) return null
+  var stops = []
+  for (var i = 0; i < value.stops.length && i < MAX_STOPS; i++) {
+    var stop = value.stops[i]
+    if (!stop || typeof stop !== "object" || isListValue(stop) || typeof stop.name !== "string") return null
+    var arrive = finiteCachedNumber(stop.arriveMs), depart = finiteCachedNumber(stop.departMs)
+    if (arrive === null || depart === null) return null
+    stops.push({ name: typedClip(stop.name, 120), arriveMs: arrive, departMs: depart })
+  }
+  var walk = value.kind === "walk"
+  var mode = walk ? "walk" : typedClip(value.mode, 32)
+  if (!walk && !isValidModeId(mode)) return null
+  return { kind: value.kind, mode: mode, line: walk ? "" : typedClip(value.line, 120),
+    tripId: walk ? "" : typedClip(value.tripId, 120), destination: typedClip(value.destination, 120),
+    platform: walk ? "" : typedClip(value.platform, 12), fromId: typedClip(value.fromId, 64),
+    from: typedClip(value.from, 120), toId: typedClip(value.toId, 64), to: typedClip(value.to, 120),
+    departMs: departMs, arriveMs: arriveMs, durationSec: Math.max(0, durationSec),
+    distanceM: Math.max(0, distanceM), realtime: value.realtime === true, stops: stops, infos: infos }
+}
+
+function normalizeCachedDepartures(value) {
+  if (!isListValue(value) || value.length > MAX_STOP_EVENTS) return []
+  var out = []
+  for (var i = 0; i < value.length && i < MAX_STOP_EVENTS; i++) {
+    var item = value[i]
+    if (!item || typeof item !== "object" || isListValue(item)) continue
+    if (isListValue(item.legs)) {
+      if (item.legs.length > MAX_LEGS) continue
+      var legs = [], valid = true
+      for (var l = 0; l < item.legs.length; l++) {
+        var leg = normalizeCachedLeg(item.legs[l])
+        if (!leg) { valid = false; break }
+        legs.push(leg)
+      }
+      var departMs = finiteCachedNumber(item.departMs), arriveMs = finiteCachedNumber(item.arriveMs)
+      var durationSec = finiteCachedNumber(item.durationSec)
+      if (valid && legs.length && departMs !== null && arriveMs !== null && arriveMs >= departMs && durationSec !== null)
+        out.push({ departMs: departMs, arriveMs: arriveMs, durationSec: Math.max(0, durationSec), legs: legs })
+      continue
+    }
+    var plannedMs = finiteCachedNumber(item.plannedMs), estimatedMs = finiteCachedNumber(item.estimatedMs)
+    var infos = normalizeCachedInfos(item.infos)
+    var mode = typedClip(item.mode, 32)
+    if (((plannedMs === null || plannedMs <= 0) && (estimatedMs === null || estimatedMs <= 0))
+        || infos === null || !isValidModeId(mode)) continue
+    var tripId = typedClip(item.tripId, 120)
+    out.push({ id: typedClip(item.id, 64) || clip(tripId, 64), tripId: tripId, line: typedClip(item.line, 120),
+      lineName: typedClip(item.lineName, 120), destination: typedClip(item.destination, 120),
+      platform: typedClip(item.platform, 12), mode: mode, plannedMs: plannedMs || 0,
+      estimatedMs: estimatedMs || 0, realtime: item.realtime === true, cancelled: item.cancelled === true,
+      infos: infos, stopName: typedClip(item.stopName, 120) })
+  }
+  return out
 }
 
 function connectionProbePath() { return stopFinderPath("Central Station") }

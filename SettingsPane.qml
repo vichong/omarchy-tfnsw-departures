@@ -117,6 +117,7 @@ Flickable {
             height: page.host.controlHeight
             verticalAlignment: TextInput.AlignVCenter
             password: true
+            maximumLength: 256
             text: page.host.keyDraft
             placeholderText: "Transport NSW API key"
             font.italic: text === ""

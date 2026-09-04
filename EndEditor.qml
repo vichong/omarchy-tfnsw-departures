@@ -129,8 +129,11 @@ Column {
   function search(text) {
     if (!service)
       return
-    var query = String(text || "").trim()
-    searchText = String(text || "")
+    var raw = String(text || "")
+    if (raw.length > 120)
+      return
+    var query = raw.trim()
+    searchText = raw
     var wantStops = kind === "stop"
     var local = wantStops ? Model.matchStops(service.stops, query).filter(function(item) {
       return String(item.id) !== String(root.excludedStopId)
@@ -151,7 +154,10 @@ Column {
   }
 
   function scriptedPick(text) {
-    var query = String(text || "").trim()
+    var raw = String(text || "")
+    if (raw.length > 120)
+      return
+    var query = raw.trim()
     if (service) {
       var local = Model.matchStops(service.stops, query).filter(function(item) {
         return String(item.id) !== String(root.excludedStopId)

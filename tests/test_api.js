@@ -5,6 +5,18 @@ const Api = loadModule("Api.js")
 assert(Api.sameOrigin("https://API.transport.nsw.gov.au:443/v1/tp/x", Api.BASE_URL), "origin normalizes case and port")
 assert(!Api.sameOrigin("https://api.transport.nsw.gov.au.evil.test/v1", Api.BASE_URL), "host prefix is not an origin match")
 assert(!Api.sameOrigin("http://api.transport.nsw.gov.au/v1", Api.BASE_URL), "scheme is part of the origin")
+const acceptedUrls = [
+  "https://transportnsw.info/alerts", "https://www.transportnsw.info/trip",
+  "https://opendata.transport.nsw.gov.au/data/user/register", "https://api.transport.nsw.gov.au/v1/tp",
+  "https://github.com/vichong/omarchy-tfnsw-departures/issues?state=open"
+]
+assert(acceptedUrls.every(url => Api.httpsOnly(url) === url), "external URL allowlist accepts documented hosts and repository paths")
+const rejectedUrls = [
+  "http://transportnsw.info/alerts", "https://evil.test/", "https://transportnsw.info.evil.test/",
+  "https://user@transportnsw.info/", "https://transportnsw.info:443/", "https://github.com/openai/codex",
+  "https://github.com@evil.test/vichong/omarchy-tfnsw-departures", "https://api.transport.nsw.gov.au:443/v1/tp"
+]
+assert(rejectedUrls.every(url => Api.httpsOnly(url) === ""), "external URL allowlist rejects schemes, hosts, userinfo, ports, and other GitHub paths")
 equal(Api.query({ a: 1, b: "x y", c: "", d: null }), "?a=1&b=x%20y", "query skips empty values")
 
 const sf = Api.stopFinderPath("Sydenham Station")
@@ -51,6 +63,7 @@ equal(Api.parseResponse(200, "<html>").kind, "protocol", "HTML 2xx body is a pro
 equal(Api.parseResponse(200, "[]").kind, "protocol", "array body is a protocol error")
 const oversized = Api.parseResponse(200, "x".repeat(Api.MAX_RESPONSE_BYTES + 1))
 equal(oversized.kind, "protocol", "oversized body is rejected before parsing")
+equal(Api.parseResponse(200, "x".repeat(Api.MAX_RESPONSE_BYTES)).kind, "protocol", "exact-cap body is rejected before parsing")
 const stopInvalid = Api.parseResponse(200, '{"systemMessages":[{"type":"error","module":"BROKER","code":-2000,"text":"stop invalid"}],"locations":[]}')
 assert(stopInvalid.ok && Api.parseLocations(stopInvalid.data).length === 0, "stop invalid is an empty result, not an error")
 const advisory = Api.parseResponse(200, '{"systemMessages":[{"type":"error","module":"BROKER","code":-8011,"text":""}],"locations":[{"id":"1","name":"x","type":"stop"}]}')
@@ -136,5 +149,57 @@ const infoWithText = Api.parseDepartures(fixture("departure_mon_sydenham.json"))
 assert(infoWithText && /buses replace trains/i.test(infoWithText.text), "alerts carry their body text from speechText")
 equal(Api.infoText("<p>Line&nbsp;one<br>Line   two</p>"), "Line one\nLine two", "HTML alert bodies become plain text")
 equal(Api.infoText("").length, 0, "no body is an empty string")
+
+// Parsers stop scanning untrusted arrays even when preceding entries are invalid.
+const tooManyMessages = Array.from({ length: Api.MAX_SYSTEM_MESSAGES }, () => ({ type: "notice" }))
+tooManyMessages.push({ type: "error", code: -1, text: "beyond budget" })
+equal(Api.systemErrors({ systemMessages: tooManyMessages }), [], "system-message scan budget is independent of retained errors")
+const tooManyLocations = Array.from({ length: Api.MAX_LOCATION_SCAN }, () => null)
+tooManyLocations.push({ id: "1", name: "Beyond", type: "stop" })
+equal(Api.parseLocations({ locations: tooManyLocations }), [], "location scan stops before a valid record beyond its budget")
+equal(Api.parseNearby({ locations: tooManyLocations }), [], "nearby-location scan stops before a valid record beyond its budget")
+const tooManyModes = Array.from({ length: Api.MAX_MODES_SCAN }, () => 999)
+tooManyModes.push(1)
+equal(Api.parseLocations({ locations: [{ id: "1", name: "Modes", type: "stop", modes: tooManyModes }] })[0].modes,
+  [], "location mode scan has an independent input budget")
+const tooManyLegs = Array.from({ length: Api.MAX_LEGS }, () => null)
+tooManyLegs.push({
+  origin: { name: "A", departureTimePlanned: "2026-09-02T12:00:00Z" },
+  destination: { name: "B", arrivalTimePlanned: "2026-09-02T12:10:00Z" },
+  transportation: { number: "333", product: { class: 5 } }
+})
+equal(Api.parseJourneys({ journeys: [{ legs: tooManyLegs }] }), [], "journey leg scan stops before a valid leg beyond its budget")
+
+const hostileStrings = Api.parseLocations({ locations: [{ id: "i".repeat(100), name: "Name", type: "t".repeat(80) }] })[0]
+equal([hostileStrings.id.length, hostileStrings.type.length], [64, 32], "location ids and types are clipped")
+const hostileInfo = Api.parseInfos([{ id: "i".repeat(100), urlText: "Alert", priority: "p".repeat(80), type: "t".repeat(80) }])[0]
+equal([hostileInfo.id.length, hostileInfo.priority.length, hostileInfo.type.length], [64, 32, 32], "alert ids, priorities, and types are clipped")
+const hostileDeparture = Api.parseDepartures({ stopEvents: [{
+  departureTimePlanned: "2026-09-02T12:00:00Z", transportation: {
+    number: "T4", product: { class: 1 }, properties: { RealtimeTripId: "x".repeat(200) }
+  }
+}] })[0]
+equal(hostileDeparture.tripId.length, 120, "departure trip ids are clipped")
+equal(hostileDeparture.id.length, 64, "departure ids are clipped independently of trip ids")
+equal(Api.parseLeg({
+  origin: { name: "A", departureTimePlanned: "2026-09-02T12:00:00Z" },
+  destination: { name: "B", arrivalTimePlanned: "2026-09-02T12:10:00Z" },
+  transportation: { number: "333", product: { class: 5 }, properties: { AVMSTripID: { bad: true } } }
+}).tripId, "", "non-string trip ids are not coerced")
+equal(Api.parseLeg({
+  origin: { name: "A", departureTimePlanned: "2026-09-02T12:00:00Z" },
+  destination: { name: "B", arrivalTimePlanned: "2026-09-02T12:10:00Z" },
+  transportation: { number: "333", product: { class: 5 },
+    properties: { RealtimeTripId: "", AVMSTripID: "fallback" } }
+}).tripId, "fallback", "empty realtime trip ids preserve the normal fallback")
+
+const cached = Api.normalizeCachedDepartures([
+  Object.assign({}, deps[0], { lineName: "x".repeat(500), infos: deps[0].infos.concat(Array(20).fill(deps[0].infos[0])) }),
+  { plannedMs: "not a number", mode: "train", infos: [] },
+  { departMs: multi[0].departMs, arriveMs: multi[0].arriveMs, durationSec: multi[0].durationSec,
+    legs: multi[0].legs.concat(Array(Api.MAX_LEGS).fill(multi[0].legs[0])) }
+])
+equal([cached.length, cached[0].lineName.length, cached[0].infos.length], [1, 120, Api.MAX_INFOS],
+  "cache normalization clips strings and arrays and drops malformed or over-budget entries")
 
 done("test_api")

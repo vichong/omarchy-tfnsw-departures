@@ -6,17 +6,19 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 key=$(secret-tool lookup service tfnsw-departures account apikey)
-export TFNSW_KEY="$key"
+# The key never appears on a command line or in the environment: curl reads
+# it from a config on stdin, python from a private file descriptor.
+curl_config() { printf 'header = "Authorization: apikey %s"\n' "$key"; }
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 # Metro comes from the v2 schedule: v1 stops at the original 13 stations and
 # knows nothing of the city section (Gadigal, Barangaroo, Victoria Cross...).
 for f in v1/sydneytrains v2/metro v1/lightrail/innerwest v1/lightrail/cbdandsoutheast v1/lightrail/newcastle v1/ferries/sydneyferries; do
   n=${f#*/}; n=${n//\//-}
-  curl -sS --proto =https --max-filesize 200000000 -H "Authorization: apikey $key" \
+  curl_config | curl -sS --fail --proto =https --max-filesize 200000000 --max-time 300 -K - \
     -o "$tmp/$n.zip" "https://api.transport.nsw.gov.au/${f%%/*}/gtfs/schedule/${f#*/}"
   unzip -o -q "$tmp/$n.zip" stops.txt -d "$tmp/$n"
 done
-python3 - "$tmp" <<'PY'
+python3 - "$tmp" 3< <(printf '%s' "$key") <<'PY'
 import csv, json, re, sys, os
 root = sys.argv[1]
 by_id = {}
@@ -34,14 +36,22 @@ for d, mode in [('sydneytrains', 'train'), ('metro', 'metro'), ('ferries-sydneyf
 # platform ids; the Trip Planner's global stop id differs, so resolve those
 # names through stop_finder and merge the platforms into one stop.
 import json as _json, urllib.request, urllib.parse
-key = os.environ.get('TFNSW_KEY', '')
+key = ''
+try:
+    with os.fdopen(3) as key_fd: key = key_fd.read().strip()
+except OSError:
+    pass
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, *args, **kwargs): return None
+opener = urllib.request.build_opener(NoRedirect)
 def global_stop_id(name):
     q = urllib.parse.urlencode({'outputFormat': 'rapidJSON', 'coordOutputFormat': 'EPSG:4326',
                                 'type_sf': 'any', 'name_sf': name, 'TfNSWSF': 'true', 'version': '10.2.1.42'})
     req = urllib.request.Request('https://api.transport.nsw.gov.au/v1/tp/stop_finder?' + q,
                                  headers={'Authorization': 'apikey ' + key})
-    with urllib.request.urlopen(req, timeout=30) as resp:
-        data = _json.load(resp)
+    with opener.open(req, timeout=30) as resp:
+        if resp.status != 200: return None
+        data = _json.loads(resp.read(1048576))
     for loc in data.get('locations', []):
         if loc.get('type') == 'stop' and str(loc.get('name', '')).split(',')[0].strip() == name:
             return str(loc.get('id'))

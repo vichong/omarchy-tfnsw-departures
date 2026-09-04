@@ -17,8 +17,19 @@ head_pid=$!
 # write must fail with EPIPE/SIGPIPE instead of blocking on a full pipe.
 exec 5<&- {TFNSW_PRODUCER[0]}<&- {TFNSW_PRODUCER[1]}>&-
 
+# On TERM: pass it on, give the children two seconds, then KILL them and leave.
+# The caller's own KILL would otherwise hit only this wrapper and orphan a
+# producer that ignores TERM.
 terminate_children() {
+  trap - TERM INT
   kill -TERM "$producer_pid" "$head_pid" 2>/dev/null || true
+  for _ in 1 2 3 4; do
+    kill -0 "$producer_pid" 2>/dev/null || break
+    sleep 0.5
+  done
+  kill -KILL "$producer_pid" "$head_pid" 2>/dev/null || true
+  wait "$producer_pid" "$head_pid" 2>/dev/null || true
+  exit 143
 }
 trap terminate_children TERM INT
 

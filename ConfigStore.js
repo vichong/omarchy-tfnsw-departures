@@ -9,6 +9,7 @@ var POLL_MAX = 600
 var POLL_DEFAULT = 60
 var MAX_PLACES = 12
 var MAX_WALK_MINUTES = 60
+var MAX_CONFIG_CHARS = 256 * 1024
 
 var KEYS = ["demoMode", "places", "activePlaceId", "autoPlace", "pollSeconds", "notify", "colorful"]
 
@@ -113,8 +114,12 @@ function parsePlaces(value) {
 function parse(text) {
   var raw = {}
   var error = ""
+  var source = String(text || "")
+  if (source.length >= MAX_CONFIG_CHARS) {
+    return { error: "config.json is too large", config: defaults() }
+  }
   try {
-    raw = text ? JSON.parse(text) : {}
+    raw = source ? JSON.parse(source) : {}
     if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
       raw = {}
       error = "config.json must contain a JSON object"
@@ -123,21 +128,24 @@ function parse(text) {
     raw = {}
     error = "config.json is not valid JSON"
   }
+  return { error: error, config: configFrom(raw) }
+}
+
+function defaults() { return configFrom({}) }
+
+function configFrom(raw) {
   var places = parsePlaces(raw.places)
   var active = cleanText(raw.activePlaceId, 40)
   var known = false
   for (var i = 0; i < places.length; i++) if (places[i].id === active) known = true
   return {
-    error: error,
-    config: {
-      demoMode: raw.demoMode === true,
-      places: places,
-      activePlaceId: known ? active : (places.length ? places[0].id : ""),
-      autoPlace: raw.autoPlace !== false,
-      pollSeconds: clampPoll(raw.pollSeconds),
-      notify: raw.notify !== false,
-      colorful: raw.colorful === true
-    }
+    demoMode: raw.demoMode === true,
+    places: places,
+    activePlaceId: known ? active : (places.length ? places[0].id : ""),
+    autoPlace: raw.autoPlace !== false,
+    pollSeconds: clampPoll(raw.pollSeconds),
+    notify: raw.notify !== false,
+    colorful: raw.colorful === true
   }
 }
 

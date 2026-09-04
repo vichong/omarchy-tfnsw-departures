@@ -47,6 +47,9 @@ QtObject {
   }
   // Times follow the bar clock: the clock widget's format lives in shell.json.
   readonly property string shellConfigPath: home + "/.config/omarchy/shell.json"
+  readonly property int shellConfigCap: 1024 * 1024
+  readonly property int stopsFileCap: 512 * 1024
+  readonly property int childDeadlineMs: 10000
   property bool twelveHour: false
   property FileView shellConfigFile
 
@@ -60,7 +63,8 @@ QtObject {
   }
 
   function applyClockFormat(text) {
-    var format = Model.clockFormatFromShellConfig(String(text || "").slice(0, 1024 * 1024))
+    var source = String(text || "")
+    var format = source.length >= shellConfigCap ? "" : Model.clockFormatFromShellConfig(source)
     var next = Model.clockFormatIsTwelveHour(format)
     if (next === twelveHour && configLoaded)
       return
@@ -120,7 +124,7 @@ QtObject {
 
   function applyStops(text) {
     var source = String(text || "")
-    if (utf8ByteLength(source) > 512 * 1024) {
+    if (source.length >= stopsFileCap || utf8ByteLength(source) >= stopsFileCap) {
       stops = []
       return
     }
@@ -157,12 +161,37 @@ QtObject {
   }
 
   property Process prepareDirs
+  property bool prepareDirsTimedOut: false
+  property Timer prepareDirsDeadline
+  property Timer prepareDirsKillDeadline
+
+  prepareDirsDeadline: Timer {
+    interval: root.childDeadlineMs
+    onTriggered: if (prepareDirs.running) {
+      root.prepareDirsTimedOut = true
+      prepareDirs.signal(15)
+      prepareDirsKillDeadline.restart()
+    }
+  }
+
+  prepareDirsKillDeadline: Timer {
+    interval: 2000
+    onTriggered: if (root.prepareDirsTimedOut && prepareDirs.running) prepareDirs.signal(9)
+  }
 
   prepareDirs: Process {
     command: ["mkdir", "-p", root.configDir, root.cacheDir]
     onExited: function(exitCode) {
+      var timedOut = root.prepareDirsTimedOut
+      prepareDirsDeadline.stop()
+      prepareDirsKillDeadline.stop()
+      root.prepareDirsTimedOut = false
+      if (timedOut)
+        return
       if (exitCode === 0) {
         configFile.reload()
+        root.cacheReadTimedOut = false
+        cacheReadDeadline.restart()
         cacheRead.running = true
       }
     }
@@ -320,9 +349,34 @@ QtObject {
   }
 
   property Process notification
+  property bool notificationTimedOut: false
+  property Timer notificationDeadline
+  property Timer notificationKillDeadline
+
+  notificationDeadline: Timer {
+    interval: root.childDeadlineMs
+    onTriggered: if (notification.running) {
+      root.notificationTimedOut = true
+      notification.signal(15)
+      notificationKillDeadline.restart()
+    }
+  }
+
+  notificationKillDeadline: Timer {
+    interval: 2000
+    onTriggered: if (root.notificationTimedOut && notification.running) notification.signal(9)
+  }
 
   notification: Process {
     command: []
+    onExited: {
+      var timedOut = root.notificationTimedOut
+      notificationDeadline.stop()
+      notificationKillDeadline.stop()
+      root.notificationTimedOut = false
+      if (timedOut)
+        return
+    }
   }
 
   // One debounced stop search; a newer query supersedes the old callback.
@@ -408,6 +462,23 @@ QtObject {
   property double lastManualPlaceAt: 0
   property string wifiOutput: ""
   property Process wifiProcess
+  property bool wifiTimedOut: false
+  property Timer wifiDeadline
+  property Timer wifiKillDeadline
+
+  wifiDeadline: Timer {
+    interval: root.childDeadlineMs
+    onTriggered: if (wifiProcess.running) {
+      root.wifiTimedOut = true
+      wifiProcess.signal(15)
+      wifiKillDeadline.restart()
+    }
+  }
+
+  wifiKillDeadline: Timer {
+    interval: 2000
+    onTriggered: if (root.wifiTimedOut && wifiProcess.running) wifiProcess.signal(9)
+  }
 
   wifiProcess: Process {
     command: ["bash", root.helperPath, "nmcli", "-t", "-f", "active,ssid", "dev", "wifi"]
@@ -415,11 +486,16 @@ QtObject {
       "TFNSW_MAX_BYTES": "16384"
     })
     onExited: function(exitCode) {
-      if (exitCode !== 0 && exitCode !== 90)
+      var timedOut = root.wifiTimedOut
+      wifiDeadline.stop()
+      wifiKillDeadline.stop()
+      root.wifiTimedOut = false
+      var output = root.wifiOutput
+      root.wifiOutput = ""
+      if (timedOut || exitCode !== 0 || output.length >= 16384)
         return
 
-      var lines = root.wifiOutput.split(/\r?\n/)
-      root.wifiOutput = ""
+      var lines = output.split(/\r?\n/)
       for (var i = 0; i < lines.length; i++) if (lines[i].indexOf("yes:") === 0) {
         root.lastSsid = lines[i].slice(4).replace(/\\:/g, ":")
         if (root.autoPlace && Date.now() - root.lastManualPlaceAt >= 30 * 60 * 1000) {
@@ -446,6 +522,8 @@ QtObject {
     triggeredOnStart: true
     onTriggered: {
       if (!wifiProcess.running) {
+        root.wifiTimedOut = false
+        wifiDeadline.restart()
         wifiProcess.running = true
       }
     }
@@ -454,6 +532,23 @@ QtObject {
   // Last-good board cache, bounded on both read and write.
   property string cacheOutput: ""
   property Process cacheRead
+  property bool cacheReadTimedOut: false
+  property Timer cacheReadDeadline
+  property Timer cacheReadKillDeadline
+
+  cacheReadDeadline: Timer {
+    interval: root.childDeadlineMs
+    onTriggered: if (cacheRead.running) {
+      root.cacheReadTimedOut = true
+      cacheRead.signal(15)
+      cacheReadKillDeadline.restart()
+    }
+  }
+
+  cacheReadKillDeadline: Timer {
+    interval: 2000
+    onTriggered: if (root.cacheReadTimedOut && cacheRead.running) cacheRead.signal(9)
+  }
 
   cacheRead: Process {
     command: ["bash", root.helperPath, "head", "-c", String(Api.MAX_RESPONSE_BYTES), root.cachePath]
@@ -461,20 +556,28 @@ QtObject {
       "TFNSW_MAX_BYTES": String(Api.MAX_RESPONSE_BYTES + 1)
     })
     onExited: function(exitCode) {
-      if (exitCode !== 0 || root.cacheOutput.length >= Api.MAX_RESPONSE_BYTES) {
-        root.cacheOutput = ""
+      var timedOut = root.cacheReadTimedOut
+      cacheReadDeadline.stop()
+      cacheReadKillDeadline.stop()
+      root.cacheReadTimedOut = false
+      var output = root.cacheOutput
+      root.cacheOutput = ""
+      if (timedOut || exitCode !== 0 || output.length >= Api.MAX_RESPONSE_BYTES) {
         return
       }
       try {
-        var cached = JSON.parse(root.cacheOutput)
+        var cached = JSON.parse(output)
         var sameStop = cached && root.activePlace
           && String(cached.stopId || "") === String(root.activePlace.stopId)
           && String(cached.destStopId || "") === String(root.activePlace.destStopId || "")
           && String(cached.destAddress || "") === String(root.activePlace.destAddress || "")
           && (cached.destLat === undefined || cached.destLat === root.activePlace.destLat)
           && (cached.destLon === undefined || cached.destLon === root.activePlace.destLon)
-        if (sameStop && Array.isArray(cached.departures) && cached.departures.length <= Api.MAX_STOP_EVENTS) {
-          root.departures = cached.departures
+        var cacheShapeValid = sameStop && Array.isArray(cached.departures)
+          && cached.departures.length <= Api.MAX_STOP_EVENTS
+        var normalized = cacheShapeValid ? Api.normalizeCachedDepartures(cached.departures) : []
+        if (cacheShapeValid) {
+          root.departures = normalized
           root.lastPolledMs = Number(cached.savedAt) || 0
           root.lastPolledAt = root.lastPolledMs ? new Date(root.lastPolledMs).toISOString() : ""
           root.stale = true
@@ -482,7 +585,6 @@ QtObject {
         }
       } catch (e) {
       }
-      root.cacheOutput = ""
     }
 
     stdout: StdioCollector {
@@ -495,7 +597,7 @@ QtObject {
     return {
       "demoMode": demoMode,
       "places": places.slice(),
-      "activePlaceId": activePlaceId === "temp" ? savedActivePlaceId : activePlaceId,
+      "activePlaceId": savedActivePlaceId,
       "autoPlace": autoPlace,
       "pollSeconds": pollSeconds,
       "notify": notify,
@@ -601,8 +703,22 @@ QtObject {
 
     var discardedTemp = tempPlace !== null
     tempPlace = null
-    if (wanted === activePlaceId && !discardedTemp)
+    if (wanted === activePlaceId && !discardedTemp) {
+      if (manual !== false && wanted !== savedActivePlaceId) {
+        saveConfig({ "activePlaceId": wanted })
+        return true
+      }
       return false
+    }
+
+    if (manual === false) {
+      activePlaceId = wanted
+      departures = []
+      resetBoard()
+      if (connected)
+        poll()
+      return true
+    }
 
     saveConfig({
       "activePlaceId": wanted
@@ -629,7 +745,8 @@ QtObject {
   }
 
   function keyUnsupported(key) {
-    return /["\\\x00-\x1f\x7f]/.test(String(key || ""))
+    var value = String(key || "")
+    return value.length > 256 || /["\\\x00-\x1f\x7f]/.test(value)
   }
 
   function applyConnection(key) {
@@ -1084,11 +1201,17 @@ QtObject {
     next[event.key] = true
     sentTripIds = next
     notification.command = ["omarchy-notification-send", "--app-name", "Transport NSW", "-g", Model.glyphFor(pillMode), "-u", "critical", "-r", Model.notificationTag(event.key), Model.escapeMarkup(event.headline), Model.escapeMarkup(event.body)]
-    if (!notification.running)
+    if (!notification.running) {
+      notificationTimedOut = false
+      notificationDeadline.restart()
       notification.running = true
+    }
   }
 
   function searchStops(text, callback) {
+    var rawText = String(text || "")
+    if (rawText.length > 120)
+      return
     if (quotaBlocked()) {
       searchSerial++
       searchDebounce.stop()
@@ -1101,7 +1224,7 @@ QtObject {
 
       return
     }
-    pendingSearchText = String(text || "").trim()
+    pendingSearchText = rawText.trim()
     pendingSearchCallback = callback
     searchSerial++
     if (searchRequest && typeof searchRequest.abort === "function")
@@ -1326,7 +1449,11 @@ QtObject {
     return "v" + version + " phase=" + phase + " demo=" + demoMode + " key=" + (apiKey !== "" ? "present" : "absent") + " places=" + places.length + " stops=" + stops.length + " active=" + (activePlace ? activePlace.id : "none") + " rows=" + rows.count + " journeys=" + journeyRows.count + " journeyError=" + JSON.stringify(journeyError) + " plan=" + JSON.stringify(lastPlanNote) + " nearby=" + JSON.stringify(lastNearbyNote) + " backoff=" + pollBackoff + " quotaUntil=" + (quotaBackoffUntil ? new Date(quotaBackoffUntil).toISOString() : "none") + " last=" + (lastPolledAt || "never") + " error=" + (lastErrorKind || "none")
   }
 
-  Component.onCompleted: prepareDirs.running = true
+  Component.onCompleted: {
+    prepareDirsTimedOut = false
+    prepareDirsDeadline.restart()
+    prepareDirs.running = true
+  }
   // A lookup deferred because the keyring was busy runs once it frees up
   // deferred to the next event loop turn so the busy binding never re-enters itself.
   onCredentialBusyChanged: {
